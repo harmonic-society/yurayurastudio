@@ -38,10 +38,8 @@ export default function ProjectList({ projects }: ProjectListProps) {
         <Card key={project.id}>
           <CardContent className="pt-6 space-y-3">
             <div>
-              <Link href={`/projects/${project.id}`}>
-                <a className="text-lg font-medium text-blue-500 hover:underline">
-                  {project.name}
-                </a>
+              <Link href={`/projects/${project.id}`} className="text-lg font-medium text-blue-500 hover:underline">
+                {project.name}
               </Link>
               <Badge className={`ml-2 ${statusColors[project.status]}`}>
                 {statusLabels[project.status]}
@@ -90,10 +88,8 @@ export default function ProjectList({ projects }: ProjectListProps) {
         {projects.map((project) => (
           <TableRow key={project.id}>
             <TableCell>
-              <Link href={`/projects/${project.id}`}>
-                <a className="text-blue-500 hover:underline">
-                  {project.name}
-                </a>
+              <Link href={`/projects/${project.id}`} className="text-blue-500 hover:underline">
+                {project.name}
               </Link>
             </TableCell>
             <TableCell>
