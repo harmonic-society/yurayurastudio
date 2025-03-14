@@ -44,6 +44,12 @@ const statusLabels = {
   ON_HOLD: "保留"
 } as const;
 
+const roleLabels = {
+  DIRECTOR: "ディレクター",
+  SALES: "営業担当",
+  CREATOR: "クリエイター"
+} as const;
+
 interface ProjectFormProps {
   onSubmit: (data: any) => void;
   defaultValues?: any;
@@ -76,9 +82,7 @@ export default function ProjectForm({
     queryKey: ["/api/users"]
   });
 
-  const directorUsers = users?.filter(user => user.role === "DIRECTOR") || [];
-  const salesUsers = users?.filter(user => user.role === "SALES") || [];
-  const creatorUsers = users?.filter(user => user.role === "CREATOR") || [];
+  if (!users) return null;
 
   return (
     <Form {...form}>
@@ -142,9 +146,9 @@ export default function ProjectForm({
                 </FormControl>
                 <SelectContent position="popper">
                   <SelectItem value="none">選択なし</SelectItem>
-                  {directorUsers.map((user) => (
+                  {users.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.name}
+                      {user.name}（{roleLabels[user.role]}）
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -171,9 +175,9 @@ export default function ProjectForm({
                 </FormControl>
                 <SelectContent position="popper">
                   <SelectItem value="none">選択なし</SelectItem>
-                  {salesUsers.map((user) => (
+                  {users.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.name}
+                      {user.name}（{roleLabels[user.role]}）
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -210,7 +214,7 @@ export default function ProjectForm({
                     <CommandInput placeholder="クリエイターを検索..." />
                     <CommandList className="max-h-[200px]">
                       <CommandEmpty>クリエイターが見つかりません</CommandEmpty>
-                      {creatorUsers.map((user) => {
+                      {users.map((user) => {
                         const isSelected = field.value?.includes(user.id);
                         return (
                           <CommandItem
@@ -229,7 +233,7 @@ export default function ProjectForm({
                                 isSelected ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            {user.name}
+                            {user.name}（{roleLabels[user.role]}）
                           </CommandItem>
                         );
                       })}
@@ -240,14 +244,14 @@ export default function ProjectForm({
               {field.value?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {field.value.map((userId: number) => {
-                    const user = creatorUsers.find(u => u.id === userId);
+                    const user = users.find(u => u.id === userId);
                     return user ? (
                       <Badge
                         key={user.id}
                         variant="secondary"
                         className="text-xs"
                       >
-                        {user.name}
+                        {user.name}（{roleLabels[user.role]}）
                       </Badge>
                     ) : null;
                   })}
