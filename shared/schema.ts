@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, timestamp, boolean as pgBoolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // 既存のenumとtypes定義は変更なし
 export const projectStatus = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "ON_HOLD"] as const;
@@ -28,20 +29,20 @@ export const projects = pgTable("projects", {
   totalReward: integer("total_reward").notNull(),
   rewardRules: text("reward_rules").notNull(),
   rewardDistributed: pgBoolean("reward_distributed").notNull().default(false),
-  directorId: integer("director_id"),
-  salesId: integer("sales_id"),
+  directorId: integer("director_id").references(() => users.id),
+  salesId: integer("sales_id").references(() => users.id),
 });
 
 export const projectAssignments = pgTable("project_assignments", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  userId: integer("user_id").notNull(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  userId: integer("user_id").notNull().references(() => users.id),
 });
 
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  userId: integer("user_id").notNull(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -49,13 +50,25 @@ export const comments = pgTable("comments", {
 // ポートフォリオのスキーマを修正
 export const portfolios = pgTable("portfolios", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull(),
-  userId: integer("user_id").notNull(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   url: text("url").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// スキーマのバリデーションを強化
+// リレーションの定義
+export const portfoliosRelations = relations(portfolios, ({ one }) => ({
+  project: one(projects, {
+    fields: [portfolios.projectId],
+    references: [projects.id],
+  }),
+  user: one(users, {
+    fields: [portfolios.userId],
+    references: [users.id],
+  }),
+}));
+
+// スキーマのバリデーション
 export const insertPortfolioSchema = createInsertSchema(portfolios).omit({ 
   id: true,
   createdAt: true 

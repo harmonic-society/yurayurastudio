@@ -21,12 +21,14 @@ import {
 import { insertPortfolioSchema, type User, type InsertPortfolio } from "@shared/schema";
 
 interface PortfolioFormProps {
+  projectId: number;
   onSubmit: (data: InsertPortfolio) => void;
   defaultValues?: Partial<InsertPortfolio>;
   isSubmitting?: boolean;
 }
 
 export default function PortfolioForm({
+  projectId,
   onSubmit,
   defaultValues,
   isSubmitting
@@ -34,9 +36,9 @@ export default function PortfolioForm({
   const form = useForm<InsertPortfolio>({
     resolver: zodResolver(insertPortfolioSchema),
     defaultValues: {
+      projectId,
       url: defaultValues?.url || "",
-      userId: defaultValues?.userId || undefined,
-      projectId: defaultValues?.projectId
+      userId: defaultValues?.userId
     }
   });
 
