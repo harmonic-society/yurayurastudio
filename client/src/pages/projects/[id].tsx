@@ -108,19 +108,25 @@ export default function ProjectDetails() {
 
   const createPortfolioMutation = useMutation({
     mutationFn: (data: any) => {
-      console.log('Submitting portfolio data:', data); // デバッグログ追加
-      return apiRequest("POST", `/api/projects/${projectId}/portfolios`, data);
+      const submitData = {
+        ...data,
+        projectId: Number(projectId)
+      };
+      console.log('Mutation submitting data:', submitData); 
+      return apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
     },
     onSuccess: () => {
+      console.log('Portfolio creation succeeded'); 
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/portfolios`] });
       setIsPortfolioDialogOpen(false);
+      setSelectedPortfolio(null);
       toast({
         title: "成功",
         description: "ポートフォリオが作成されました",
       });
     },
     onError: (error: any) => {
-      console.error('Portfolio creation error:', error); // デバッグログ追加
+      console.error('Portfolio creation error:', error); 
       toast({
         title: "エラー",
         description: `ポートフォリオの作成に失敗しました: ${error.message || '不明なエラー'}`,
@@ -371,33 +377,33 @@ export default function ProjectDetails() {
       </AlertDialog>
 
       <Dialog open={isPortfolioDialogOpen} onOpenChange={setIsPortfolioDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedPortfolio
-                  ? "既存の成果物の情報を更新します。"
-                  : "プロジェクトに新しい成果物を追加します。"
-                }
-              </DialogDescription>
-            </DialogHeader>
-            <PortfolioForm
-              onSubmit={(data) =>
-                selectedPortfolio
-                  ? updatePortfolioMutation.mutate(data)
-                  : createPortfolioMutation.mutate({
-                      ...data,
-                      projectId
-                    })
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedPortfolio
+                ? "既存の成果物の情報を更新します。"
+                : "プロジェクトに新しい成果物を追加します。"
               }
-              defaultValues={selectedPortfolio || undefined}
-              isSubmitting={
-                createPortfolioMutation.isPending || updatePortfolioMutation.isPending
+            </DialogDescription>
+          </DialogHeader>
+          <PortfolioForm
+            onSubmit={(data) => {
+              console.log('PortfolioForm submitted:', data); 
+              if (selectedPortfolio) {
+                updatePortfolioMutation.mutate(data);
+              } else {
+                createPortfolioMutation.mutate(data);
               }
-            />
-          </DialogContent>
+            }}
+            defaultValues={selectedPortfolio || undefined}
+            isSubmitting={
+              createPortfolioMutation.isPending || updatePortfolioMutation.isPending
+            }
+          />
+        </DialogContent>
       </Dialog>
 
       <AlertDialog

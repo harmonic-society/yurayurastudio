@@ -51,9 +51,14 @@ export default function PortfolioForm({
 
   if (!users) return null;
 
+  const handleSubmit = (data: any) => {
+    console.log('Form submitted with data:', data); // デバッグログを追加
+    onSubmit(data);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="userId"
@@ -70,7 +75,7 @@ export default function PortfolioForm({
                     <SelectValue placeholder="担当者を選択" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent position="popper">
+                <SelectContent>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.name}（{roleLabels[user.role]}）
