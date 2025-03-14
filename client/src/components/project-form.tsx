@@ -51,6 +51,8 @@ export default function ProjectForm({
       history: defaultValues?.history || "",
       totalReward: defaultValues?.totalReward || 0,
       rewardRules: defaultValues?.rewardRules || "",
+      directorId: defaultValues?.directorId || "",
+      salesId: defaultValues?.salesId || "",
       assignedUsers: defaultValues?.assignedUsers || []
     }
   });
@@ -59,13 +61,12 @@ export default function ProjectForm({
     queryKey: ["/api/users"]
   });
 
-  const handleSubmit = (data: any) => {
-    onSubmit(data);
-  };
+  const directorUsers = users?.filter(user => user.role === "DIRECTOR") || [];
+  const salesUsers = users?.filter(user => user.role === "SALES") || [];
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -99,6 +100,64 @@ export default function ProjectForm({
                   {projectStatus.map((status) => (
                     <SelectItem key={status} value={status}>
                       {statusLabels[status]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="directorId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>担当ディレクター</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                value={field.value?.toString() || ""}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="ディレクターを選択" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">選択なし</SelectItem>
+                  {directorUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id.toString()}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="salesId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>担当営業</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                value={field.value?.toString() || ""}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="営業担当を選択" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">選択なし</SelectItem>
+                  {salesUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id.toString()}>
+                      {user.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

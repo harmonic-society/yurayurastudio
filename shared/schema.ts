@@ -26,6 +26,8 @@ export const projects = pgTable("projects", {
   totalReward: integer("total_reward").notNull(),
   rewardRules: text("reward_rules").notNull(),
   rewardDistributed: boolean("reward_distributed").notNull().default(false),
+  directorId: integer("director_id"),
+  salesId: integer("sales_id"),
 });
 
 export const projectAssignments = pgTable("project_assignments", {
@@ -47,6 +49,8 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
   rewardDistributed: true 
 }).extend({
   assignedUsers: z.array(z.number()),
+  directorId: z.number().optional(),
+  salesId: z.number().optional(),
   dueDate: z.coerce.date() 
 });
 

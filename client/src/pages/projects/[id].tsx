@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { type Project } from "@shared/schema";
+import { type Project, type User } from "@shared/schema"; // Added User type import
 import ProjectForm from "@/components/project-form";
 import CommentSection from "@/components/comment-section";
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,15 @@ export default function ProjectDetails() {
     },
   });
 
+  const { data: users } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const getUserName = (userId: number | null | undefined) => {
+    if (!userId) return "未設定";
+    return users?.find((user) => user.id === userId)?.name || "不明なユーザー";
+  };
+
   if (isLoading) {
     return <div>読み込み中...</div>;
   }
@@ -135,6 +144,14 @@ export default function ProjectDetails() {
             <div>
               <p className="text-sm text-muted-foreground">状態</p>
               <Badge>{statusLabels[project.status]}</Badge>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">担当ディレクター</p>
+              <p>{getUserName(project.directorId)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">担当営業</p>
+              <p>{getUserName(project.salesId)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">納期</p>
