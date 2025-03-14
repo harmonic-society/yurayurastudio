@@ -10,6 +10,10 @@ export type ProjectStatus = (typeof projectStatus)[number];
 export const userRoles = ["DIRECTOR", "SALES", "CREATOR"] as const;
 export type UserRole = (typeof userRoles)[number];
 
+// work_typeの定義を追加
+export const workTypes = ["DESIGN", "DEVELOPMENT", "WRITING", "VIDEO", "PHOTO"] as const;
+export type WorkType = (typeof workTypes)[number];
+
 // テーブル定義
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -47,10 +51,6 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// work_typeの定義を追加
-export const workTypes = ["DESIGN", "DEVELOPMENT", "WRITING", "VIDEO", "PHOTO"] as const;
-export type WorkType = (typeof workTypes)[number];
-
 // ポートフォリオのスキーマを修正
 export const portfolios = pgTable("portfolios", {
   id: serial("id").primaryKey(),
@@ -59,7 +59,6 @@ export const portfolios = pgTable("portfolios", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   url: text("url").notNull(),
-  imageUrl: text("image_url").notNull(),
   workType: text("work_type", { enum: workTypes }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -86,7 +85,6 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   title: z.string().min(1, "タイトルは必須です"),
   description: z.string().min(1, "説明は必須です"),
   url: z.string().url("有効なURLを入力してください"),
-  imageUrl: z.string().url("有効な画像URLを入力してください"),
   workType: z.enum(workTypes, {
     errorMap: () => ({ message: "作業種別を選択してください" })
   })

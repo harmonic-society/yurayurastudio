@@ -23,9 +23,10 @@ export default function PortfolioList({
         <Card key={portfolio.id}>
           <div className="relative aspect-video">
             <img
-              src={portfolio.imageUrl}
+              src={`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(portfolio.url)}&screenshot=true`}
               alt={`成果物 ${portfolio.title}`}
               className="object-cover w-full h-full rounded-t-lg"
+              onError={(e) => e.currentTarget.style.display = 'none'}
             />
           </div>
           <CardContent className="pt-4">
