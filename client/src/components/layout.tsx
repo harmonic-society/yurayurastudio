@@ -1,13 +1,19 @@
 import { Link, useLocation } from "wouter";
+import { useState } from "react";
 import { 
   LayoutDashboard, 
   FolderKanban,
   Users,
-  Settings
+  Settings,
+  Menu,
+  X
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigation = [
     { name: "ダッシュボード", href: "/", icon: LayoutDashboard },
@@ -16,40 +22,78 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: "設定", href: "/settings", icon: Settings },
   ];
 
+  const NavLinks = () => (
+    <nav className="space-y-1">
+      {navigation.map((item) => {
+        const isActive = location === item.href;
+        return (
+          <Link key={item.name} href={item.href}>
+            <a
+              className={`flex items-center px-4 py-2 text-sm rounded-md transition-colors ${
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <item.icon className="h-5 w-5 mr-3" />
+              {item.name}
+            </a>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex h-screen">
+      {/* モバイルメニューボタン */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-border z-50 flex items-center px-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
+        </Button>
+        <h1 className="ml-4 text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          Yura Yura STUDIO
+        </h1>
+      </div>
+
+      <div className="flex h-screen pt-16 lg:pt-0">
+        {/* オーバーレイ */}
+        {isMobileMenuOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 lg:hidden z-40"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+
         {/* サイドバー */}
-        <div className="w-64 bg-sidebar border-r border-border">
-          <div className="h-16 flex items-center px-6 border-b border-border">
+        <div
+          className={cn(
+            "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-sidebar border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <div className="hidden lg:flex h-16 items-center px-6 border-b border-border">
             <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               Yura Yura STUDIO
             </h1>
           </div>
-          <nav className="p-4 space-y-1">
-            {navigation.map((item) => {
-              const isActive = location === item.href;
-              return (
-                <Link key={item.name} href={item.href}>
-                  <a
-                    className={`flex items-center px-4 py-2 text-sm rounded-md transition-colors ${
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                    }`}
-                  >
-                    <item.icon className="h-5 w-5 mr-3" />
-                    {item.name}
-                  </a>
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="p-4">
+            <NavLinks />
+          </div>
         </div>
 
         {/* メインコンテンツ */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-hidden">
+          <main className="overflow-y-auto p-4 md:p-8 h-full">
             {children}
           </main>
         </div>

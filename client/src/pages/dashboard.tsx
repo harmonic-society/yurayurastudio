@@ -40,13 +40,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">ダッシュボード</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">ダッシュボード</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           全てのプロジェクトの概要と進捗状況
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -54,7 +54,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{projects.length}</div>
+            <div className="text-xl md:text-2xl font-bold">{projects.length}</div>
           </CardContent>
         </Card>
 
@@ -65,7 +65,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl md:text-2xl font-bold">
               {statusCounts["IN_PROGRESS"] || 0}
             </div>
           </CardContent>
@@ -78,7 +78,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl md:text-2xl font-bold">
               {statusCounts["COMPLETED"] || 0}
             </div>
           </CardContent>
@@ -91,7 +91,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-xl md:text-2xl font-bold">
               {statusCounts["ON_HOLD"] || 0}
             </div>
           </CardContent>
@@ -103,7 +103,7 @@ export default function Dashboard() {
           <CardTitle>プロジェクト状況の分布</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
+          <div className="h-[300px] md:h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -113,7 +113,9 @@ export default function Dashboard() {
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
-                  label
+                  label={({ name, percent }) => 
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
                 >
                   {pieData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

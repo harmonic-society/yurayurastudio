@@ -62,7 +62,7 @@ export default function Team() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => 
+    mutationFn: (data: any) =>
       apiRequest("PATCH", `/api/users/${selectedUser?.id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -108,10 +108,10 @@ export default function Team() {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">チームメンバー</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">チームメンバー</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             プロジェクトに携わるメンバー一覧
           </p>
         </div>
@@ -121,20 +121,20 @@ export default function Team() {
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {users?.map((user) => (
           <Card key={user.id}>
             <CardHeader className="flex flex-row items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <Users className="h-6 w-6 text-primary" />
               </div>
-              <div className="flex-1">
-                <CardTitle className="text-lg">{user.name}</CardTitle>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-lg truncate">{user.name}</CardTitle>
+                <p className="text-sm text-muted-foreground truncate">
                   {roleLabels[user.role as keyof typeof roleLabels]}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -158,7 +158,7 @@ export default function Team() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm">
+              <p className="text-sm truncate">
                 <span className="text-muted-foreground">メール：</span>
                 {user.email}
               </p>
@@ -192,7 +192,10 @@ export default function Team() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>メンバーの削除</AlertDialogTitle>
