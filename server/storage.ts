@@ -13,14 +13,17 @@ export interface IStorage {
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, project: Partial<InsertProject>): Promise<Project>;
   deleteProject(id: number): Promise<void>;
-  
+
   // Comments
   getProjectComments(projectId: number): Promise<Comment[]>;
   createComment(comment: InsertComment): Promise<Comment>;
-  
+
   // Users
   getUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
+  createUser(user: Omit<User, "id">): Promise<User>;
+  updateUser(id: number, user: Partial<Omit<User, "id">>): Promise<User>;
+  deleteUser(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -29,6 +32,7 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private currentProjectId = 1;
   private currentCommentId = 1;
+  private currentUserId = 4; // Since we have 3 initial users
 
   constructor() {
     this.projects = new Map();
@@ -62,7 +66,7 @@ export class MemStorage implements IStorage {
   async updateProject(id: number, project: Partial<InsertProject>): Promise<Project> {
     const existing = await this.getProject(id);
     if (!existing) throw new Error("Project not found");
-    
+
     const updated = { ...existing, ...project };
     this.projects.set(id, updated);
     return updated;
@@ -94,6 +98,26 @@ export class MemStorage implements IStorage {
 
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
+  }
+
+  async createUser(user: Omit<User, "id">): Promise<User> {
+    const id = this.currentUserId++;
+    const newUser: User = { ...user, id };
+    this.users.set(id, newUser);
+    return newUser;
+  }
+
+  async updateUser(id: number, user: Partial<Omit<User, "id">>): Promise<User> {
+    const existing = await this.getUser(id);
+    if (!existing) throw new Error("User not found");
+
+    const updated = { ...existing, ...user };
+    this.users.set(id, updated);
+    return updated;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    this.users.delete(id);
   }
 }
 

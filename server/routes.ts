@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, insertCommentSchema } from "@shared/schema";
+import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema } from "@shared/schema";
 import { ZodError } from "zod";
 
 export async function registerRoutes(app: Express) {
@@ -87,6 +87,52 @@ export async function registerRoutes(app: Express) {
   app.get("/api/users", async (_req, res) => {
     const users = await storage.getUsers();
     res.json(users);
+  });
+
+  // Get a single user
+  app.get("/api/users/:id", async (req, res) => {
+    const user = await storage.getUser(Number(req.params.id));
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    res.json(user);
+  });
+
+  // Create a user
+  app.post("/api/users", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const user = await storage.createUser(userData);
+      res.status(201).json(user);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create user" });
+      }
+    }
+  });
+
+  // Update a user
+  app.patch("/api/users/:id", async (req, res) => {
+    try {
+      const userData = updateUserSchema.parse(req.body);
+      const user = await storage.updateUser(Number(req.params.id), userData);
+      res.json(user);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update user" });
+      }
+    }
+  });
+
+  // Delete a user
+  app.delete("/api/users/:id", async (req, res) => {
+    await storage.deleteUser(Number(req.params.id));
+    res.status(204).send();
   });
 
   return httpServer;

@@ -5,10 +5,13 @@ import { z } from "zod";
 export const projectStatus = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "ON_HOLD"] as const;
 export type ProjectStatus = (typeof projectStatus)[number];
 
+export const userRoles = ["DIRECTOR", "SALES", "CREATOR"] as const;
+export type UserRole = (typeof userRoles)[number];
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  role: text("role").notNull(), // DIRECTOR, SALES, CREATOR
+  role: text("role", { enum: userRoles }).notNull(),
   email: text("email").notNull().unique(),
 });
 
@@ -51,8 +54,18 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
   createdAt: true 
 });
 
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true
+}).extend({
+  role: z.enum(userRoles)
+});
+
+export const updateUserSchema = insertUserSchema.partial();
+
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Comment = typeof comments.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUser = z.infer<typeof updateUserSchema>;
