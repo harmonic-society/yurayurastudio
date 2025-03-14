@@ -32,12 +32,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               className={cn(
                 "flex items-center px-4 py-3 text-base rounded-md transition-colors",
                 isActive
-                  ? "bg-primary text-primary-foreground font-medium"
+                  ? "bg-primary text-primary-foreground font-semibold"
                   : "text-foreground hover:bg-accent hover:text-accent-foreground"
               )}
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              <item.icon className="h-5 w-5 mr-3" />
+              <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
               {item.name}
             </a>
           </Link>
