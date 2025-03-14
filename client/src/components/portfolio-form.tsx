@@ -38,6 +38,7 @@ export default function PortfolioForm({
     defaultValues: {
       projectId,
       url: defaultValues?.url || "",
+      title: defaultValues?.title || "",
       userId: defaultValues?.userId
     }
   });
@@ -56,7 +57,6 @@ export default function PortfolioForm({
 
   const handleSubmit = async (data: InsertPortfolio) => {
     try {
-      console.log('Portfolio form - Submitting:', data);
       await onSubmit(data);
     } catch (error) {
       console.error('Portfolio form submission error:', error);
@@ -93,6 +93,20 @@ export default function PortfolioForm({
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>タイトル</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="成果物のタイトルを入力" />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

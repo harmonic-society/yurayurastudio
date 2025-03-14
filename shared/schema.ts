@@ -52,6 +52,7 @@ export const portfolios = pgTable("portfolios", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
   userId: integer("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
   url: text("url").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -75,6 +76,7 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
 }).extend({
   projectId: z.number().int().positive(),
   userId: z.number().int().positive(),
+  title: z.string().min(1, "タイトルは必須です"),
   url: z.string().url("有効なURLを入力してください")
 });
 
