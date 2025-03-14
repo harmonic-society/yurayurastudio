@@ -115,15 +115,13 @@ export default function ProjectDetails() {
           url: data.url
         };
         console.log('Creating portfolio with data:', submitData);
-        const response = await apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
-        return response;
+        return await apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
       } catch (error) {
         console.error('Portfolio creation error:', error);
         throw error;
       }
     },
     onSuccess: () => {
-      console.log('Portfolio creation succeeded');
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/portfolios`] });
       setIsPortfolioDialogOpen(false);
       setSelectedPortfolio(null);
@@ -398,7 +396,7 @@ export default function ProjectDetails() {
           </DialogHeader>
           <PortfolioForm
             onSubmit={(data) => {
-              console.log('Portfolio form submission:', data);
+              console.log('Portfolio form submitted:', data);
               if (selectedPortfolio) {
                 updatePortfolioMutation.mutate(data);
               } else {

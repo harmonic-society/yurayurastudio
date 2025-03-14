@@ -18,11 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { insertPortfolioSchema, type User } from "@shared/schema";
+import { insertPortfolioSchema, type User, type InsertPortfolio } from "@shared/schema";
 
 interface PortfolioFormProps {
-  onSubmit: (data: any) => void;
-  defaultValues?: any;
+  onSubmit: (data: InsertPortfolio) => void;
+  defaultValues?: Partial<InsertPortfolio>;
   isSubmitting?: boolean;
 }
 
@@ -31,11 +31,12 @@ export default function PortfolioForm({
   defaultValues,
   isSubmitting
 }: PortfolioFormProps) {
-  const form = useForm({
+  const form = useForm<InsertPortfolio>({
     resolver: zodResolver(insertPortfolioSchema),
     defaultValues: {
       url: defaultValues?.url || "",
-      userId: defaultValues?.userId?.toString() || "",
+      userId: defaultValues?.userId || undefined,
+      projectId: defaultValues?.projectId
     }
   });
 
@@ -51,18 +52,15 @@ export default function PortfolioForm({
 
   if (!users) return null;
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: InsertPortfolio) => {
     try {
-      console.log('Portfolio form - Raw data:', data);
-      await onSubmit({
-        userId: Number(data.userId),
-        url: data.url,
-      });
+      console.log('Portfolio form - Submitting:', data);
+      await onSubmit(data);
     } catch (error) {
       console.error('Portfolio form submission error:', error);
       form.setError('root', {
         type: 'manual',
-        message: 'フォームの送信に失敗しました',
+        message: 'フォームの送信に失敗しました'
       });
     }
   };
@@ -77,9 +75,8 @@ export default function PortfolioForm({
             <FormItem>
               <FormLabel>担当者</FormLabel>
               <Select
-                onValueChange={field.onChange}
-                value={field.value}
-                defaultValue={field.value}
+                onValueChange={(value) => field.onChange(Number(value))}
+                value={field.value?.toString()}
               >
                 <FormControl>
                   <SelectTrigger className="w-full">
