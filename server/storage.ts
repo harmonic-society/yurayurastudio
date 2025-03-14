@@ -1,10 +1,17 @@
 import { 
+  projects,
+  comments,
+  users,
+  projectAssignments,
   type Project, 
   type InsertProject,
   type Comment,
   type InsertComment,
-  type User
+  type User,
+  type InsertUser
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Projects
@@ -26,99 +33,119 @@ export interface IStorage {
   deleteUser(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private projects: Map<number, Project>;
-  private comments: Map<number, Comment>;
-  private users: Map<number, User>;
-  private currentProjectId = 1;
-  private currentCommentId = 1;
-  private currentUserId = 4; // Since we have 3 initial users
-
-  constructor() {
-    this.projects = new Map();
-    this.comments = new Map();
-    this.users = new Map([
-      [1, { id: 1, name: "John Director", role: "DIRECTOR", email: "john@example.com" }],
-      [2, { id: 2, name: "Sarah Sales", role: "SALES", email: "sarah@example.com" }],
-      [3, { id: 3, name: "Mike Creator", role: "CREATOR", email: "mike@example.com" }]
-    ]);
-  }
-
+export class DatabaseStorage implements IStorage {
   async getProjects(): Promise<Project[]> {
-    return Array.from(this.projects.values());
+    return await db.select().from(projects);
   }
 
   async getProject(id: number): Promise<Project | undefined> {
-    return this.projects.get(id);
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project;
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {
-    const id = this.currentProjectId++;
-    const project: Project = {
-      ...insertProject,
-      id,
-      rewardDistributed: false
-    };
-    this.projects.set(id, project);
+    const { assignedUsers, ...projectData } = insertProject;
+    const [project] = await db.insert(projects).values(projectData).returning();
+
+    // Insert project assignments
+    if (assignedUsers?.length) {
+      await db.insert(projectAssignments).values(
+        assignedUsers.map(userId => ({
+          projectId: project.id,
+          userId
+        }))
+      );
+    }
+
     return project;
   }
 
   async updateProject(id: number, project: Partial<InsertProject>): Promise<Project> {
-    const existing = await this.getProject(id);
-    if (!existing) throw new Error("Project not found");
+    const { assignedUsers, ...projectData } = project;
+    const [updated] = await db
+      .update(projects)
+      .set(projectData)
+      .where(eq(projects.id, id))
+      .returning();
 
-    const updated = { ...existing, ...project };
-    this.projects.set(id, updated);
+    // Update project assignments if provided
+    if (assignedUsers) {
+      // Delete existing assignments
+      await db.delete(projectAssignments).where(eq(projectAssignments.projectId, id));
+
+      // Insert new assignments
+      if (assignedUsers.length) {
+        await db.insert(projectAssignments).values(
+          assignedUsers.map(userId => ({
+            projectId: id,
+            userId
+          }))
+        );
+      }
+    }
+
     return updated;
   }
 
   async deleteProject(id: number): Promise<void> {
-    this.projects.delete(id);
+    // Delete project assignments first
+    await db.delete(projectAssignments).where(eq(projectAssignments.projectId, id));
+    // Delete project comments
+    await db.delete(comments).where(eq(comments.projectId, id));
+    // Delete project
+    await db.delete(projects).where(eq(projects.id, id));
   }
 
   async getProjectComments(projectId: number): Promise<Comment[]> {
-    return Array.from(this.comments.values())
-      .filter(comment => comment.projectId === projectId);
+    return await db
+      .select()
+      .from(comments)
+      .where(eq(comments.projectId, projectId))
+      .orderBy(comments.createdAt);
   }
 
-  async createComment(insertComment: InsertComment): Promise<Comment> {
-    const id = this.currentCommentId++;
-    const comment: Comment = {
-      ...insertComment,
-      id,
-      createdAt: new Date()
-    };
-    this.comments.set(id, comment);
-    return comment;
+  async createComment(comment: InsertComment): Promise<Comment> {
+    const [newComment] = await db
+      .insert(comments)
+      .values(comment)
+      .returning();
+    return newComment;
   }
 
   async getUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+    return await db.select().from(users);
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async createUser(user: Omit<User, "id">): Promise<User> {
-    const id = this.currentUserId++;
-    const newUser: User = { ...user, id };
-    this.users.set(id, newUser);
+    const [newUser] = await db
+      .insert(users)
+      .values(user)
+      .returning();
     return newUser;
   }
 
   async updateUser(id: number, user: Partial<Omit<User, "id">>): Promise<User> {
-    const existing = await this.getUser(id);
-    if (!existing) throw new Error("User not found");
-
-    const updated = { ...existing, ...user };
-    this.users.set(id, updated);
+    const [updated] = await db
+      .update(users)
+      .set(user)
+      .where(eq(users.id, id))
+      .returning();
     return updated;
   }
 
   async deleteUser(id: number): Promise<void> {
-    this.users.delete(id);
+    // Delete user's project assignments
+    await db.delete(projectAssignments).where(eq(projectAssignments.userId, id));
+    // Delete user's comments
+    await db.delete(comments).where(eq(comments.userId, id));
+    // Delete user
+    await db.delete(users).where(eq(users.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
