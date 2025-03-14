@@ -23,7 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="w-64 bg-sidebar border-r border-border">
           <div className="h-16 flex items-center px-6 border-b border-border">
             <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              プロジェクト管理
+              Yura Yura STUDIO
             </h1>
           </div>
           <nav className="p-4 space-y-1">
