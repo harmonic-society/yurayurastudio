@@ -42,7 +42,8 @@ export default function PortfolioForm({
       title: defaultValues?.title || "",
       description: defaultValues?.description || "",
       url: defaultValues?.url || "",
-      userId: defaultValues?.userId
+      userId: defaultValues?.userId,
+      workType: defaultValues?.workType
     }
   });
 
@@ -56,6 +57,14 @@ export default function PortfolioForm({
     CREATOR: "クリエイター"
   } as const;
 
+  const workTypeLabels = {
+    DESIGN: "デザイン",
+    DEVELOPMENT: "開発",
+    WRITING: "ライティング",
+    VIDEO: "動画",
+    PHOTO: "写真"
+  } as const;
+
   if (!users) return null;
 
   const handleSubmit = async (data: InsertPortfolio) => {
@@ -65,7 +74,8 @@ export default function PortfolioForm({
         userId: Number(data.userId),
         title: data.title.trim(),
         description: data.description.trim(),
-        url: data.url.trim()
+        url: data.url.trim(),
+        workType: data.workType
       };
       console.log('Portfolio form - Submitting data:', submitData);
       await onSubmit(submitData);
@@ -108,6 +118,34 @@ export default function PortfolioForm({
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.name}（{roleLabels[user.role]}）
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="workType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>作業種別<span className="text-destructive">*</span></FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="作業種別を選択" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.entries(workTypeLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
                     </SelectItem>
                   ))}
                 </SelectContent>

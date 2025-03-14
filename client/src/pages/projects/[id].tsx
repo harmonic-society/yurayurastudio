@@ -114,7 +114,8 @@ export default function ProjectDetails() {
           userId: Number(data.userId),
           title: data.title,
           description: data.description,
-          url: data.url
+          url: data.url,
+          workType: data.workType
         };
         console.log('Creating portfolio with data:', submitData);
         return await apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
