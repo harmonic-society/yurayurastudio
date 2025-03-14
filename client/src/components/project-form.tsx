@@ -51,8 +51,8 @@ export default function ProjectForm({
       history: defaultValues?.history || "",
       totalReward: defaultValues?.totalReward || 0,
       rewardRules: defaultValues?.rewardRules || "",
-      directorId: defaultValues?.directorId || "",
-      salesId: defaultValues?.salesId || "",
+      directorId: defaultValues?.directorId || undefined,
+      salesId: defaultValues?.salesId || undefined,
       assignedUsers: defaultValues?.assignedUsers || []
     }
   });
@@ -116,8 +116,8 @@ export default function ProjectForm({
             <FormItem>
               <FormLabel>担当ディレクター</FormLabel>
               <Select
-                onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
-                value={field.value?.toString() || ""}
+                onValueChange={(value) => field.onChange(value === "none" ? undefined : parseInt(value))}
+                value={field.value?.toString() || "none"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -125,7 +125,7 @@ export default function ProjectForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">選択なし</SelectItem>
+                  <SelectItem value="none">選択なし</SelectItem>
                   {directorUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.name}
@@ -145,8 +145,8 @@ export default function ProjectForm({
             <FormItem>
               <FormLabel>担当営業</FormLabel>
               <Select
-                onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
-                value={field.value?.toString() || ""}
+                onValueChange={(value) => field.onChange(value === "none" ? undefined : parseInt(value))}
+                value={field.value?.toString() || "none"}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -154,7 +154,7 @@ export default function ProjectForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">選択なし</SelectItem>
+                  <SelectItem value="none">選択なし</SelectItem>
                   {salesUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.name}
