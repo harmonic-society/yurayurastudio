@@ -252,11 +252,11 @@ export default function PortfolioForm({
           )}
         />
 
-        <div className="space-y-2">
+        <div className="space-y-2 pt-4">
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full sm:w-auto"
+            className="w-full"
           >
             {isSubmitting ? "保存中..." : "成果物を保存"}
           </Button>

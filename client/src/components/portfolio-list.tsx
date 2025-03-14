@@ -43,9 +43,9 @@ export default function PortfolioList({
   }, [portfolios]);
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       {portfolios.map((portfolio) => (
-        <Card key={portfolio.id}>
+        <Card key={portfolio.id} className="flex flex-col">
           <div className="relative aspect-video">
             {previewImages[portfolio.id] ? (
               <img
@@ -60,19 +60,20 @@ export default function PortfolioList({
               </div>
             )}
           </div>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <h3 className="font-medium">{portfolio.title}</h3>
+          <CardContent className="flex-1 pt-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium truncate">{portfolio.title}</h3>
                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                   {portfolio.description}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1 flex-shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => onEdit(portfolio)}
+                  className="h-8 w-8"
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
@@ -80,6 +81,7 @@ export default function PortfolioList({
                   variant="ghost"
                   size="icon"
                   onClick={() => onDelete(portfolio)}
+                  className="h-8 w-8"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -93,7 +95,7 @@ export default function PortfolioList({
                 href={portfolio.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-blue-500 hover:underline"
+                className="text-xs text-blue-500 hover:underline inline-block mt-2"
               >
                 成果物を見る
               </a>

@@ -62,9 +62,9 @@ export default function Portfolios() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {portfolios?.map((portfolio) => (
-          <Card key={portfolio.id}>
+          <Card key={portfolio.id} className="flex flex-col">
             <div className="relative aspect-video">
               {previewImages[portfolio.id] ? (
                 <img
@@ -79,8 +79,8 @@ export default function Portfolios() {
                 </div>
               )}
             </div>
-            <CardContent className="pt-4">
-              <h3 className="font-medium">{portfolio.title}</h3>
+            <CardContent className="flex-1 pt-4">
+              <h3 className="font-medium line-clamp-1">{portfolio.title}</h3>
               <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                 {portfolio.description}
               </p>
@@ -98,7 +98,7 @@ export default function Portfolios() {
                   href={portfolio.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-500 hover:underline"
+                  className="text-xs text-blue-500 hover:underline inline-block mt-2"
                 >
                   成果物を見る
                 </a>
