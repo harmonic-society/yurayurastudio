@@ -9,6 +9,7 @@ import ProjectList from "@/pages/projects";
 import ProjectDetails from "@/pages/projects/[id]";
 import Team from "@/pages/team";
 import Settings from "@/pages/settings";
+import Portfolios from "@/pages/portfolios";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/projects" component={ProjectList} />
         <Route path="/projects/:id" component={ProjectDetails} />
+        <Route path="/portfolios" component={Portfolios} />
         <Route path="/team" component={Team} />
         <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
