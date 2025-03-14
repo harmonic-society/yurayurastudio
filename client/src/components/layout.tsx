@@ -29,11 +29,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         return (
           <Link key={item.name} href={item.href}>
             <a
-              className={`flex items-center px-4 py-2 text-sm rounded-md transition-colors ${
+              className={cn(
+                "flex items-center px-4 py-3 text-base rounded-md transition-colors",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              }`}
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : "text-foreground hover:bg-accent hover:text-accent-foreground"
+              )}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               <item.icon className="h-5 w-5 mr-3" />
@@ -48,11 +49,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       {/* モバイルメニューボタン */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-border z-50 flex items-center px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-50 flex items-center px-4">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="text-foreground"
         >
           {isMobileMenuOpen ? (
             <X className="h-6 w-6" />
@@ -69,7 +71,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* オーバーレイ */}
         {isMobileMenuOpen && (
           <div
-            className="fixed inset-0 bg-black/50 lg:hidden z-40"
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm lg:hidden z-40"
             onClick={() => setIsMobileMenuOpen(false)}
           />
         )}
@@ -77,7 +79,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* サイドバー */}
         <div
           className={cn(
-            "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-sidebar border-r border-border transform transition-transform duration-200 ease-in-out lg:translate-x-0",
+            "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-background border-r border-border transform transition-transform duration-300 ease-in-out lg:translate-x-0",
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
