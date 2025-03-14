@@ -35,12 +35,34 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getProjects(): Promise<Project[]> {
-    return await db.select().from(projects);
+    const allProjects = await db.select().from(projects);
+    const allAssignments = await db.select().from(projectAssignments);
+
+    return allProjects.map(project => ({
+      ...project,
+      assignedUsers: allAssignments
+        .filter(a => a.projectId === project.id)
+        .map(a => a.userId)
+    }));
   }
 
   async getProject(id: number): Promise<Project | undefined> {
     const [project] = await db.select().from(projects).where(eq(projects.id, id));
-    return project;
+
+    if (project) {
+      // Get assigned users
+      const assignments = await db
+        .select()
+        .from(projectAssignments)
+        .where(eq(projectAssignments.projectId, id));
+
+      return {
+        ...project,
+        assignedUsers: assignments.map(a => a.userId)
+      };
+    }
+
+    return undefined;
   }
 
   async createProject(insertProject: InsertProject): Promise<Project> {
