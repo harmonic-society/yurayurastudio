@@ -20,6 +20,14 @@ export default function Portfolios() {
     return users?.find(u => u.id === userId)?.name || "不明なユーザー";
   };
 
+  const workTypeLabels = {
+    DESIGN: "デザイン",
+    DEVELOPMENT: "開発",
+    WRITING: "ライティング",
+    VIDEO: "動画",
+    PHOTO: "写真"
+  } as const;
+
   return (
     <div className="space-y-8">
       <div>
@@ -34,9 +42,10 @@ export default function Portfolios() {
           <Card key={portfolio.id}>
             <div className="relative aspect-video">
               <img
-                src={portfolio.imageUrl}
+                src={`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(portfolio.url)}&screenshot=true`}
                 alt={`成果物 ${portfolio.title}`}
                 className="object-cover w-full h-full rounded-t-lg"
+                onError={(e) => e.currentTarget.style.display = 'none'}
               />
             </div>
             <CardContent className="pt-4">
@@ -47,6 +56,9 @@ export default function Portfolios() {
               <div className="mt-4 space-y-1">
                 <p className="text-sm text-muted-foreground">
                   担当: {getUserName(portfolio.userId)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  作業種別: {workTypeLabels[portfolio.workType]}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   作成日: {format(new Date(portfolio.createdAt), "yyyy年M月d日")}
