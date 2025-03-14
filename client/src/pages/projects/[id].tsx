@@ -112,7 +112,7 @@ export default function ProjectDetails() {
       const submitData = {
         projectId,
         userId: data.userId,
-        imageUrl: data.imageUrl
+        url: data.url
       };
       console.log('Creating portfolio - Submit data:', submitData);
       return apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);

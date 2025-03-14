@@ -34,7 +34,7 @@ export default function PortfolioForm({
   const form = useForm({
     resolver: zodResolver(insertPortfolioSchema),
     defaultValues: {
-      imageUrl: defaultValues?.imageUrl || "",
+      url: defaultValues?.url || "",
       userId: defaultValues?.userId?.toString() || "",
     }
   });
@@ -55,7 +55,7 @@ export default function PortfolioForm({
     console.log('Portfolio form - Raw data:', data);
     const formattedData = {
       userId: parseInt(data.userId),
-      imageUrl: data.imageUrl
+      url: data.url
     };
     console.log('Portfolio form - Formatted data:', formattedData);
     onSubmit(formattedData);
@@ -95,12 +95,12 @@ export default function PortfolioForm({
 
         <FormField
           control={form.control}
-          name="imageUrl"
+          name="url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>成果物URL</FormLabel>
+              <FormLabel>成果物のURL</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="成果物のURLを入力" />
+                <Input {...field} placeholder="成果物へのリンクを入力" />
               </FormControl>
               <FormMessage />
             </FormItem>

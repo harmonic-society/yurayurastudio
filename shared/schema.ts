@@ -9,7 +9,7 @@ export type ProjectStatus = (typeof projectStatus)[number];
 export const userRoles = ["DIRECTOR", "SALES", "CREATOR"] as const;
 export type UserRole = (typeof userRoles)[number];
 
-// 既存のテーブル定義は変更なし
+// テーブル定義
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -46,12 +46,12 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// ポートフォリオのスキーマを簡素化
+// ポートフォリオのスキーマを修正
 export const portfolios = pgTable("portfolios", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),
   userId: integer("user_id").notNull(),
-  imageUrl: text("image_url").notNull(),
+  url: text("url").notNull(), // imageUrlをurlに変更
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
