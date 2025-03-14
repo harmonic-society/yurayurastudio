@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { type Portfolio, type User } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
+import { useState, useEffect } from "react";
 
 export default function Portfolios() {
   const { data: portfolios, isLoading: isLoadingPortfolios } = useQuery<Portfolio[]>({
@@ -11,6 +12,30 @@ export default function Portfolios() {
   const { data: users } = useQuery<User[]>({
     queryKey: ["/api/users"]
   });
+
+  const [previewImages, setPreviewImages] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    const fetchOgpImages = async () => {
+      if (!portfolios) return;
+
+      const images: Record<number, string> = {};
+      for (const portfolio of portfolios) {
+        try {
+          const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`);
+          if (response.ok) {
+            const data = await response.json();
+            images[portfolio.id] = data.imageUrl;
+          }
+        } catch (error) {
+          console.error(`Failed to fetch OGP image for portfolio ${portfolio.id}:`, error);
+        }
+      }
+      setPreviewImages(images);
+    };
+
+    fetchOgpImages();
+  }, [portfolios]);
 
   if (isLoadingPortfolios) {
     return <div>読み込み中...</div>;
@@ -41,12 +66,18 @@ export default function Portfolios() {
         {portfolios?.map((portfolio) => (
           <Card key={portfolio.id}>
             <div className="relative aspect-video">
-              <img
-                src={`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(portfolio.url)}&screenshot=true`}
-                alt={`成果物 ${portfolio.title}`}
-                className="object-cover w-full h-full rounded-t-lg"
-                onError={(e) => e.currentTarget.style.display = 'none'}
-              />
+              {previewImages[portfolio.id] ? (
+                <img
+                  src={previewImages[portfolio.id]}
+                  alt={`成果物 ${portfolio.title}`}
+                  className="object-cover w-full h-full rounded-t-lg"
+                  onError={(e) => e.currentTarget.style.display = 'none'}
+                />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full bg-muted rounded-t-lg">
+                  <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
+                </div>
+              )}
             </div>
             <CardContent className="pt-4">
               <h3 className="font-medium">{portfolio.title}</h3>
