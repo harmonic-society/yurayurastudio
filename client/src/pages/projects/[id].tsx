@@ -373,14 +373,10 @@ export default function ProjectDetails() {
           <PortfolioForm
             onSubmit={(data) =>
               selectedPortfolio
-                ? updatePortfolioMutation.mutate({
-                    ...data,
-                    userId: Number(data.userId)
-                  })
+                ? updatePortfolioMutation.mutate(data)
                 : createPortfolioMutation.mutate({
                     ...data,
-                    projectId: Number(projectId),
-                    userId: Number(data.userId)
+                    projectId
                   })
             }
             defaultValues={selectedPortfolio || undefined}
