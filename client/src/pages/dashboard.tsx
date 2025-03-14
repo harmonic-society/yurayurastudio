@@ -15,7 +15,7 @@ export default function Dashboard() {
   });
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div>読み込み中...</div>;
   }
 
   if (!projects) {
@@ -28,7 +28,10 @@ export default function Dashboard() {
   }, {} as Record<ProjectStatus, number>);
 
   const pieData = Object.entries(statusCounts).map(([name, value]) => ({
-    name,
+    name: name === "NOT_STARTED" ? "未着手" :
+         name === "IN_PROGRESS" ? "進行中" :
+         name === "COMPLETED" ? "完了" :
+         name === "ON_HOLD" ? "保留" : name,
     value
   }));
 
@@ -37,9 +40,9 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">ダッシュボード</h1>
         <p className="text-muted-foreground">
-          Overview of all projects and their status
+          全てのプロジェクトの概要と進捗状況
         </p>
       </div>
 
@@ -47,18 +50,18 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Projects
+              プロジェクト総数
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{projects.length}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              In Progress
+              進行中
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -71,7 +74,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Completed
+              完了
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -84,7 +87,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              On Hold
+              保留中
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -97,7 +100,7 @@ export default function Dashboard() {
 
       <Card className="col-span-4">
         <CardHeader>
-          <CardTitle>Project Status Distribution</CardTitle>
+          <CardTitle>プロジェクト状況の分布</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">

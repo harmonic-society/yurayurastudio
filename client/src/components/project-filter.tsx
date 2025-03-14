@@ -8,6 +8,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const statusLabels = {
+  ALL: "全ての状態",
+  NOT_STARTED: "未着手",
+  IN_PROGRESS: "進行中",
+  COMPLETED: "完了",
+  ON_HOLD: "保留"
+} as const;
+
 interface ProjectFilterProps {
   search: string;
   status: ProjectStatus | "ALL";
@@ -25,7 +33,7 @@ export default function ProjectFilter({
     <div className="flex gap-4">
       <div className="flex-1">
         <Input
-          placeholder="Search projects..."
+          placeholder="プロジェクトを検索..."
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
         />
@@ -35,13 +43,13 @@ export default function ProjectFilter({
         onValueChange={(value) => onStatusChange(value as ProjectStatus | "ALL")}
       >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Filter by status" />
+          <SelectValue placeholder="状態で絞り込み" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="ALL">All Status</SelectItem>
+          <SelectItem value="ALL">{statusLabels.ALL}</SelectItem>
           {projectStatus.map((status) => (
             <SelectItem key={status} value={status}>
-              {status.replace("_", " ")}
+              {statusLabels[status]}
             </SelectItem>
           ))}
         </SelectContent>

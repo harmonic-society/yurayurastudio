@@ -18,6 +18,13 @@ const statusColors = {
   ON_HOLD: "bg-yellow-500"
 } as const;
 
+const statusLabels = {
+  NOT_STARTED: "未着手",
+  IN_PROGRESS: "進行中",
+  COMPLETED: "完了",
+  ON_HOLD: "保留"
+} as const;
+
 interface ProjectListProps {
   projects: Project[];
 }
@@ -27,12 +34,12 @@ export default function ProjectList({ projects }: ProjectListProps) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Client</TableHead>
-          <TableHead>Due Date</TableHead>
-          <TableHead>Total Reward</TableHead>
-          <TableHead>Distributed</TableHead>
+          <TableHead>プロジェクト名</TableHead>
+          <TableHead>状態</TableHead>
+          <TableHead>顧客名</TableHead>
+          <TableHead>納期</TableHead>
+          <TableHead>報酬総額</TableHead>
+          <TableHead>報酬分配</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -47,19 +54,19 @@ export default function ProjectList({ projects }: ProjectListProps) {
             </TableCell>
             <TableCell>
               <Badge className={statusColors[project.status]}>
-                {project.status.replace("_", " ")}
+                {statusLabels[project.status]}
               </Badge>
             </TableCell>
             <TableCell>{project.clientName}</TableCell>
             <TableCell>
-              {format(new Date(project.dueDate), "MMM d, yyyy")}
+              {format(new Date(project.dueDate), "yyyy年M月d日")}
             </TableCell>
             <TableCell>
-              ${project.totalReward.toLocaleString()}
+              ¥{project.totalReward.toLocaleString()}
             </TableCell>
             <TableCell>
-              <Badge variant={project.rewardDistributed ? "success" : "secondary"}>
-                {project.rewardDistributed ? "Yes" : "No"}
+              <Badge variant={project.rewardDistributed ? "default" : "secondary"}>
+                {project.rewardDistributed ? "完了" : "未分配"}
               </Badge>
             </TableCell>
           </TableRow>

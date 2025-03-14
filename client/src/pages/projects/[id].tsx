@@ -18,6 +18,13 @@ import {
 import { useState } from "react";
 import { AlertCircle, Edit2 } from "lucide-react";
 
+const statusLabels = {
+  NOT_STARTED: "未着手",
+  IN_PROGRESS: "進行中",
+  COMPLETED: "完了",
+  ON_HOLD: "保留"
+} as const;
+
 export default function ProjectDetails() {
   const [, params] = useRoute("/projects/:id");
   const projectId = Number(params?.id);
@@ -36,21 +43,21 @@ export default function ProjectDetails() {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
       setIsEditDialogOpen(false);
       toast({
-        title: "Success",
-        description: "Project updated successfully",
+        title: "成功",
+        description: "プロジェクトが更新されました",
       });
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to update project: ${error.message}`,
+        title: "エラー",
+        description: `プロジェクトの更新に失敗しました: ${error.message}`,
         variant: "destructive",
       });
     },
   });
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div>読み込み中...</div>;
   }
 
   if (error || !project) {
@@ -60,7 +67,7 @@ export default function ProjectDetails() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-5 w-5" />
-              <p>Failed to load project details</p>
+              <p>プロジェクトの読み込みに失敗しました</p>
             </div>
           </CardContent>
         </Card>
@@ -74,45 +81,45 @@ export default function ProjectDetails() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
           <p className="text-muted-foreground">
-            Created for {project.clientName}
+            顧客: {project.clientName}
           </p>
         </div>
         <Button onClick={() => setIsEditDialogOpen(true)}>
           <Edit2 className="h-4 w-4 mr-2" />
-          Edit Project
+          プロジェクトを編集
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Project Details</CardTitle>
+            <CardTitle>プロジェクト詳細</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-              <Badge>{project.status.replace("_", " ")}</Badge>
+              <p className="text-sm text-muted-foreground">状態</p>
+              <Badge>{statusLabels[project.status]}</Badge>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Due Date</p>
-              <p>{format(new Date(project.dueDate), "MMMM d, yyyy")}</p>
+              <p className="text-sm text-muted-foreground">納期</p>
+              <p>{format(new Date(project.dueDate), "yyyy年M月d日")}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Client Contact</p>
+              <p className="text-sm text-muted-foreground">顧客連絡先</p>
               <p>{project.clientContact}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Reward</p>
-              <p>${project.totalReward.toLocaleString()}</p>
+              <p className="text-sm text-muted-foreground">報酬総額</p>
+              <p>¥{project.totalReward.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Reward Distribution</p>
+              <p className="text-sm text-muted-foreground">報酬分配</p>
               <p className="whitespace-pre-line">{project.rewardRules}</p>
               <Badge 
-                variant={project.rewardDistributed ? "success" : "secondary"}
+                variant={project.rewardDistributed ? "default" : "secondary"}
                 className="mt-2"
               >
-                {project.rewardDistributed ? "Distributed" : "Pending"}
+                {project.rewardDistributed ? "分配済み" : "未分配"}
               </Badge>
             </div>
           </CardContent>
@@ -120,7 +127,7 @@ export default function ProjectDetails() {
 
         <Card>
           <CardHeader>
-            <CardTitle>History</CardTitle>
+            <CardTitle>プロジェクト履歴</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-line">{project.history}</p>
@@ -129,7 +136,7 @@ export default function ProjectDetails() {
 
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Comments</CardTitle>
+            <CardTitle>コメント</CardTitle>
           </CardHeader>
           <CardContent>
             <CommentSection projectId={projectId} />
@@ -140,7 +147,7 @@ export default function ProjectDetails() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Project</DialogTitle>
+            <DialogTitle>プロジェクトを編集</DialogTitle>
           </DialogHeader>
           <ProjectForm
             onSubmit={(data) => updateMutation.mutate(data)}

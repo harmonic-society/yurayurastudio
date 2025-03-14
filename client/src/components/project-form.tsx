@@ -22,6 +22,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { insertProjectSchema, projectStatus, type User } from "@shared/schema";
 import { format } from "date-fns";
 
+const statusLabels = {
+  NOT_STARTED: "未着手",
+  IN_PROGRESS: "進行中",
+  COMPLETED: "完了",
+  ON_HOLD: "保留"
+} as const;
+
 interface ProjectFormProps {
   onSubmit: (data: any) => void;
   defaultValues?: any;
@@ -60,9 +67,9 @@ export default function ProjectForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Project Name</FormLabel>
+              <FormLabel>プロジェクト名</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="プロジェクト名を入力" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -74,20 +81,20 @@ export default function ProjectForm({
           name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Status</FormLabel>
+              <FormLabel>状態</FormLabel>
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder="状態を選択" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   {projectStatus.map((status) => (
                     <SelectItem key={status} value={status}>
-                      {status.replace("_", " ")}
+                      {statusLabels[status]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -102,7 +109,7 @@ export default function ProjectForm({
           name="dueDate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Due Date</FormLabel>
+              <FormLabel>納期</FormLabel>
               <FormControl>
                 <Input type="date" {...field} />
               </FormControl>
@@ -116,9 +123,9 @@ export default function ProjectForm({
           name="clientName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Client Name</FormLabel>
+              <FormLabel>顧客名</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="顧客名を入力" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -130,9 +137,9 @@ export default function ProjectForm({
           name="clientContact"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Client Contact</FormLabel>
+              <FormLabel>顧客連絡先</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="顧客の連絡先を入力" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -144,12 +151,13 @@ export default function ProjectForm({
           name="totalReward"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Total Reward</FormLabel>
+              <FormLabel>報酬総額</FormLabel>
               <FormControl>
                 <Input 
                   type="number" 
                   {...field}
                   onChange={(e) => field.onChange(Number(e.target.value))}
+                  placeholder="報酬総額を入力"
                 />
               </FormControl>
               <FormMessage />
@@ -162,11 +170,11 @@ export default function ProjectForm({
           name="rewardRules"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Reward Distribution Rules</FormLabel>
+              <FormLabel>報酬分配ルール</FormLabel>
               <FormControl>
                 <Textarea 
                   {...field}
-                  placeholder="e.g. Director: 30%, Sales: 20%, Creator: 50%"
+                  placeholder="例: ディレクター: 30%、営業: 20%、クリエイター: 50%"
                 />
               </FormControl>
               <FormMessage />
@@ -179,9 +187,9 @@ export default function ProjectForm({
           name="history"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Project History</FormLabel>
+              <FormLabel>プロジェクト履歴</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <Textarea {...field} placeholder="プロジェクトの経緯や重要な出来事を記録" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -189,7 +197,7 @@ export default function ProjectForm({
         />
 
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save Project"}
+          {isSubmitting ? "保存中..." : "プロジェクトを保存"}
         </Button>
       </form>
     </Form>

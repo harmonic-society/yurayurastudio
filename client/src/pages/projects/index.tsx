@@ -34,14 +34,14 @@ export default function Projects() {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setIsCreateDialogOpen(false);
       toast({
-        title: "Success",
-        description: "Project created successfully",
+        title: "成功",
+        description: "プロジェクトが作成されました",
       });
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: `Failed to create project: ${error.message}`,
+        title: "エラー",
+        description: `プロジェクトの作成に失敗しました: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -52,28 +52,28 @@ export default function Projects() {
       .toLowerCase()
       .includes(search.toLowerCase()) ||
       project.clientName.toLowerCase().includes(search.toLowerCase());
-    
+
     const matchesStatus = status === "ALL" || project.status === status;
 
     return matchesSearch && matchesStatus;
   }) || [];
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div>読み込み中...</div>;
   }
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+          <h1 className="text-3xl font-bold tracking-tight">プロジェクト一覧</h1>
           <p className="text-muted-foreground">
-            Manage and track all your web development and marketing projects
+            Web制作・集客支援プロジェクトの管理と進捗確認
           </p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          New Project
+          新規プロジェクト
         </Button>
       </div>
 
@@ -89,7 +89,7 @@ export default function Projects() {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
+            <DialogTitle>新規プロジェクトの作成</DialogTitle>
           </DialogHeader>
           <ProjectForm
             onSubmit={(data) => createMutation.mutate(data)}

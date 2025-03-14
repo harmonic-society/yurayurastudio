@@ -10,20 +10,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
   const navigation = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
-    { name: "Projects", href: "/projects", icon: FolderKanban },
-    { name: "Team", href: "/team", icon: Users },
-    { name: "Settings", href: "/settings", icon: Settings },
+    { name: "ダッシュボード", href: "/", icon: LayoutDashboard },
+    { name: "プロジェクト", href: "/projects", icon: FolderKanban },
+    { name: "チーム", href: "/team", icon: Users },
+    { name: "設定", href: "/settings", icon: Settings },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <div className="flex h-screen">
-        {/* Sidebar */}
+        {/* サイドバー */}
         <div className="w-64 bg-sidebar border-r border-border">
           <div className="h-16 flex items-center px-6 border-b border-border">
             <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Project Manager
+              プロジェクト管理
             </h1>
           </div>
           <nav className="p-4 space-y-1">
@@ -47,7 +47,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
 
-        {/* Main content */}
+        {/* メインコンテンツ */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <main className="flex-1 overflow-y-auto p-8">
             {children}

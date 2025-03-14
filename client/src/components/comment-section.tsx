@@ -19,7 +19,7 @@ interface CommentSectionProps {
 
 export default function CommentSection({ projectId }: CommentSectionProps) {
   const queryClient = useQueryClient();
-  
+
   const { data: comments } = useQuery<Comment[]>({
     queryKey: [`/api/projects/${projectId}/comments`]
   });
@@ -33,7 +33,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
     defaultValues: {
       content: "",
       projectId,
-      userId: 1 // Hardcoded for demo
+      userId: 1 // デモ用にハードコード
     }
   });
 
@@ -47,7 +47,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
   });
 
   const getUserName = (userId: number) => {
-    return users?.find(u => u.id === userId)?.name || "Unknown User";
+    return users?.find(u => u.id === userId)?.name || "不明なユーザー";
   };
 
   return (
@@ -64,7 +64,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
               <FormItem>
                 <FormControl>
                   <Textarea 
-                    placeholder="Add a comment..." 
+                    placeholder="コメントを追加..." 
                     {...field}
                   />
                 </FormControl>
@@ -75,7 +75,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
             type="submit"
             disabled={mutation.isPending}
           >
-            {mutation.isPending ? "Posting..." : "Post Comment"}
+            {mutation.isPending ? "投稿中..." : "コメントを投稿"}
           </Button>
         </form>
       </Form>
@@ -89,7 +89,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>{getUserName(comment.userId)}</span>
               <span>
-                {format(new Date(comment.createdAt), "MMM d, yyyy h:mm a")}
+                {format(new Date(comment.createdAt), "yyyy年M月d日 H:mm")}
               </span>
             </div>
             <p>{comment.content}</p>
