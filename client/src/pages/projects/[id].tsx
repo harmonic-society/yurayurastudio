@@ -336,6 +336,9 @@ export default function ProjectDetails() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
           <DialogHeader>
             <DialogTitle>プロジェクトを編集</DialogTitle>
+            <DialogDescription>
+              プロジェクトの詳細情報を更新します。
+            </DialogDescription>
           </DialogHeader>
           <ProjectForm
             onSubmit={(data) => updateMutation.mutate(data)}
@@ -405,7 +408,7 @@ export default function ProjectDetails() {
           <AlertDialogHeader>
             <AlertDialogTitle>成果物の削除</AlertDialogTitle>
             <AlertDialogDescription>
-              {selectedPortfolio?.title}を削除してもよろしいですか？
+              この成果物を削除してもよろしいですか？
               この操作は取り消せません。
             </AlertDialogDescription>
           </AlertDialogHeader>
