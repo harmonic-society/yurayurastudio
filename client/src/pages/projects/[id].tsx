@@ -384,7 +384,7 @@ export default function ProjectDetails() {
       </AlertDialog>
 
       <Dialog open={isPortfolioDialogOpen} onOpenChange={setIsPortfolioDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
@@ -396,20 +396,22 @@ export default function ProjectDetails() {
               }
             </DialogDescription>
           </DialogHeader>
-          <PortfolioForm
-            projectId={projectId}
-            onSubmit={(data) => {
-              if (selectedPortfolio) {
-                updatePortfolioMutation.mutate(data);
-              } else {
-                createPortfolioMutation.mutate(data);
+          <div className="overflow-y-auto pr-2">
+            <PortfolioForm
+              projectId={projectId}
+              onSubmit={(data) => {
+                if (selectedPortfolio) {
+                  updatePortfolioMutation.mutate(data);
+                } else {
+                  createPortfolioMutation.mutate(data);
+                }
+              }}
+              defaultValues={selectedPortfolio || undefined}
+              isSubmitting={
+                createPortfolioMutation.isPending || updatePortfolioMutation.isPending
               }
-            }}
-            defaultValues={selectedPortfolio || undefined}
-            isSubmitting={
-              createPortfolioMutation.isPending || updatePortfolioMutation.isPending
-            }
-          />
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

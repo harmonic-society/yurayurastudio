@@ -216,5 +216,43 @@ export async function registerRoutes(app: Express) {
     res.status(204).send();
   });
 
+  // Get OGP image for a URL
+  app.get("/api/ogp", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      if (!url) {
+        return res.status(400).json({ message: "URL is required" });
+      }
+
+      const response = await fetch(url);
+      const html = await response.text();
+
+      // Extract OGP image URL from meta tags
+      const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/);
+      const ogImage = ogImageMatch ? ogImageMatch[1] : null;
+
+      // If no OGP image, try twitter:image
+      const twitterImageMatch = !ogImage && html.match(/<meta[^>]*name="twitter:image"[^>]*content="([^"]*)"[^>]*>/);
+      const twitterImage = twitterImageMatch ? twitterImageMatch[1] : null;
+
+      // If no social media images, try first img tag
+      const imgMatch = !ogImage && !twitterImage && html.match(/<img[^>]*src="([^"]*)"[^>]*>/);
+      const firstImage = imgMatch ? imgMatch[1] : null;
+
+      const imageUrl = ogImage || twitterImage || firstImage;
+
+      if (!imageUrl) {
+        return res.status(404).json({ message: "No image found" });
+      }
+
+      // Convert relative URLs to absolute
+      const finalImageUrl = new URL(imageUrl, url).href;
+      res.json({ imageUrl: finalImageUrl });
+    } catch (error) {
+      console.error('OGP fetch error:', error);
+      res.status(500).json({ message: "Failed to fetch OGP data" });
+    }
+  });
+
   return httpServer;
 }

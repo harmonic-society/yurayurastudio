@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { insertPortfolioSchema, type User, type InsertPortfolio } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface PortfolioFormProps {
   projectId: number;
@@ -37,6 +37,31 @@ export default function PortfolioForm({
   isSubmitting
 }: PortfolioFormProps) {
   const [previewUrl, setPreviewUrl] = useState<string>(defaultValues?.url || "");
+  const [previewImage, setPreviewImage] = useState<string>("");
+
+  useEffect(() => {
+    const fetchOgpImage = async () => {
+      if (!previewUrl) {
+        setPreviewImage("");
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/ogp?url=${encodeURIComponent(previewUrl)}`);
+        if (!response.ok) {
+          setPreviewImage("");
+          return;
+        }
+        const data = await response.json();
+        setPreviewImage(data.imageUrl);
+      } catch (error) {
+        console.error('Failed to fetch OGP image:', error);
+        setPreviewImage("");
+      }
+    };
+
+    fetchOgpImage();
+  }, [previewUrl]);
 
   const form = useForm<InsertPortfolio>({
     resolver: zodResolver(insertPortfolioSchema),
@@ -178,9 +203,9 @@ export default function PortfolioForm({
             <FormItem>
               <FormLabel>説明<span className="text-destructive">*</span></FormLabel>
               <FormControl>
-                <Textarea 
-                  {...field} 
-                  placeholder="成果物の説明を入力" 
+                <Textarea
+                  {...field}
+                  placeholder="成果物の説明を入力"
                   className="min-h-[100px]"
                 />
               </FormControl>
@@ -196,8 +221,8 @@ export default function PortfolioForm({
             <FormItem>
               <FormLabel>成果物のURL<span className="text-destructive">*</span></FormLabel>
               <FormControl>
-                <Input 
-                  {...field} 
+                <Input
+                  {...field}
                   placeholder="成果物へのリンクを入力"
                   onChange={(e) => {
                     field.onChange(e);
@@ -208,14 +233,18 @@ export default function PortfolioForm({
               {previewUrl && (
                 <div className="mt-2">
                   <p className="text-sm text-muted-foreground mb-2">プレビュー:</p>
-                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
-                    <img
-                      src={`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(previewUrl)}&screenshot=true`}
-                      alt="プレビュー"
-                      className="object-cover w-full h-full"
-                      onError={(e) => e.currentTarget.style.display = 'none'}
-                    />
-                  </div>
+                  {previewImage ? (
+                    <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+                      <img
+                        src={previewImage}
+                        alt="プレビュー"
+                        className="object-cover w-full h-full"
+                        onError={() => setPreviewImage("")}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
+                  )}
                 </div>
               )}
               <FormMessage />
@@ -224,8 +253,8 @@ export default function PortfolioForm({
         />
 
         <div className="space-y-2">
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isSubmitting}
             className="w-full sm:w-auto"
           >

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Edit2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { type Portfolio } from "@shared/schema";
+import { useState, useEffect } from "react";
 
 interface PortfolioListProps {
   projectId: number;
@@ -17,17 +18,47 @@ export default function PortfolioList({
   onEdit,
   onDelete
 }: PortfolioListProps) {
+  const [previewImages, setPreviewImages] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    const fetchOgpImages = async () => {
+      const images: Record<number, string> = {};
+
+      for (const portfolio of portfolios) {
+        try {
+          const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`);
+          if (response.ok) {
+            const data = await response.json();
+            images[portfolio.id] = data.imageUrl;
+          }
+        } catch (error) {
+          console.error(`Failed to fetch OGP image for portfolio ${portfolio.id}:`, error);
+        }
+      }
+
+      setPreviewImages(images);
+    };
+
+    fetchOgpImages();
+  }, [portfolios]);
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {portfolios.map((portfolio) => (
         <Card key={portfolio.id}>
           <div className="relative aspect-video">
-            <img
-              src={`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(portfolio.url)}&screenshot=true`}
-              alt={`成果物 ${portfolio.title}`}
-              className="object-cover w-full h-full rounded-t-lg"
-              onError={(e) => e.currentTarget.style.display = 'none'}
-            />
+            {previewImages[portfolio.id] ? (
+              <img
+                src={previewImages[portfolio.id]}
+                alt={`成果物 ${portfolio.title}`}
+                className="object-cover w-full h-full rounded-t-lg"
+                onError={(e) => e.currentTarget.style.display = 'none'}
+              />
+            ) : (
+              <div className="flex items-center justify-center w-full h-full bg-muted rounded-t-lg">
+                <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
+              </div>
+            )}
           </div>
           <CardContent className="pt-4">
             <div className="flex items-center justify-between gap-2">
