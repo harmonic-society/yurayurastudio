@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { type Project, type User, type Portfolio } from "@shared/schema";
 import ProjectForm from "@/components/project-form";
 import CommentSection from "@/components/comment-section";
@@ -48,7 +48,7 @@ export default function ProjectDetails() {
   const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
+  const [, setLocation] = useLocation();
 
   const { data: project, isLoading, error } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
@@ -77,7 +77,7 @@ export default function ProjectDetails() {
   const deleteMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", `/api/projects/${projectId}`),
     onSuccess: () => {
-      navigate("/projects");
+      setLocation("/projects");
       toast({
         title: "成功",
         description: "プロジェクトが削除されました",
