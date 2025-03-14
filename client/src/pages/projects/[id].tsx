@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { type Project } from "@shared/schema";
 import ProjectForm from "@/components/project-form";
 import CommentSection from "@/components/comment-section";
@@ -16,7 +16,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-import { AlertCircle, Edit2, ArrowRightLeft } from "lucide-react";
+import { AlertCircle, Edit2, ArrowRightLeft, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const statusLabels = {
   NOT_STARTED: "未着手",
@@ -29,8 +39,10 @@ export default function ProjectDetails() {
   const [, params] = useRoute("/projects/:id");
   const projectId = Number(params?.id);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const { data: project, isLoading, error } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
@@ -51,6 +63,24 @@ export default function ProjectDetails() {
       toast({
         title: "エラー",
         description: `プロジェクトの更新に失敗しました: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/projects/${projectId}`),
+    onSuccess: () => {
+      navigate("/projects");
+      toast({
+        title: "成功",
+        description: "プロジェクトが削除されました",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `プロジェクトの削除に失敗しました: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -84,10 +114,16 @@ export default function ProjectDetails() {
             顧客: {project.clientName}
           </p>
         </div>
-        <Button onClick={() => setIsEditDialogOpen(true)}>
-          <Edit2 className="h-4 w-4 mr-2" />
-          プロジェクトを編集
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsEditDialogOpen(true)}>
+            <Edit2 className="h-4 w-4 mr-2" />
+            プロジェクトを編集
+          </Button>
+          <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            削除
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -116,9 +152,7 @@ export default function ProjectDetails() {
               <p className="text-sm text-muted-foreground">報酬分配</p>
               <p className="whitespace-pre-line">{project.rewardRules}</p>
               <div className="flex items-center gap-2 mt-2">
-                <Badge
-                  variant={project.rewardDistributed ? "default" : "secondary"}
-                >
+                <Badge variant={project.rewardDistributed ? "default" : "secondary"}>
                   {project.rewardDistributed ? "分配済み" : "未分配"}
                 </Badge>
                 <Button
@@ -159,7 +193,7 @@ export default function ProjectDetails() {
       </div>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>プロジェクトを編集</DialogTitle>
           </DialogHeader>
@@ -170,6 +204,28 @@ export default function ProjectDetails() {
           />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>プロジェクトの削除</AlertDialogTitle>
+            <AlertDialogDescription>
+              {project.name}を削除してもよろしいですか？
+              この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "削除中..." : "削除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
