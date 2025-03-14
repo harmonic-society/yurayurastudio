@@ -6,7 +6,8 @@ import {
   Users,
   Settings,
   Menu,
-  X
+  X,
+  Image
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navigation = [
     { name: "ダッシュボード", href: "/", icon: LayoutDashboard },
     { name: "プロジェクト", href: "/projects", icon: FolderKanban },
+    { name: "ポートフォリオ", href: "/portfolios", icon: Image },
     { name: "チーム", href: "/team", icon: Users },
     { name: "設定", href: "/settings", icon: Settings },
   ];

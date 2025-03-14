@@ -1,13 +1,15 @@
-import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean as pgBoolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// 既存のenumとtypes定義は変更なし
 export const projectStatus = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "ON_HOLD"] as const;
 export type ProjectStatus = (typeof projectStatus)[number];
 
 export const userRoles = ["DIRECTOR", "SALES", "CREATOR"] as const;
 export type UserRole = (typeof userRoles)[number];
 
+// 既存のテーブル定義は変更なし
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -25,7 +27,7 @@ export const projects = pgTable("projects", {
   history: text("history").notNull(),
   totalReward: integer("total_reward").notNull(),
   rewardRules: text("reward_rules").notNull(),
-  rewardDistributed: boolean("reward_distributed").notNull().default(false),
+  rewardDistributed: pgBoolean("reward_distributed").notNull().default(false),
   directorId: integer("director_id"),
   salesId: integer("sales_id"),
 });
@@ -44,16 +46,16 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ポートフォリオのスキーマを簡素化
 export const portfolios = pgTable("portfolios", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
+  userId: integer("user_id").notNull(),
   imageUrl: text("image_url").notNull(),
-  workType: text("work_type").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// 既存のスキーマは変更なし
 export const insertProjectSchema = createInsertSchema(projects).omit({ 
   id: true,
   rewardDistributed: true 
@@ -69,6 +71,7 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
   createdAt: true 
 });
 
+// ポートフォリオのスキーマを更新
 export const insertPortfolioSchema = createInsertSchema(portfolios).omit({ 
   id: true,
   createdAt: true 
