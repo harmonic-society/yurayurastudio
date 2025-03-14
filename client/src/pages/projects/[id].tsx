@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-import { AlertCircle, Edit2 } from "lucide-react";
+import { AlertCircle, Edit2, ArrowRightLeft } from "lucide-react";
 
 const statusLabels = {
   NOT_STARTED: "未着手",
@@ -37,7 +37,7 @@ export default function ProjectDetails() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) => 
+    mutationFn: (data: any) =>
       apiRequest("PATCH", `/api/projects/${projectId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
@@ -115,12 +115,26 @@ export default function ProjectDetails() {
             <div>
               <p className="text-sm text-muted-foreground">報酬分配</p>
               <p className="whitespace-pre-line">{project.rewardRules}</p>
-              <Badge 
-                variant={project.rewardDistributed ? "default" : "secondary"}
-                className="mt-2"
-              >
-                {project.rewardDistributed ? "分配済み" : "未分配"}
-              </Badge>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge
+                  variant={project.rewardDistributed ? "default" : "secondary"}
+                >
+                  {project.rewardDistributed ? "分配済み" : "未分配"}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    updateMutation.mutate({
+                      rewardDistributed: !project.rewardDistributed,
+                    })
+                  }
+                  disabled={updateMutation.isPending}
+                >
+                  <ArrowRightLeft className="h-4 w-4 mr-2" />
+                  {updateMutation.isPending ? "更新中..." : "状態を切り替え"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
