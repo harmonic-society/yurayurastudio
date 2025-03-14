@@ -48,7 +48,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* モバイルメニューボタン */}
+      {/* モバイルヘッダー */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-50 flex items-center px-4">
         <Button
           variant="ghost"
@@ -83,12 +83,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
+          {/* デスクトップヘッダー */}
           <div className="hidden lg:flex h-16 items-center px-6 border-b border-border">
             <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               Yura Yura STUDIO
             </h1>
           </div>
-          <div className="p-4">
+          {/* モバイルメニュー用の余白 */}
+          <div className="lg:hidden h-16" />
+          {/* ナビゲーションリンク */}
+          <div className="p-4 overflow-y-auto">
             <NavLinks />
           </div>
         </div>
