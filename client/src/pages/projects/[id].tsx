@@ -107,14 +107,20 @@ export default function ProjectDetails() {
   });
 
   const createPortfolioMutation = useMutation({
-    mutationFn: (data: any) => {
-      const submitData = {
-        projectId: Number(projectId),
-        userId: Number(data.userId),
-        url: data.url
-      };
-      console.log('Creating portfolio with data:', submitData);
-      return apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
+    mutationFn: async (data: any) => {
+      try {
+        const submitData = {
+          projectId: Number(projectId),
+          userId: Number(data.userId),
+          url: data.url
+        };
+        console.log('Creating portfolio with data:', submitData);
+        const response = await apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
+        return response;
+      } catch (error) {
+        console.error('Portfolio creation error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       console.log('Portfolio creation succeeded');

@@ -51,13 +51,22 @@ export default function PortfolioForm({
 
   if (!users) return null;
 
-  const handleSubmit = (data: any) => {
-    const formattedData = {
-      userId: data.userId,
-      url: data.url
-    };
-    console.log('Portfolio form - Submitting data:', formattedData);
-    onSubmit(formattedData);
+  const handleSubmit = async (data: any) => {
+    try {
+      const formattedData = {
+        userId: Number(data.userId),
+        url: data.url,
+      };
+
+      console.log('Portfolio form - Submitting data:', formattedData);
+      await onSubmit(formattedData);
+    } catch (error) {
+      console.error('Portfolio form submission error:', error);
+      form.setError('root', {
+        type: 'manual',
+        message: 'フォームの送信に失敗しました',
+      });
+    }
   };
 
   return (
