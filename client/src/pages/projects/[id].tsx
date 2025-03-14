@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { AlertCircle, Edit2, ArrowRightLeft, Trash2, Plus } from "lucide-react";
@@ -106,8 +107,10 @@ export default function ProjectDetails() {
   });
 
   const createPortfolioMutation = useMutation({
-    mutationFn: (data: any) =>
-      apiRequest("POST", `/api/projects/${projectId}/portfolios`, data),
+    mutationFn: (data: any) => {
+      console.log('Submitting portfolio data:', data); // デバッグログ追加
+      return apiRequest("POST", `/api/projects/${projectId}/portfolios`, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/portfolios`] });
       setIsPortfolioDialogOpen(false);
@@ -116,10 +119,11 @@ export default function ProjectDetails() {
         description: "ポートフォリオが作成されました",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Portfolio creation error:', error); // デバッグログ追加
       toast({
         title: "エラー",
-        description: `ポートフォリオの作成に失敗しました: ${error.message}`,
+        description: `ポートフォリオの作成に失敗しました: ${error.message || '不明なエラー'}`,
         variant: "destructive",
       });
     },
@@ -369,6 +373,12 @@ export default function ProjectDetails() {
             <DialogTitle>
               {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
             </DialogTitle>
+            <DialogDescription>
+              {selectedPortfolio
+                ? "既存の成果物の情報を更新します。"
+                : "プロジェクトに新しい成果物を追加します。"
+              }
+            </DialogDescription>
           </DialogHeader>
           <PortfolioForm
             onSubmit={(data) =>

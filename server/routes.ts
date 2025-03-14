@@ -169,15 +169,27 @@ export async function registerRoutes(app: Express) {
     try {
       const portfolioData = insertPortfolioSchema.parse({
         ...req.body,
-        projectId: Number(req.params.id)
+        projectId: Number(req.params.id),
+        userId: Number(req.body.userId)
       });
+
+      console.log('Creating portfolio with data:', portfolioData); // デバッグログ追加
+
       const portfolio = await storage.createPortfolio(portfolioData);
       res.status(201).json(portfolio);
     } catch (error) {
+      console.error('Portfolio creation error:', error); // デバッグログ追加
+
       if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid portfolio data", errors: error.errors });
+        res.status(400).json({ 
+          message: "Invalid portfolio data", 
+          errors: error.errors 
+        });
       } else {
-        res.status(500).json({ message: "Failed to create portfolio" });
+        res.status(500).json({ 
+          message: "Failed to create portfolio",
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
     }
   });
