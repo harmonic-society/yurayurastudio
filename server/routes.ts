@@ -224,6 +224,16 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "URL is required" });
       }
 
+      // Google DriveのURLを処理
+      if (url.includes('drive.google.com')) {
+        const fileId = url.match(/[-\w]{25,}/);
+        if (fileId) {
+          return res.json({
+            imageUrl: `https://drive.google.com/uc?export=view&id=${fileId[0]}`
+          });
+        }
+      }
+
       const response = await fetch(url);
       const html = await response.text();
 
