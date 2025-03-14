@@ -36,6 +36,7 @@ export interface IStorage {
   deleteUser(id: number): Promise<void>;
 
   // Portfolios
+  getAllPortfolios(): Promise<Portfolio[]>; // 新規追加
   getPortfolios(projectId: number): Promise<Portfolio[]>;
   getPortfolio(id: number): Promise<Portfolio | undefined>;
   createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio>;
@@ -179,6 +180,14 @@ export class DatabaseStorage implements IStorage {
     await db.delete(comments).where(eq(comments.userId, id));
     // Delete user
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  // 新規追加: 全ポートフォリオの取得
+  async getAllPortfolios(): Promise<Portfolio[]> {
+    return await db
+      .select()
+      .from(portfolios)
+      .orderBy(portfolios.createdAt);
   }
 
   // Portfolios

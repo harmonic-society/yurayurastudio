@@ -142,6 +142,12 @@ export async function registerRoutes(app: Express) {
     res.status(204).send();
   });
 
+  // Get all portfolios (新規追加)
+  app.get("/api/portfolios", async (_req, res) => {
+    const portfolios = await storage.getAllPortfolios();
+    res.json(portfolios);
+  });
+
   // Get project portfolios
   app.get("/api/projects/:id/portfolios", async (req, res) => {
     const portfolios = await storage.getPortfolios(Number(req.params.id));
