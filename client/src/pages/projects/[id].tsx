@@ -108,13 +108,12 @@ export default function ProjectDetails() {
 
   const createPortfolioMutation = useMutation({
     mutationFn: (data: any) => {
-      console.log('Creating portfolio - Input data:', data);
       const submitData = {
-        projectId,
-        userId: data.userId,
+        projectId: Number(projectId),
+        userId: Number(data.userId),
         url: data.url
       };
-      console.log('Creating portfolio - Submit data:', submitData);
+      console.log('Creating portfolio with data:', submitData);
       return apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
     },
     onSuccess: () => {
