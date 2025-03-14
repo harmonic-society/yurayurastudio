@@ -75,6 +75,9 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
 export const insertPortfolioSchema = createInsertSchema(portfolios).omit({ 
   id: true,
   createdAt: true 
+}).extend({
+  userId: z.coerce.number(),
+  projectId: z.coerce.number()
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({

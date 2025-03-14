@@ -53,13 +53,11 @@ export default function PortfolioForm({
 
   const handleSubmit = async (data: any) => {
     try {
-      const formattedData = {
+      console.log('Portfolio form - Raw data:', data);
+      await onSubmit({
         userId: Number(data.userId),
         url: data.url,
-      };
-
-      console.log('Portfolio form - Submitting data:', formattedData);
-      await onSubmit(formattedData);
+      });
     } catch (error) {
       console.error('Portfolio form submission error:', error);
       form.setError('root', {
