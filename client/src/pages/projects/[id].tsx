@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { type Project, type User } from "@shared/schema"; // Added User type import
+import { type Project, type User } from "@shared/schema";
 import ProjectForm from "@/components/project-form";
 import CommentSection from "@/components/comment-section";
 import { Button } from "@/components/ui/button";
@@ -116,19 +116,26 @@ export default function ProjectDetails() {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{project.name}</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             顧客: {project.clientName}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsEditDialogOpen(true)}>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            onClick={() => setIsEditDialogOpen(true)}
+            className="flex-1 sm:flex-none"
+          >
             <Edit2 className="h-4 w-4 mr-2" />
             プロジェクトを編集
           </Button>
-          <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+          <Button 
+            variant="destructive" 
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="flex-1 sm:flex-none"
+          >
             <Trash2 className="h-4 w-4 mr-2" />
             削除
           </Button>
@@ -140,7 +147,7 @@ export default function ProjectDetails() {
           <CardHeader>
             <CardTitle>プロジェクト詳細</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div>
               <p className="text-sm text-muted-foreground">状態</p>
               <Badge>{statusLabels[project.status]}</Badge>
@@ -172,7 +179,7 @@ export default function ProjectDetails() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">顧客連絡先</p>
-              <p>{project.clientContact}</p>
+              <p className="break-all">{project.clientContact}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">報酬総額</p>
@@ -223,7 +230,7 @@ export default function ProjectDetails() {
       </div>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
           <DialogHeader>
             <DialogTitle>プロジェクトを編集</DialogTitle>
           </DialogHeader>
@@ -244,8 +251,8 @@ export default function ProjectDetails() {
               この操作は取り消せません。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="mt-2 sm:mt-0">キャンセル</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteMutation.mutate()}
               disabled={deleteMutation.isPending}

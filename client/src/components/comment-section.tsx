@@ -66,6 +66,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
                   <Textarea 
                     placeholder="コメントを追加..." 
                     {...field}
+                    className="min-h-[100px]"
                   />
                 </FormControl>
               </FormItem>
@@ -74,6 +75,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
           <Button 
             type="submit"
             disabled={mutation.isPending}
+            className="w-full sm:w-auto"
           >
             {mutation.isPending ? "投稿中..." : "コメントを投稿"}
           </Button>
@@ -86,15 +88,20 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
             key={comment.id}
             className="bg-card p-4 rounded-lg space-y-2"
           >
-            <div className="flex justify-between text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:justify-between text-sm text-muted-foreground gap-1">
               <span>{getUserName(comment.userId)}</span>
               <span>
                 {format(new Date(comment.createdAt), "yyyy年M月d日 H:mm")}
               </span>
             </div>
-            <p>{comment.content}</p>
+            <p className="whitespace-pre-line break-words">{comment.content}</p>
           </div>
         ))}
+        {(!comments || comments.length === 0) && (
+          <p className="text-center text-muted-foreground">
+            まだコメントはありません
+          </p>
+        )}
       </div>
     </div>
   );

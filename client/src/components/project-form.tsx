@@ -108,11 +108,11 @@ export default function ProjectForm({
                 defaultValue={field.value}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="状態を選択" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent position="popper">
                   {projectStatus.map((status) => (
                     <SelectItem key={status} value={status}>
                       {statusLabels[status]}
@@ -136,11 +136,11 @@ export default function ProjectForm({
                 value={field.value?.toString() || "none"}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="ディレクターを選択" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent position="popper">
                   <SelectItem value="none">選択なし</SelectItem>
                   {directorUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
@@ -165,11 +165,11 @@ export default function ProjectForm({
                 value={field.value?.toString() || "none"}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="営業担当を選択" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent position="popper">
                   <SelectItem value="none">選択なし</SelectItem>
                   {salesUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
@@ -202,10 +202,13 @@ export default function ProjectForm({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
+                <PopoverContent 
+                  className="w-[var(--radix-popover-trigger-width)] p-0"
+                  align="start"
+                >
                   <Command>
                     <CommandInput placeholder="クリエイターを検索..." />
-                    <CommandList>
+                    <CommandList className="max-h-[200px]">
                       <CommandEmpty>クリエイターが見つかりません</CommandEmpty>
                       {creatorUsers.map((user) => {
                         const isSelected = field.value?.includes(user.id);
@@ -347,7 +350,11 @@ export default function ProjectForm({
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button 
+          type="submit" 
+          disabled={isSubmitting}
+          className="w-full sm:w-auto"
+        >
           {isSubmitting ? "保存中..." : "プロジェクトを保存"}
         </Button>
       </form>
