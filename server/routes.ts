@@ -167,18 +167,19 @@ export async function registerRoutes(app: Express) {
   // Create a portfolio
   app.post("/api/projects/:id/portfolios", async (req, res) => {
     try {
+      console.log('Portfolio creation - Request body:', req.body);
+
       const portfolioData = insertPortfolioSchema.parse({
         ...req.body,
         projectId: Number(req.params.id),
-        userId: Number(req.body.userId)
       });
 
-      console.log('Creating portfolio with data:', portfolioData); // デバッグログ追加
+      console.log('Portfolio creation - Validated data:', portfolioData);
 
       const portfolio = await storage.createPortfolio(portfolioData);
       res.status(201).json(portfolio);
     } catch (error) {
-      console.error('Portfolio creation error:', error); // デバッグログ追加
+      console.error('Portfolio creation error:', error);
 
       if (error instanceof ZodError) {
         res.status(400).json({ 

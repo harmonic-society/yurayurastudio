@@ -109,7 +109,14 @@ export default function ProjectDetails() {
   const createPortfolioMutation = useMutation({
     mutationFn: async (data: InsertPortfolio) => {
       try {
-        return await apiRequest("POST", `/api/projects/${projectId}/portfolios`, data);
+        const submitData = {
+          projectId: Number(projectId),
+          userId: Number(data.userId),
+          title: data.title,
+          url: data.url
+        };
+        console.log('Creating portfolio with data:', submitData);
+        return await apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
       } catch (error) {
         console.error('Portfolio creation error:', error);
         throw error;

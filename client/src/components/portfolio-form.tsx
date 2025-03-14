@@ -37,8 +37,8 @@ export default function PortfolioForm({
     resolver: zodResolver(insertPortfolioSchema),
     defaultValues: {
       projectId,
-      url: defaultValues?.url || "",
       title: defaultValues?.title || "",
+      url: defaultValues?.url || "",
       userId: defaultValues?.userId
     }
   });
@@ -57,7 +57,14 @@ export default function PortfolioForm({
 
   const handleSubmit = async (data: InsertPortfolio) => {
     try {
-      await onSubmit(data);
+      const submitData = {
+        projectId,
+        userId: Number(data.userId),
+        title: data.title.trim(),
+        url: data.url.trim()
+      };
+      console.log('Portfolio form - Submitting data:', submitData);
+      await onSubmit(submitData);
     } catch (error) {
       console.error('Portfolio form submission error:', error);
       form.setError('root', {
