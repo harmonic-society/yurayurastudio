@@ -46,7 +46,8 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
   rewardDistributed: true 
 }).extend({
-  assignedUsers: z.array(z.number())
+  assignedUsers: z.array(z.number()),
+  dueDate: z.coerce.date() 
 });
 
 export const insertCommentSchema = createInsertSchema(comments).omit({ 

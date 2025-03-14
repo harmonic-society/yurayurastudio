@@ -35,10 +35,10 @@ interface ProjectFormProps {
   isSubmitting?: boolean;
 }
 
-export default function ProjectForm({ 
-  onSubmit, 
+export default function ProjectForm({
+  onSubmit,
   defaultValues,
-  isSubmitting 
+  isSubmitting
 }: ProjectFormProps) {
   const form = useForm({
     resolver: zodResolver(insertProjectSchema),
@@ -60,12 +60,7 @@ export default function ProjectForm({
   });
 
   const handleSubmit = (data: any) => {
-    // Convert string date to Date object
-    const formattedData = {
-      ...data,
-      dueDate: new Date(data.dueDate)
-    };
-    onSubmit(formattedData);
+    onSubmit(data);
   };
 
   return (
@@ -162,8 +157,8 @@ export default function ProjectForm({
             <FormItem>
               <FormLabel>報酬総額</FormLabel>
               <FormControl>
-                <Input 
-                  type="number" 
+                <Input
+                  type="number"
                   {...field}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   placeholder="報酬総額を入力"
@@ -181,7 +176,7 @@ export default function ProjectForm({
             <FormItem>
               <FormLabel>報酬分配ルール</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   {...field}
                   placeholder="例: ディレクター: 30%、営業: 20%、クリエイター: 50%"
                 />
