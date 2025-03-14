@@ -18,7 +18,7 @@ export interface IStorage {
   getProjects(): Promise<Project[]>;
   getProject(id: number): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
-  updateProject(id: number, project: Partial<InsertProject>): Promise<Project>;
+  updateProject(id: number, project: Partial<InsertProject> & { rewardDistributed?: boolean }): Promise<Project>;
   deleteProject(id: number): Promise<void>;
 
   // Comments
@@ -60,8 +60,10 @@ export class DatabaseStorage implements IStorage {
     return project;
   }
 
-  async updateProject(id: number, project: Partial<InsertProject>): Promise<Project> {
+  async updateProject(id: number, project: Partial<InsertProject> & { rewardDistributed?: boolean }): Promise<Project> {
     const { assignedUsers, ...projectData } = project;
+
+    // Update project data including rewardDistributed if provided
     const [updated] = await db
       .update(projects)
       .set(projectData)

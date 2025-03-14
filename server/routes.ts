@@ -41,10 +41,17 @@ export async function registerRoutes(app: Express) {
   // Update a project
   app.patch("/api/projects/:id", async (req, res) => {
     try {
-      const projectData = insertProjectSchema.partial().parse(req.body);
+      // Allow partial updates including rewardDistributed
+      const projectData = {
+        ...insertProjectSchema.partial().parse(req.body),
+        // If rewardDistributed is explicitly set, include it
+        ...(typeof req.body.rewardDistributed === 'boolean' ? { rewardDistributed: req.body.rewardDistributed } : {})
+      };
+
       const project = await storage.updateProject(Number(req.params.id), projectData);
       res.json(project);
     } catch (error) {
+      console.error('Project update error:', error);
       if (error instanceof ZodError) {
         res.status(400).json({ message: "Invalid project data", errors: error.errors });
       } else {
