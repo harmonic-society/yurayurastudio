@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema } from "@shared/schema";
+import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema } from "@shared/schema";
 import { ZodError } from "zod";
 
 export async function registerRoutes(app: Express) {
@@ -139,6 +139,61 @@ export async function registerRoutes(app: Express) {
   // Delete a user
   app.delete("/api/users/:id", async (req, res) => {
     await storage.deleteUser(Number(req.params.id));
+    res.status(204).send();
+  });
+
+  // Get project portfolios
+  app.get("/api/projects/:id/portfolios", async (req, res) => {
+    const portfolios = await storage.getPortfolios(Number(req.params.id));
+    res.json(portfolios);
+  });
+
+  // Get a single portfolio
+  app.get("/api/portfolios/:id", async (req, res) => {
+    const portfolio = await storage.getPortfolio(Number(req.params.id));
+    if (!portfolio) {
+      res.status(404).json({ message: "Portfolio not found" });
+      return;
+    }
+    res.json(portfolio);
+  });
+
+  // Create a portfolio
+  app.post("/api/projects/:id/portfolios", async (req, res) => {
+    try {
+      const portfolioData = insertPortfolioSchema.parse({
+        ...req.body,
+        projectId: Number(req.params.id)
+      });
+      const portfolio = await storage.createPortfolio(portfolioData);
+      res.status(201).json(portfolio);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Invalid portfolio data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create portfolio" });
+      }
+    }
+  });
+
+  // Update a portfolio
+  app.patch("/api/portfolios/:id", async (req, res) => {
+    try {
+      const portfolioData = insertPortfolioSchema.partial().parse(req.body);
+      const portfolio = await storage.updatePortfolio(Number(req.params.id), portfolioData);
+      res.json(portfolio);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Invalid portfolio data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update portfolio" });
+      }
+    }
+  });
+
+  // Delete a portfolio
+  app.delete("/api/portfolios/:id", async (req, res) => {
+    await storage.deletePortfolio(Number(req.params.id));
     res.status(204).send();
   });
 

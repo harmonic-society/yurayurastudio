@@ -3,15 +3,18 @@ import {
   comments,
   users,
   projectAssignments,
+  portfolios,
   type Project, 
   type InsertProject,
   type Comment,
   type InsertComment,
   type User,
-  type InsertUser
+  type InsertUser,
+  type Portfolio,
+  type InsertPortfolio
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Projects
@@ -31,6 +34,13 @@ export interface IStorage {
   createUser(user: Omit<User, "id">): Promise<User>;
   updateUser(id: number, user: Partial<Omit<User, "id">>): Promise<User>;
   deleteUser(id: number): Promise<void>;
+
+  // Portfolios
+  getPortfolios(projectId: number): Promise<Portfolio[]>;
+  getPortfolio(id: number): Promise<Portfolio | undefined>;
+  createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio>;
+  updatePortfolio(id: number, portfolio: Partial<InsertPortfolio>): Promise<Portfolio>;
+  deletePortfolio(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -169,6 +179,44 @@ export class DatabaseStorage implements IStorage {
     await db.delete(comments).where(eq(comments.userId, id));
     // Delete user
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  // Portfolios
+  async getPortfolios(projectId: number): Promise<Portfolio[]> {
+    return await db
+      .select()
+      .from(portfolios)
+      .where(eq(portfolios.projectId, projectId))
+      .orderBy(portfolios.createdAt);
+  }
+
+  async getPortfolio(id: number): Promise<Portfolio | undefined> {
+    const [portfolio] = await db
+      .select()
+      .from(portfolios)
+      .where(eq(portfolios.id, id));
+    return portfolio;
+  }
+
+  async createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio> {
+    const [newPortfolio] = await db
+      .insert(portfolios)
+      .values(portfolio)
+      .returning();
+    return newPortfolio;
+  }
+
+  async updatePortfolio(id: number, portfolio: Partial<InsertPortfolio>): Promise<Portfolio> {
+    const [updated] = await db
+      .update(portfolios)
+      .set(portfolio)
+      .where(eq(portfolios.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deletePortfolio(id: number): Promise<void> {
+    await db.delete(portfolios).where(eq(portfolios.id, id));
   }
 }
 

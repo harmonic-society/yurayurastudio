@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { type Project, type User } from "@shared/schema";
+import { type Project, type User, type Portfolio } from "@shared/schema";
 import ProjectForm from "@/components/project-form";
 import CommentSection from "@/components/comment-section";
+import PortfolioForm from "@/components/portfolio-form";
+import PortfolioList from "@/components/portfolio-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-import { AlertCircle, Edit2, ArrowRightLeft, Trash2 } from "lucide-react";
+import { AlertCircle, Edit2, ArrowRightLeft, Trash2, Plus } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +42,9 @@ export default function ProjectDetails() {
   const projectId = Number(params?.id);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPortfolioDialogOpen, setIsPortfolioDialogOpen] = useState(false);
+  const [isPortfolioDeleteDialogOpen, setIsPortfolioDeleteDialogOpen] = useState(false);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
@@ -95,6 +100,73 @@ export default function ProjectDetails() {
     return users?.find((user) => user.id === userId)?.name || "不明なユーザー";
   };
 
+  // ポートフォリオ関連のクエリとミューテーション
+  const { data: portfolios = [] } = useQuery<Portfolio[]>({
+    queryKey: [`/api/projects/${projectId}/portfolios`],
+  });
+
+  const createPortfolioMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiRequest("POST", `/api/projects/${projectId}/portfolios`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/portfolios`] });
+      setIsPortfolioDialogOpen(false);
+      toast({
+        title: "成功",
+        description: "ポートフォリオが作成されました",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `ポートフォリオの作成に失敗しました: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePortfolioMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiRequest("PATCH", `/api/portfolios/${selectedPortfolio?.id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/portfolios`] });
+      setIsPortfolioDialogOpen(false);
+      setSelectedPortfolio(null);
+      toast({
+        title: "成功",
+        description: "ポートフォリオが更新されました",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `ポートフォリオの更新に失敗しました: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePortfolioMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("DELETE", `/api/portfolios/${selectedPortfolio?.id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/portfolios`] });
+      setIsPortfolioDeleteDialogOpen(false);
+      setSelectedPortfolio(null);
+      toast({
+        title: "成功",
+        description: "ポートフォリオが削除されました",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `ポートフォリオの削除に失敗しました: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading) {
     return <div>読み込み中...</div>;
   }
@@ -124,15 +196,15 @@ export default function ProjectDetails() {
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button 
+          <Button
             onClick={() => setIsEditDialogOpen(true)}
             className="flex-1 sm:flex-none"
           >
             <Edit2 className="h-4 w-4 mr-2" />
             プロジェクトを編集
           </Button>
-          <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             onClick={() => setIsDeleteDialogOpen(true)}
             className="flex-1 sm:flex-none"
           >
@@ -220,6 +292,33 @@ export default function ProjectDetails() {
         </Card>
 
         <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>成果物</CardTitle>
+            <Button onClick={() => {
+              setSelectedPortfolio(null);
+              setIsPortfolioDialogOpen(true);
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              成果物を追加
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <PortfolioList
+              projectId={projectId}
+              portfolios={portfolios}
+              onEdit={(portfolio) => {
+                setSelectedPortfolio(portfolio);
+                setIsPortfolioDialogOpen(true);
+              }}
+              onDelete={(portfolio) => {
+                setSelectedPortfolio(portfolio);
+                setIsPortfolioDeleteDialogOpen(true);
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>コメント</CardTitle>
           </CardHeader>
@@ -259,6 +358,52 @@ export default function ProjectDetails() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? "削除中..." : "削除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={isPortfolioDialogOpen} onOpenChange={setIsPortfolioDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
+            </DialogTitle>
+          </DialogHeader>
+          <PortfolioForm
+            onSubmit={(data) =>
+              selectedPortfolio
+                ? updatePortfolioMutation.mutate(data)
+                : createPortfolioMutation.mutate({ ...data, projectId })
+            }
+            defaultValues={selectedPortfolio || undefined}
+            isSubmitting={
+              createPortfolioMutation.isPending || updatePortfolioMutation.isPending
+            }
+          />
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={isPortfolioDeleteDialogOpen}
+        onOpenChange={setIsPortfolioDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>成果物の削除</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedPortfolio?.title}を削除してもよろしいですか？
+              この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="mt-2 sm:mt-0">キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletePortfolioMutation.mutate()}
+              disabled={deletePortfolioMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePortfolioMutation.isPending ? "削除中..." : "削除"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -44,6 +44,16 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const portfolios = pgTable("portfolios", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  imageUrl: text("image_url").notNull(),
+  workType: text("work_type").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertProjectSchema = createInsertSchema(projects).omit({ 
   id: true,
   rewardDistributed: true 
@@ -55,6 +65,11 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
 });
 
 export const insertCommentSchema = createInsertSchema(comments).omit({ 
+  id: true,
+  createdAt: true 
+});
+
+export const insertPortfolioSchema = createInsertSchema(portfolios).omit({ 
   id: true,
   createdAt: true 
 });
@@ -74,3 +89,5 @@ export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
+export type Portfolio = typeof portfolios.$inferSelect;
+export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
