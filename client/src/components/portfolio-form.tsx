@@ -53,13 +53,7 @@ export default function PortfolioForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => {
-        // 送信前にuserIdを数値に変換
-        onSubmit({
-          ...data,
-          userId: parseInt(data.userId)
-        });
-      })} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="userId"
@@ -69,6 +63,7 @@ export default function PortfolioForm({
               <Select
                 onValueChange={field.onChange}
                 value={field.value}
+                defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger className="w-full">

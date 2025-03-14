@@ -371,33 +371,33 @@ export default function ProjectDetails() {
       </AlertDialog>
 
       <Dialog open={isPortfolioDialogOpen} onOpenChange={setIsPortfolioDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedPortfolio
-                ? "既存の成果物の情報を更新します。"
-                : "プロジェクトに新しい成果物を追加します。"
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedPortfolio
+                  ? "既存の成果物の情報を更新します。"
+                  : "プロジェクトに新しい成果物を追加します。"
+                }
+              </DialogDescription>
+            </DialogHeader>
+            <PortfolioForm
+              onSubmit={(data) =>
+                selectedPortfolio
+                  ? updatePortfolioMutation.mutate(data)
+                  : createPortfolioMutation.mutate({
+                      ...data,
+                      projectId
+                    })
               }
-            </DialogDescription>
-          </DialogHeader>
-          <PortfolioForm
-            onSubmit={(data) =>
-              selectedPortfolio
-                ? updatePortfolioMutation.mutate(data)
-                : createPortfolioMutation.mutate({
-                    ...data,
-                    projectId
-                  })
-            }
-            defaultValues={selectedPortfolio || undefined}
-            isSubmitting={
-              createPortfolioMutation.isPending || updatePortfolioMutation.isPending
-            }
-          />
-        </DialogContent>
+              defaultValues={selectedPortfolio || undefined}
+              isSubmitting={
+                createPortfolioMutation.isPending || updatePortfolioMutation.isPending
+              }
+            />
+          </DialogContent>
       </Dialog>
 
       <AlertDialog
