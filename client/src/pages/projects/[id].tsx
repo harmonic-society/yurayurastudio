@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRoute, useLocation } from "wouter";
+import { useRoute } from "wouter";
 import { type Project, type User, type Portfolio } from "@shared/schema";
 import ProjectForm from "@/components/project-form";
 import CommentSection from "@/components/comment-section";
@@ -109,14 +109,15 @@ export default function ProjectDetails() {
   const createPortfolioMutation = useMutation({
     mutationFn: (data: any) => {
       const submitData = {
-        ...data,
-        projectId: Number(projectId)
+        projectId,
+        userId: Number(data.userId),
+        imageUrl: data.imageUrl
       };
-      console.log('Mutation submitting data:', submitData); 
+      console.log('Portfolio mutation data:', submitData);
       return apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
     },
     onSuccess: () => {
-      console.log('Portfolio creation succeeded'); 
+      console.log('Portfolio creation succeeded');
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/portfolios`] });
       setIsPortfolioDialogOpen(false);
       setSelectedPortfolio(null);
@@ -126,7 +127,7 @@ export default function ProjectDetails() {
       });
     },
     onError: (error: any) => {
-      console.error('Portfolio creation error:', error); 
+      console.error('Portfolio creation error:', error);
       toast({
         title: "エラー",
         description: `ポートフォリオの作成に失敗しました: ${error.message || '不明なエラー'}`,
@@ -391,7 +392,7 @@ export default function ProjectDetails() {
           </DialogHeader>
           <PortfolioForm
             onSubmit={(data) => {
-              console.log('PortfolioForm submitted:', data); 
+              console.log('PortfolioForm submitted:', data);
               if (selectedPortfolio) {
                 updatePortfolioMutation.mutate(data);
               } else {

@@ -52,7 +52,7 @@ export default function PortfolioForm({
   if (!users) return null;
 
   const handleSubmit = (data: any) => {
-    console.log('Form submitted with data:', data); // デバッグログを追加
+    console.log('Form submitted with data:', data);
     onSubmit(data);
   };
 
