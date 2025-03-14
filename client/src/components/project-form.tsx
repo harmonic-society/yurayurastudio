@@ -18,9 +18,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { insertProjectSchema, projectStatus, type User } from "@shared/schema";
 import { format } from "date-fns";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 const statusLabels = {
   NOT_STARTED: "未着手",
@@ -63,6 +78,7 @@ export default function ProjectForm({
 
   const directorUsers = users?.filter(user => user.role === "DIRECTOR") || [];
   const salesUsers = users?.filter(user => user.role === "SALES") || [];
+  const creatorUsers = users?.filter(user => user.role === "CREATOR") || [];
 
   return (
     <Form {...form}>
@@ -162,6 +178,78 @@ export default function ProjectForm({
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="assignedUsers"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>担当クリエイター</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                  >
+                    {field.value?.length > 0
+                      ? `${field.value.length}名のクリエイターを選択中`
+                      : "クリエイターを選択"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="クリエイターを検索..." />
+                    <CommandList>
+                      <CommandEmpty>クリエイターが見つかりません</CommandEmpty>
+                      {creatorUsers.map((user) => {
+                        const isSelected = field.value?.includes(user.id);
+                        return (
+                          <CommandItem
+                            key={user.id}
+                            value={user.id.toString()}
+                            onSelect={() => {
+                              const newValue = isSelected
+                                ? field.value.filter((id: number) => id !== user.id)
+                                : [...(field.value || []), user.id];
+                              field.onChange(newValue);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                isSelected ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {user.name}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {field.value?.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {field.value.map((userId: number) => {
+                    const user = creatorUsers.find(u => u.id === userId);
+                    return user ? (
+                      <Badge
+                        key={user.id}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {user.name}
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
               <FormMessage />
             </FormItem>
           )}

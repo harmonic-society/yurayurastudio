@@ -146,6 +146,19 @@ export default function ProjectDetails() {
               <Badge>{statusLabels[project.status]}</Badge>
             </div>
             <div>
+              <p className="text-sm text-muted-foreground">担当クリエイター</p>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {project.assignedUsers?.map((userId) => (
+                  <Badge key={userId} variant="secondary">
+                    {getUserName(userId)}
+                  </Badge>
+                ))}
+                {(!project.assignedUsers || project.assignedUsers.length === 0) && (
+                  <p>未設定</p>
+                )}
+              </div>
+            </div>
+            <div>
               <p className="text-sm text-muted-foreground">担当ディレクター</p>
               <p>{getUserName(project.directorId)}</p>
             </div>
