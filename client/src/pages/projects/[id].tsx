@@ -108,12 +108,13 @@ export default function ProjectDetails() {
 
   const createPortfolioMutation = useMutation({
     mutationFn: (data: any) => {
+      console.log('Creating portfolio - Input data:', data);
       const submitData = {
         projectId,
-        userId: Number(data.userId),
+        userId: data.userId,
         imageUrl: data.imageUrl
       };
-      console.log('Portfolio mutation data:', submitData);
+      console.log('Creating portfolio - Submit data:', submitData);
       return apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
     },
     onSuccess: () => {
@@ -392,7 +393,7 @@ export default function ProjectDetails() {
           </DialogHeader>
           <PortfolioForm
             onSubmit={(data) => {
-              console.log('PortfolioForm submitted:', data);
+              console.log('Portfolio form submission:', data);
               if (selectedPortfolio) {
                 updatePortfolioMutation.mutate(data);
               } else {

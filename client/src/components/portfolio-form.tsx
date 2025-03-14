@@ -52,8 +52,13 @@ export default function PortfolioForm({
   if (!users) return null;
 
   const handleSubmit = (data: any) => {
-    console.log('Form submitted with data:', data);
-    onSubmit(data);
+    console.log('Portfolio form - Raw data:', data);
+    const formattedData = {
+      userId: parseInt(data.userId),
+      imageUrl: data.imageUrl
+    };
+    console.log('Portfolio form - Formatted data:', formattedData);
+    onSubmit(formattedData);
   };
 
   return (
