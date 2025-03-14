@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { insertPortfolioSchema, type User, type InsertPortfolio } from "@shared/schema";
 
 interface PortfolioFormProps {
@@ -38,6 +40,7 @@ export default function PortfolioForm({
     defaultValues: {
       projectId,
       title: defaultValues?.title || "",
+      description: defaultValues?.description || "",
       url: defaultValues?.url || "",
       userId: defaultValues?.userId
     }
@@ -61,6 +64,7 @@ export default function PortfolioForm({
         projectId,
         userId: Number(data.userId),
         title: data.title.trim(),
+        description: data.description.trim(),
         url: data.url.trim()
       };
       console.log('Portfolio form - Submitting data:', submitData);
@@ -77,12 +81,20 @@ export default function PortfolioForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        {form.formState.errors.root && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              {form.formState.errors.root.message}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <FormField
           control={form.control}
           name="userId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>担当者</FormLabel>
+              <FormLabel>担当者<span className="text-destructive">*</span></FormLabel>
               <Select
                 onValueChange={(value) => field.onChange(Number(value))}
                 value={field.value?.toString()}
@@ -110,9 +122,27 @@ export default function PortfolioForm({
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>タイトル</FormLabel>
+              <FormLabel>タイトル<span className="text-destructive">*</span></FormLabel>
               <FormControl>
                 <Input {...field} placeholder="成果物のタイトルを入力" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>説明<span className="text-destructive">*</span></FormLabel>
+              <FormControl>
+                <Textarea 
+                  {...field} 
+                  placeholder="成果物の説明を入力" 
+                  className="min-h-[100px]"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -124,7 +154,7 @@ export default function PortfolioForm({
           name="url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>成果物のURL</FormLabel>
+              <FormLabel>成果物のURL<span className="text-destructive">*</span></FormLabel>
               <FormControl>
                 <Input {...field} placeholder="成果物へのリンクを入力" />
               </FormControl>
@@ -133,13 +163,20 @@ export default function PortfolioForm({
           )}
         />
 
-        <Button 
-          type="submit" 
-          disabled={isSubmitting}
-          className="w-full sm:w-auto"
-        >
-          {isSubmitting ? "保存中..." : "成果物を保存"}
-        </Button>
+        <div className="space-y-2">
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full sm:w-auto"
+          >
+            {isSubmitting ? "保存中..." : "成果物を保存"}
+          </Button>
+          {Object.keys(form.formState.errors).length > 0 && (
+            <p className="text-sm text-destructive">
+              ※入力内容に誤りがあります。各項目のエラーメッセージを確認してください。
+            </p>
+          )}
+        </div>
       </form>
     </Form>
   );

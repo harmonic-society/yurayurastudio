@@ -113,6 +113,7 @@ export default function ProjectDetails() {
           projectId: Number(projectId),
           userId: Number(data.userId),
           title: data.title,
+          description: data.description,
           url: data.url
         };
         console.log('Creating portfolio with data:', submitData);
