@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { insertPortfolioSchema, type User, type InsertPortfolio } from "@shared/schema";
+import { useState } from "react";
 
 interface PortfolioFormProps {
   projectId: number;
@@ -35,6 +36,8 @@ export default function PortfolioForm({
   defaultValues,
   isSubmitting
 }: PortfolioFormProps) {
+  const [imagePreview, setImagePreview] = useState<string>(defaultValues?.imageUrl || "");
+
   const form = useForm<InsertPortfolio>({
     resolver: zodResolver(insertPortfolioSchema),
     defaultValues: {
@@ -42,6 +45,7 @@ export default function PortfolioForm({
       title: defaultValues?.title || "",
       description: defaultValues?.description || "",
       url: defaultValues?.url || "",
+      imageUrl: defaultValues?.imageUrl || "",
       userId: defaultValues?.userId,
       workType: defaultValues?.workType
     }
@@ -75,6 +79,7 @@ export default function PortfolioForm({
         title: data.title.trim(),
         description: data.description.trim(),
         url: data.url.trim(),
+        imageUrl: data.imageUrl.trim(),
         workType: data.workType
       };
       console.log('Portfolio form - Submitting data:', submitData);
@@ -86,6 +91,10 @@ export default function PortfolioForm({
         message: 'フォームの送信に失敗しました'
       });
     }
+  };
+
+  const handleImageUrlChange = (url: string) => {
+    setImagePreview(url);
   };
 
   return (
@@ -182,6 +191,40 @@ export default function PortfolioForm({
                   className="min-h-[100px]"
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="imageUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>画像URL<span className="text-destructive">*</span></FormLabel>
+              <FormControl>
+                <Input 
+                  {...field} 
+                  placeholder="成果物の画像URLを入力"
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleImageUrlChange(e.target.value);
+                  }}
+                />
+              </FormControl>
+              {imagePreview && (
+                <div className="mt-2">
+                  <p className="text-sm text-muted-foreground mb-2">プレビュー:</p>
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+                    <img
+                      src={imagePreview}
+                      alt="プレビュー"
+                      className="object-cover w-full h-full"
+                      onError={() => setImagePreview("")}
+                    />
+                  </div>
+                </div>
+              )}
               <FormMessage />
             </FormItem>
           )}

@@ -24,30 +24,48 @@ export default function PortfolioList({
           <div className="relative aspect-video">
             <img
               src={portfolio.imageUrl}
-              alt={`成果物 ${portfolio.id}`}
+              alt={`成果物 ${portfolio.title}`}
               className="object-cover w-full h-full rounded-t-lg"
             />
           </div>
           <CardContent className="pt-4">
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onEdit(portfolio)}
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onDelete(portfolio)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="font-medium">{portfolio.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                  {portfolio.description}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit(portfolio)}
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onDelete(portfolio)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              作成日: {format(new Date(portfolio.createdAt), "yyyy年M月d日")}
-            </p>
+            <div className="mt-4 space-y-1">
+              <p className="text-xs text-muted-foreground">
+                作成日: {format(new Date(portfolio.createdAt), "yyyy年M月d日")}
+              </p>
+              <a
+                href={portfolio.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-500 hover:underline"
+              >
+                成果物を見る
+              </a>
+            </div>
           </CardContent>
         </Card>
       ))}
