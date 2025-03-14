@@ -42,16 +42,16 @@ export default function ProjectForm({
 }: ProjectFormProps) {
   const form = useForm({
     resolver: zodResolver(insertProjectSchema),
-    defaultValues: defaultValues || {
-      name: "",
-      status: "NOT_STARTED",
-      dueDate: format(new Date(), "yyyy-MM-dd"),
-      clientName: "",
-      clientContact: "",
-      history: "",
-      totalReward: 0,
-      rewardRules: "",
-      assignedUsers: []
+    defaultValues: {
+      name: defaultValues?.name || "",
+      status: defaultValues?.status || "NOT_STARTED",
+      dueDate: defaultValues?.dueDate ? format(new Date(defaultValues.dueDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      clientName: defaultValues?.clientName || "",
+      clientContact: defaultValues?.clientContact || "",
+      history: defaultValues?.history || "",
+      totalReward: defaultValues?.totalReward || 0,
+      rewardRules: defaultValues?.rewardRules || "",
+      assignedUsers: defaultValues?.assignedUsers || []
     }
   });
 
@@ -59,9 +59,18 @@ export default function ProjectForm({
     queryKey: ["/api/users"]
   });
 
+  const handleSubmit = (data: any) => {
+    // Convert string date to Date object
+    const formattedData = {
+      ...data,
+      dueDate: new Date(data.dueDate)
+    };
+    onSubmit(formattedData);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"

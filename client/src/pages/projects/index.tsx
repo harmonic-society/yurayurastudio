@@ -87,7 +87,7 @@ export default function Projects() {
       <ProjectList projects={filteredProjects} />
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>新規プロジェクトの作成</DialogTitle>
           </DialogHeader>
