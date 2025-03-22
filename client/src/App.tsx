@@ -18,22 +18,21 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute
-        path="/"
-        component={() => (
+      <Route path="*">
+        {() => (
           <Layout>
             <Switch>
-              <Route path="/" component={Dashboard} />
-              <Route path="/projects" component={ProjectList} />
-              <Route path="/projects/:id" component={ProjectDetails} />
-              <Route path="/portfolios" component={Portfolios} />
-              <Route path="/team" component={Team} />
-              <Route path="/settings" component={Settings} />
+              <ProtectedRoute path="/" component={Dashboard} />
+              <ProtectedRoute path="/projects" component={ProjectList} />
+              <ProtectedRoute path="/projects/:id" component={ProjectDetails} />
+              <ProtectedRoute path="/portfolios" component={Portfolios} />
+              <ProtectedRoute path="/team" component={Team} />
+              <ProtectedRoute path="/settings" component={Settings} />
               <Route component={NotFound} />
             </Switch>
           </Layout>
         )}
-      />
+      </Route>
     </Switch>
   );
 }
