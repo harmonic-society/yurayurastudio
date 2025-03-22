@@ -36,6 +36,15 @@ export default function Settings() {
     }
   });
 
+  const passwordForm = useForm<ChangePassword>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    }
+  });
+
   const updateProfileMutation = useMutation({
     mutationFn: (data: UpdateProfile) => {
       console.log('プロフィール更新リクエスト:', data);
@@ -58,9 +67,34 @@ export default function Settings() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: (data: ChangePassword) => {
+      return apiRequest("POST", `/api/users/${user?.id}/change-password`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "成功",
+        description: "パスワードを変更しました",
+      });
+      passwordForm.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `パスワードの変更に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleProfileSubmit = (data: UpdateProfile) => {
     console.log('フォーム送信データ:', data);
     updateProfileMutation.mutate(data);
+  };
+
+  const handlePasswordSubmit = (data: ChangePassword) => {
+    console.log('パスワード変更データ:', data);
+    changePasswordMutation.mutate(data);
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,7 +129,7 @@ export default function Settings() {
       profileForm.setValue("avatarUrl", url);
     } catch (error) {
       toast({
-        title: "画像のアップロードに失敗しました",
+        title: "エラー",
         description: error instanceof Error ? error.message : "不明なエラーが発生しました",
         variant: "destructive",
       });
@@ -185,67 +219,67 @@ export default function Settings() {
             </form>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>パスワード変更</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form {...passwordForm}>
-              <form
-                onSubmit={passwordForm.handleSubmit((data) =>
-                  changePasswordMutation.mutate(data)
+            <form
+              onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
+              className="space-y-4"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">現在のパスワード</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  {...passwordForm.register("currentPassword")}
+                />
+                {passwordForm.formState.errors.currentPassword && (
+                  <p className="text-sm text-destructive">
+                    {passwordForm.formState.errors.currentPassword.message}
+                  </p>
                 )}
-                className="space-y-4"
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">新しいパスワード</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  {...passwordForm.register("newPassword")}
+                />
+                {passwordForm.formState.errors.newPassword && (
+                  <p className="text-sm text-destructive">
+                    {passwordForm.formState.errors.newPassword.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">新しいパスワード（確認）</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  {...passwordForm.register("confirmPassword")}
+                />
+                {passwordForm.formState.errors.confirmPassword && (
+                  <p className="text-sm text-destructive">
+                    {passwordForm.formState.errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                disabled={changePasswordMutation.isPending}
               >
-                <FormField
-                  control={passwordForm.control}
-                  name="currentPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>現在のパスワード</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={passwordForm.control}
-                  name="newPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>新しいパスワード</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={passwordForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>新しいパスワード（確認）</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button
-                  type="submit"
-                  disabled={changePasswordMutation.isPending}
-                >
-                  {changePasswordMutation.isPending
-                    ? "変更中..."
-                    : "パスワードを変更"}
-                </Button>
-              </form>
-            </Form>
+                {changePasswordMutation.isPending
+                  ? "変更中..."
+                  : "パスワードを変更"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
