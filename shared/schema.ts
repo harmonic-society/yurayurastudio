@@ -9,6 +9,10 @@ export type ProjectStatus = (typeof projectStatus)[number];
 export const userRoles = ["ADMIN", "DIRECTOR", "SALES", "CREATOR"] as const;
 export type UserRole = (typeof userRoles)[number];
 
+// 登録リクエスト用のロール（ADMINを除外）
+export const registrationRoles = ["DIRECTOR", "SALES", "CREATOR"] as const;
+export type RegistrationRole = (typeof registrationRoles)[number];
+
 export const workTypes = ["DESIGN", "DEVELOPMENT", "WRITING", "VIDEO", "PHOTO"] as const;
 export type WorkType = (typeof workTypes)[number];
 
@@ -165,7 +169,7 @@ export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
 export type { ChangePassword };
 
 
-// 登録リクエスト用のスキーマを追加
+// 登録リクエスト用のスキーマを更新
 export const registrationRequestSchema = createInsertSchema(registrationRequests).omit({
   id: true,
   status: true,
@@ -174,7 +178,7 @@ export const registrationRequestSchema = createInsertSchema(registrationRequests
   password: z.string().min(6, "パスワードは6文字以上で入力してください"),
   username: z.string().min(3, "ユーザー名は3文字以上で入力してください"),
   email: z.string().email("有効なメールアドレスを入力してください"),
-  role: z.enum(userRoles, {
+  role: z.enum(registrationRoles, {
     errorMap: () => ({ message: "役割を選択してください" })
   })
 });

@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { registrationRequestSchema, userRoles } from "@shared/schema";
+import { registrationRequestSchema, registrationRoles } from "@shared/schema";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -35,8 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 const roleLabels = {
   DIRECTOR: "ディレクター",
   SALES: "営業担当",
-  CREATOR: "クリエイター",
-  ADMIN: "管理者"
+  CREATOR: "クリエイター"
 } as const;
 
 export default function AuthPage() {
@@ -259,7 +258,7 @@ export default function AuthPage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {userRoles.map((role) => (
+                                {registrationRoles.map((role) => (
                                   <SelectItem key={role} value={role}>
                                     {roleLabels[role]}
                                   </SelectItem>
