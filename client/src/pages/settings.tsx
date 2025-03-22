@@ -3,9 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { changePasswordSchema, type ChangePassword } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { Camera } from "lucide-react";
@@ -14,6 +25,40 @@ export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const passwordForm = useForm<ChangePassword>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    }
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: (data: ChangePassword) => {
+      return apiRequest("POST", `/api/users/${user?.id}/change-password`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "成功",
+        description: "パスワードを変更しました",
+      });
+      passwordForm.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `パスワードの変更に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePasswordSubmit = (data: ChangePassword) => {
+    console.log('パスワード変更データ:', data);
+    changePasswordMutation.mutate(data);
+  };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,7 +115,7 @@ export default function Settings() {
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>プロフィール設定</CardTitle>
+            <CardTitle>プロフィール画像</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -100,6 +145,71 @@ export default function Settings() {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>パスワード変更</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...passwordForm}>
+              <form
+                onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
+                className="space-y-4"
+              >
+                <FormField
+                  control={passwordForm.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>現在のパスワード</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={passwordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>新しいパスワード</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={passwordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>新しいパスワード（確認）</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  disabled={changePasswordMutation.isPending}
+                >
+                  {changePasswordMutation.isPending
+                    ? "変更中..."
+                    : "パスワードを変更"}
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>
