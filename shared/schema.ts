@@ -170,7 +170,6 @@ export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type Portfolio = typeof portfolios.$inferSelect;
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
 export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
-export { ChangePassword };
 
 
 // 登録リクエスト用のスキーマを更新
@@ -222,3 +221,6 @@ export const insertTimelinePostSchema = createInsertSchema(timelinePosts).omit({
 }).extend({
   content: z.string().min(1, "投稿内容は必須です").max(140, "投稿は140文字以内で入力してください"),
 });
+
+export type TimelinePost = typeof timelinePosts.$inferSelect;
+export type InsertTimelinePost = z.infer<typeof insertTimelinePostSchema>;

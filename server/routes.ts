@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema, changePasswordSchema, registrationRequestSchema, registrationRequests, users, type RegistrationRequest, type InsertRegistrationRequest } from "@shared/schema";
+import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema, changePasswordSchema, registrationRequestSchema, registrationRequests, users, type RegistrationRequest, type InsertRegistrationRequest, insertTimelinePostSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
 import { isAdmin, canUpdateProjectStatus, canChangePassword } from "./middleware/permissions";

@@ -5,6 +5,7 @@ import {
   registrationRequests,
   projectAssignments,
   portfolios,
+  timelinePosts,
   type Project, 
   type InsertProject,
   type Comment,
@@ -14,7 +15,9 @@ import {
   type Portfolio,
   type InsertPortfolio,
   type RegistrationRequest,
-  type InsertRegistrationRequest
+  type InsertRegistrationRequest,
+  type TimelinePost,
+  type InsertTimelinePost
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -59,6 +62,13 @@ export interface IStorage {
   createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio>;
   updatePortfolio(id: number, portfolio: Partial<InsertPortfolio>): Promise<Portfolio>;
   deletePortfolio(id: number): Promise<void>;
+  
+  // Timeline posts
+  getTimelinePosts(): Promise<TimelinePost[]>;
+  getTimelinePostsByUser(userId: number): Promise<TimelinePost[]>;
+  getTimelinePost(id: number): Promise<TimelinePost | undefined>;
+  createTimelinePost(post: InsertTimelinePost): Promise<TimelinePost>;
+  deleteTimelinePost(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -276,6 +286,42 @@ export class DatabaseStorage implements IStorage {
 
   async deletePortfolio(id: number): Promise<void> {
     await db.delete(portfolios).where(eq(portfolios.id, id));
+  }
+  
+  // Timeline post methods
+  async getTimelinePosts(): Promise<TimelinePost[]> {
+    return await db
+      .select()
+      .from(timelinePosts)
+      .orderBy(timelinePosts.createdAt, "desc");
+  }
+  
+  async getTimelinePostsByUser(userId: number): Promise<TimelinePost[]> {
+    return await db
+      .select()
+      .from(timelinePosts)
+      .where(eq(timelinePosts.userId, userId))
+      .orderBy(timelinePosts.createdAt, "desc");
+  }
+  
+  async getTimelinePost(id: number): Promise<TimelinePost | undefined> {
+    const [post] = await db
+      .select()
+      .from(timelinePosts)
+      .where(eq(timelinePosts.id, id));
+    return post;
+  }
+  
+  async createTimelinePost(post: InsertTimelinePost): Promise<TimelinePost> {
+    const [newPost] = await db
+      .insert(timelinePosts)
+      .values(post)
+      .returning();
+    return newPost;
+  }
+  
+  async deleteTimelinePost(id: number): Promise<void> {
+    await db.delete(timelinePosts).where(eq(timelinePosts.id, id));
   }
 }
 
