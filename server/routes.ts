@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema, changePasswordSchema, registrationRequestSchema } from "@shared/schema";
+import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema, changePasswordSchema, registrationRequestSchema, registrationRequests, users, type RegistrationRequest, type InsertRegistrationRequest } from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
 import { isAdmin } from "./middleware/admin";
@@ -300,8 +300,8 @@ export async function registerRoutes(app: Express) {
 
       const [existingEmail] = await db
         .select()
-        .from(db.users)
-        .where(eq(db.users.email, requestData.email));
+        .from(registrationRequests)
+        .where(eq(registrationRequests.email, requestData.email));
 
       if (existingEmail) {
         return res.status(400).json({ message: "このメールアドレスは既に使用されています" });
