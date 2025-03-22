@@ -109,8 +109,12 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res) => {
-    req.logout(() => {
-      res.sendStatus(200);
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ message: "ログアウトに失敗しました" });
+      }
+      res.json({ message: "ログアウト成功" });
     });
   });
 
