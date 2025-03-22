@@ -3,18 +3,28 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema } from "@shared/schema";
 import { ZodError } from "zod";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express) {
+  // Set up authentication routes and middleware
+  setupAuth(app);
+
   const httpServer = createServer(app);
 
   // Get all projects
-  app.get("/api/projects", async (_req, res) => {
+  app.get("/api/projects", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     const projects = await storage.getProjects();
     res.json(projects);
   });
 
   // Get a single project
   app.get("/api/projects/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     const project = await storage.getProject(Number(req.params.id));
     if (!project) {
       res.status(404).json({ message: "Project not found" });
@@ -25,6 +35,9 @@ export async function registerRoutes(app: Express) {
 
   // Create a project
   app.post("/api/projects", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     try {
       const projectData = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(projectData);
@@ -40,11 +53,12 @@ export async function registerRoutes(app: Express) {
 
   // Update a project
   app.patch("/api/projects/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     try {
-      // Allow partial updates including rewardDistributed
       const projectData = {
         ...insertProjectSchema.partial().parse(req.body),
-        // If rewardDistributed is explicitly set, include it
         ...(typeof req.body.rewardDistributed === 'boolean' ? { rewardDistributed: req.body.rewardDistributed } : {})
       };
 
@@ -62,18 +76,27 @@ export async function registerRoutes(app: Express) {
 
   // Delete a project
   app.delete("/api/projects/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     await storage.deleteProject(Number(req.params.id));
     res.status(204).send();
   });
 
   // Get project comments
   app.get("/api/projects/:id/comments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     const comments = await storage.getProjectComments(Number(req.params.id));
     res.json(comments);
   });
 
   // Add a comment
   app.post("/api/projects/:id/comments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     try {
       const commentData = insertCommentSchema.parse({
         ...req.body,
@@ -91,13 +114,19 @@ export async function registerRoutes(app: Express) {
   });
 
   // Get all users
-  app.get("/api/users", async (_req, res) => {
+  app.get("/api/users", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     const users = await storage.getUsers();
     res.json(users);
   });
 
   // Get a single user
   app.get("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     const user = await storage.getUser(Number(req.params.id));
     if (!user) {
       res.status(404).json({ message: "User not found" });
@@ -106,23 +135,11 @@ export async function registerRoutes(app: Express) {
     res.json(user);
   });
 
-  // Create a user
-  app.post("/api/users", async (req, res) => {
-    try {
-      const userData = insertUserSchema.parse(req.body);
-      const user = await storage.createUser(userData);
-      res.status(201).json(user);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid user data", errors: error.errors });
-      } else {
-        res.status(500).json({ message: "Failed to create user" });
-      }
-    }
-  });
-
   // Update a user
   app.patch("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     try {
       const userData = updateUserSchema.parse(req.body);
       const user = await storage.updateUser(Number(req.params.id), userData);
@@ -138,24 +155,36 @@ export async function registerRoutes(app: Express) {
 
   // Delete a user
   app.delete("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     await storage.deleteUser(Number(req.params.id));
     res.status(204).send();
   });
 
-  // Get all portfolios (新規追加)
-  app.get("/api/portfolios", async (_req, res) => {
+  // Get all portfolios
+  app.get("/api/portfolios", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     const portfolios = await storage.getAllPortfolios();
     res.json(portfolios);
   });
 
   // Get project portfolios
   app.get("/api/projects/:id/portfolios", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     const portfolios = await storage.getPortfolios(Number(req.params.id));
     res.json(portfolios);
   });
 
   // Get a single portfolio
   app.get("/api/portfolios/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     const portfolio = await storage.getPortfolio(Number(req.params.id));
     if (!portfolio) {
       res.status(404).json({ message: "Portfolio not found" });
@@ -166,37 +195,31 @@ export async function registerRoutes(app: Express) {
 
   // Create a portfolio
   app.post("/api/projects/:id/portfolios", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     try {
-      console.log('Portfolio creation - Request body:', req.body);
-
       const portfolioData = insertPortfolioSchema.parse({
         ...req.body,
         projectId: Number(req.params.id),
       });
 
-      console.log('Portfolio creation - Validated data:', portfolioData);
-
       const portfolio = await storage.createPortfolio(portfolioData);
       res.status(201).json(portfolio);
     } catch (error) {
-      console.error('Portfolio creation error:', error);
-
       if (error instanceof ZodError) {
-        res.status(400).json({ 
-          message: "Invalid portfolio data", 
-          errors: error.errors 
-        });
+        res.status(400).json({ message: "Invalid portfolio data", errors: error.errors });
       } else {
-        res.status(500).json({ 
-          message: "Failed to create portfolio",
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
+        res.status(500).json({ message: "Failed to create portfolio" });
       }
     }
   });
 
   // Update a portfolio
   app.patch("/api/portfolios/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     try {
       const portfolioData = insertPortfolioSchema.partial().parse(req.body);
       const portfolio = await storage.updatePortfolio(Number(req.params.id), portfolioData);
@@ -212,12 +235,18 @@ export async function registerRoutes(app: Express) {
 
   // Delete a portfolio
   app.delete("/api/portfolios/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     await storage.deletePortfolio(Number(req.params.id));
     res.status(204).send();
   });
 
   // Get OGP image for a URL
   app.get("/api/ogp", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     try {
       const url = req.query.url as string;
       if (!url) {

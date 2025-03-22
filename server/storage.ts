@@ -15,8 +15,15 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // Session store
+  sessionStore: session.Store;
+
   // Projects
   getProjects(): Promise<Project[]>;
   getProject(id: number): Promise<Project | undefined>;
@@ -31,12 +38,13 @@ export interface IStorage {
   // Users
   getUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: Omit<User, "id">): Promise<User>;
   updateUser(id: number, user: Partial<Omit<User, "id">>): Promise<User>;
   deleteUser(id: number): Promise<void>;
 
   // Portfolios
-  getAllPortfolios(): Promise<Portfolio[]>; // 新規追加
+  getAllPortfolios(): Promise<Portfolio[]>;
   getPortfolios(projectId: number): Promise<Portfolio[]>;
   getPortfolio(id: number): Promise<Portfolio | undefined>;
   createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio>;
@@ -45,6 +53,17 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+      },
+      createTableIfMissing: true,
+    });
+  }
+
   async getProjects(): Promise<Project[]> {
     const allProjects = await db.select().from(projects);
     const allAssignments = await db.select().from(projectAssignments);
@@ -61,7 +80,6 @@ export class DatabaseStorage implements IStorage {
     const [project] = await db.select().from(projects).where(eq(projects.id, id));
 
     if (project) {
-      // Get assigned users
       const assignments = await db
         .select()
         .from(projectAssignments)
@@ -80,7 +98,6 @@ export class DatabaseStorage implements IStorage {
     const { assignedUsers, ...projectData } = insertProject;
     const [project] = await db.insert(projects).values(projectData).returning();
 
-    // Insert project assignments
     if (assignedUsers?.length) {
       await db.insert(projectAssignments).values(
         assignedUsers.map(userId => ({
@@ -95,20 +112,14 @@ export class DatabaseStorage implements IStorage {
 
   async updateProject(id: number, project: Partial<InsertProject> & { rewardDistributed?: boolean }): Promise<Project> {
     const { assignedUsers, ...projectData } = project;
-
-    // Update project data including rewardDistributed if provided
     const [updated] = await db
       .update(projects)
       .set(projectData)
       .where(eq(projects.id, id))
       .returning();
 
-    // Update project assignments if provided
     if (assignedUsers) {
-      // Delete existing assignments
       await db.delete(projectAssignments).where(eq(projectAssignments.projectId, id));
-
-      // Insert new assignments
       if (assignedUsers.length) {
         await db.insert(projectAssignments).values(
           assignedUsers.map(userId => ({
@@ -123,11 +134,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProject(id: number): Promise<void> {
-    // Delete project assignments first
     await db.delete(projectAssignments).where(eq(projectAssignments.projectId, id));
-    // Delete project comments
     await db.delete(comments).where(eq(comments.projectId, id));
-    // Delete project
     await db.delete(projects).where(eq(projects.id, id));
   }
 
@@ -156,6 +164,14 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
+    return user;
+  }
+
   async createUser(user: Omit<User, "id">): Promise<User> {
     const [newUser] = await db
       .insert(users)
@@ -174,15 +190,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<void> {
-    // Delete user's project assignments
     await db.delete(projectAssignments).where(eq(projectAssignments.userId, id));
-    // Delete user's comments
     await db.delete(comments).where(eq(comments.userId, id));
-    // Delete user
     await db.delete(users).where(eq(users.id, id));
   }
 
-  // 新規追加: 全ポートフォリオの取得
   async getAllPortfolios(): Promise<Portfolio[]> {
     return await db
       .select()
@@ -190,7 +202,6 @@ export class DatabaseStorage implements IStorage {
       .orderBy(portfolios.createdAt);
   }
 
-  // Portfolios
   async getPortfolios(projectId: number): Promise<Portfolio[]> {
     return await db
       .select()

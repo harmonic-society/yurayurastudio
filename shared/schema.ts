@@ -14,12 +14,15 @@ export type UserRole = (typeof userRoles)[number];
 export const workTypes = ["DESIGN", "DEVELOPMENT", "WRITING", "VIDEO", "PHOTO"] as const;
 export type WorkType = (typeof workTypes)[number];
 
-// テーブル定義
+// ユーザーテーブルにパスワードとユーザー名を追加
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   role: text("role", { enum: userRoles }).notNull(),
   email: text("email").notNull().unique(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const projects = pgTable("projects", {
@@ -51,7 +54,6 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// ポートフォリオのスキーマを修正
 export const portfolios = pgTable("portfolios", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
@@ -76,9 +78,9 @@ export const portfoliosRelations = relations(portfolios, ({ one }) => ({
 }));
 
 // スキーマのバリデーション
-export const insertPortfolioSchema = createInsertSchema(portfolios).omit({ 
+export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   id: true,
-  createdAt: true 
+  createdAt: true
 }).extend({
   projectId: z.number().int().positive(),
   userId: z.number().int().positive(),
@@ -90,26 +92,40 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   })
 });
 
-// 既存のスキーマは変更なし
-export const insertProjectSchema = createInsertSchema(projects).omit({ 
+export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
-  rewardDistributed: true 
+  rewardDistributed: true
 }).extend({
   assignedUsers: z.array(z.number()),
   directorId: z.number().optional(),
   salesId: z.number().optional(),
-  dueDate: z.coerce.date() 
+  dueDate: z.coerce.date()
 });
 
-export const insertCommentSchema = createInsertSchema(comments).omit({ 
+export const insertCommentSchema = createInsertSchema(comments).omit({
   id: true,
-  createdAt: true 
+  createdAt: true
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true
 }).extend({
   role: z.enum(userRoles)
+});
+
+// 認証用のスキーマを追加
+export const authUserSchema = z.object({
+  username: z.string().min(3, "ユーザー名は3文字以上で入力してください"),
+  password: z.string().min(6, "パスワードは6文字以上で入力してください"),
+});
+
+export const registerUserSchema = insertUserSchema.extend({
+  username: z.string().min(3, "ユーザー名は3文字以上で入力してください"),
+  password: z.string().min(6, "パスワードは6文字以上で入力してください"),
+  email: z.string().email("有効なメールアドレスを入力してください"),
+  role: z.enum(userRoles, {
+    errorMap: () => ({ message: "役割を選択してください" })
+  })
 });
 
 export const updateUserSchema = insertUserSchema.partial();
@@ -119,7 +135,10 @@ export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Comment = typeof comments.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUser = z.infer<typeof registerUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type Portfolio = typeof portfolios.$inferSelect;
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
+
+// 認証用の型定義を追加
+export type AuthUser = z.infer<typeof authUserSchema>;
