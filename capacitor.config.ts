@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.yurayura.studio',
   appName: 'Yura Yura STUDIO',
-  webDir: './public',
+  webDir: 'dist/public',
   server: {
     androidScheme: 'https',
     cleartext: true,
