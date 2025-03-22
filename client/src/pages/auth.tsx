@@ -33,17 +33,13 @@ import { useState } from "react";
 const roleLabels = {
   DIRECTOR: "ディレクター",
   SALES: "営業担当",
-  CREATOR: "クリエイター"
+  CREATOR: "クリエイター",
+  ADMIN: "管理者"
 } as const;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-
-  // すでにログインしている場合はリダイレクト
-  if (user) {
-    return <Redirect to="/" />;
-  }
 
   const loginForm = useForm<AuthUser>({
     resolver: zodResolver(authUserSchema),
@@ -63,6 +59,11 @@ export default function AuthPage() {
       role: undefined,
     },
   });
+
+  // すでにログインしている場合はリダイレクト
+  if (user) {
+    return <Redirect to="/" />;
+  }
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
