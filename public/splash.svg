@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <rect width="1024" height="1024" fill="#4F46E5"/>
+  <circle cx="512" cy="512" r="200" stroke="white" stroke-width="24" stroke-opacity="0.7"/>
+  <path d="M312 512C312 400.954 403.954 309 515 309C626.046 309 718 400.954 718 512C718 623.046 626.046 715 515 715" stroke="white" stroke-width="24" stroke-linecap="round"/>
+  <path d="M515 715C459.772 715 415 670.228 415 615C415 559.772 459.772 515 515 515C570.228 515 615 559.772 615 615C615 670.228 570.228 715 515 715Z" stroke="white" stroke-width="24"/>
+  <text x="512" y="840" font-family="Arial, sans-serif" font-size="48" fill="white" text-anchor="middle">Yura Yura STUDIO</text>
+</svg>
