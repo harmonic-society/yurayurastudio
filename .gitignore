@@ -1,6 +1,29 @@
-node_modules
-dist
+# ビルド成果物
+/dist
+/android/app/build
+/android/.gradle
+
+# Node.js 依存関係
+/node_modules
+npm-debug.log
+yarn-error.log
+
+# エディタ設定
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS固有のファイル
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+Thumbs.db
+
+# 環境設定ファイル
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ログファイル
+*.log
