@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -26,13 +27,21 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
 import { Camera } from "lucide-react";
 
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const profileForm = useForm<UpdateProfile>({
+    resolver: zodResolver(updateProfileSchema),
+    defaultValues: {
+      avatarUrl: user?.avatarUrl || "",
+      bio: user?.bio || "",
+      title: user?.title || "",
+    },
+  });
 
   const passwordForm = useForm<ChangePassword>({
     resolver: zodResolver(changePasswordSchema),
@@ -43,12 +52,27 @@ export default function Settings() {
     },
   });
 
-  const profileForm = useForm<UpdateProfile>({
-    resolver: zodResolver(updateProfileSchema),
-    defaultValues: {
-      avatarUrl: user?.avatarUrl || "",
-      bio: user?.bio || "",
-      title: user?.title || "",
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: UpdateProfile) => {
+      const response = await apiRequest("PATCH", "/api/users/profile", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "プロフィールの更新に失敗しました");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "プロフィールを更新しました",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "プロフィールの更新に失敗しました",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -67,34 +91,6 @@ export default function Settings() {
     onError: (error: Error) => {
       toast({
         title: "パスワードの変更に失敗しました",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: UpdateProfile) => {
-      try {
-        const response = await apiRequest("PATCH", "/api/users/profile", data);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "プロフィールの更新に失敗しました");
-        }
-        return response.json();
-      } catch (error) {
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "プロフィールを更新しました",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "プロフィールの更新に失敗しました",
         description: error.message,
         variant: "destructive",
       });
@@ -140,14 +136,6 @@ export default function Settings() {
     }
   };
 
-  const handleProfileSubmit = async (data: UpdateProfile) => {
-    try {
-      await updateProfileMutation.mutateAsync(data);
-    } catch (error) {
-      console.error("Profile update error:", error);
-    }
-  };
-
   return (
     <div className="space-y-8">
       <div>
@@ -160,46 +148,12 @@ export default function Settings() {
       <div className="grid gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>アプリケーション設定</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>表示言語</Label>
-              <Select defaultValue="ja">
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="言語を選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ja">日本語</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>テーマ</Label>
-              <Select defaultValue="light">
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="テーマを選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">ライト</SelectItem>
-                  <SelectItem value="dark">ダーク</SelectItem>
-                  <SelectItem value="system">システム設定に従う</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>プロフィール設定</CardTitle>
           </CardHeader>
           <CardContent>
             <Form {...profileForm}>
               <form
-                onSubmit={profileForm.handleSubmit(handleProfileSubmit)}
+                onSubmit={profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))}
                 className="space-y-6"
               >
                 <div className="flex items-center gap-4">
