@@ -6,7 +6,6 @@ import { ZodError } from "zod";
 import { setupAuth } from "./auth";
 import { isAdmin } from "./middleware/admin";
 import { comparePasswords, hashPassword } from "./auth";
-import { users } from './db';
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 
@@ -301,8 +300,8 @@ export async function registerRoutes(app: Express) {
 
       const [existingEmail] = await db
         .select()
-        .from(users)
-        .where(eq(users.email, requestData.email));
+        .from(db.users)
+        .where(eq(db.users.email, requestData.email));
 
       if (existingEmail) {
         return res.status(400).json({ message: "このメールアドレスは既に使用されています" });
@@ -362,7 +361,13 @@ export async function registerRoutes(app: Express) {
       }
 
       if (action === "approve") {
-        // ユーザーを作成
+        // パスワードとユーザー名の重複チェック
+        const existingUser = await storage.getUserByUsername(request.username);
+        if (existingUser) {
+          return res.status(400).json({ message: "このユーザー名は既に使用されています" });
+        }
+
+        // ユーザーを作成（createdAtは自動設定）
         await storage.createUser({
           name: request.name,
           role: request.role,
@@ -371,6 +376,7 @@ export async function registerRoutes(app: Express) {
           password: request.password,
           approved: true
         });
+
         await storage.updateRegistrationRequestStatus(Number(id), "APPROVED");
         res.json({ message: "ユーザー登録を承認しました" });
       } else if (action === "reject") {
