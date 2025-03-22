@@ -8,6 +8,12 @@ import PortfolioList from "@/components/portfolio-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -233,9 +239,24 @@ export default function ProjectDetails() {
               </Button>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              プロジェクトの編集・削除は管理者のみ可能です
-            </p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Button
+                      className="flex-1 sm:flex-none"
+                      disabled
+                    >
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      プロジェクトを編集
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>プロジェクトの編集は管理者のみが行えます</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>
@@ -281,7 +302,20 @@ export default function ProjectDetails() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">報酬総額</p>
-              <p>¥{project.totalReward.toLocaleString()}</p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className={!isAdmin ? "opacity-50" : ""}>
+                      ¥{project.totalReward.toLocaleString()}
+                    </p>
+                  </TooltipTrigger>
+                  {!isAdmin && (
+                    <TooltipContent>
+                      <p>報酬金額の編集は管理者のみが行えます</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">報酬分配</p>
@@ -320,7 +354,7 @@ export default function ProjectDetails() {
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>成果物</CardTitle>
-            {isAdmin && (
+            {isAdmin ? (
               <Button onClick={() => {
                 setSelectedPortfolio(null);
                 setIsPortfolioDialogOpen(true);
@@ -328,6 +362,22 @@ export default function ProjectDetails() {
                 <Plus className="h-4 w-4 mr-2" />
                 成果物を追加
               </Button>
+            ) : (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button disabled>
+                        <Plus className="h-4 w-4 mr-2" />
+                        成果物を追加
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>成果物の追加は管理者のみが行えます</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </CardHeader>
           <CardContent>
@@ -346,12 +396,8 @@ export default function ProjectDetails() {
                   setIsPortfolioDeleteDialogOpen(true);
                 }
               ) : undefined}
+              showTooltips={!isAdmin}
             />
-            {!isAdmin && (
-              <p className="text-sm text-muted-foreground mt-4">
-                成果物の追加・編集・削除は管理者のみ可能です
-              </p>
-            )}
           </CardContent>
         </Card>
 

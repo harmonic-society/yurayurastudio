@@ -4,19 +4,27 @@ import { Edit2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { type Portfolio } from "@shared/schema";
 import { useState, useEffect } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PortfolioListProps {
   projectId: number;
   portfolios: Portfolio[];
   onEdit?: (portfolio: Portfolio) => void;
   onDelete?: (portfolio: Portfolio) => void;
+  showTooltips?: boolean;
 }
 
 export default function PortfolioList({
   projectId,
   portfolios,
   onEdit,
-  onDelete
+  onDelete,
+  showTooltips = false
 }: PortfolioListProps) {
   const [previewImages, setPreviewImages] = useState<Record<number, string>>({});
 
@@ -41,6 +49,45 @@ export default function PortfolioList({
 
     fetchOgpImages();
   }, [portfolios]);
+
+  const ActionButton = ({ 
+    onClick, 
+    icon: Icon, 
+    label 
+  }: { 
+    onClick?: () => void, 
+    icon: typeof Edit2 | typeof Trash2,
+    label: string
+  }) => {
+    const button = (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onClick}
+        disabled={!onClick}
+        className="h-8 w-8"
+      >
+        <Icon className="h-4 w-4" />
+      </Button>
+    );
+
+    if (showTooltips && !onClick) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>{button}</div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{`成果物の${label}は管理者のみが行えます`}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return button;
+  };
 
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -69,26 +116,16 @@ export default function PortfolioList({
                 </p>
               </div>
               <div className="flex gap-1 flex-shrink-0">
-                {onEdit && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit(portfolio)}
-                    className="h-8 w-8"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                )}
-                {onDelete && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(portfolio)}
-                    className="h-8 w-8"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+                <ActionButton
+                  onClick={onEdit ? () => onEdit(portfolio) : undefined}
+                  icon={Edit2}
+                  label="編集"
+                />
+                <ActionButton
+                  onClick={onDelete ? () => onDelete(portfolio) : undefined}
+                  icon={Trash2}
+                  label="削除"
+                />
               </div>
             </div>
             <div className="mt-4 space-y-1">
