@@ -75,8 +75,16 @@ export default function Settings() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateProfile) => {
-      const response = await apiRequest("PATCH", "/api/users/profile", data);
-      return response.json();
+      try {
+        const response = await apiRequest("PATCH", "/api/users/profile", data);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "プロフィールの更新に失敗しました");
+        }
+        return response.json();
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
@@ -115,7 +123,10 @@ export default function Settings() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("アップロードに失敗しました");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "アップロードに失敗しました");
+      }
 
       const { url } = await response.json();
       setAvatarPreview(url);
@@ -126,6 +137,14 @@ export default function Settings() {
         description: error instanceof Error ? error.message : "不明なエラーが発生しました",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleProfileSubmit = async (data: UpdateProfile) => {
+    try {
+      await updateProfileMutation.mutateAsync(data);
+    } catch (error) {
+      console.error("Profile update error:", error);
     }
   };
 
@@ -180,9 +199,7 @@ export default function Settings() {
           <CardContent>
             <Form {...profileForm}>
               <form
-                onSubmit={profileForm.handleSubmit((data) =>
-                  updateProfileMutation.mutate(data)
-                )}
+                onSubmit={profileForm.handleSubmit(handleProfileSubmit)}
                 className="space-y-6"
               >
                 <div className="flex items-center gap-4">

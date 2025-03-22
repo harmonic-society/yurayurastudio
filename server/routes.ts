@@ -454,15 +454,17 @@ export async function registerRoutes(app: Express) {
 
     try {
       const profileData = updateProfileSchema.parse(req.body);
+      console.log('Updating profile with data:', profileData);
       await storage.updateUser(req.user.id, profileData);
 
       const updatedUser = await storage.getUser(req.user.id);
+      console.log('Updated user:', updatedUser);
       res.json(updatedUser);
     } catch (error) {
+      console.error("Profile update error:", error);
       if (error instanceof ZodError) {
         res.status(400).json({ message: "入力データが無効です", errors: error.errors });
       } else {
-        console.error("Profile update error:", error);
         res.status(500).json({ message: "プロフィールの更新に失敗しました" });
       }
     }
