@@ -1,7 +1,9 @@
+import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { type User, userRoles } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { Redirect } from "wouter";
 import {
   Table,
   TableBody,
@@ -38,8 +40,14 @@ const roleLabels = {
 } as const;
 
 export default function AdminUsers() {
+  const { isAdmin } = useAuth();
   const { toast } = useToast();
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
+
+  // 管理者でない場合はリダイレクト
+  if (!isAdmin) {
+    return <Redirect to="/" />;
+  }
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
