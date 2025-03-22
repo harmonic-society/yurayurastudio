@@ -3,21 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { changePasswordSchema, type ChangePassword, updateProfileSchema, type UpdateProfile } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { Camera } from "lucide-react";
@@ -26,75 +14,6 @@ export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-
-  const profileForm = useForm<UpdateProfile>({
-    resolver: zodResolver(updateProfileSchema),
-    defaultValues: {
-      title: user?.title || "",
-      bio: user?.bio || "",
-      avatarUrl: user?.avatarUrl || "",
-    }
-  });
-
-  const passwordForm = useForm<ChangePassword>({
-    resolver: zodResolver(changePasswordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    }
-  });
-
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: UpdateProfile) => {
-      console.log('送信するプロフィールデータ:', data);
-      const response = await fetch('/api/users/profile', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "プロフィールの更新に失敗しました");
-      }
-
-      const result = await response.json();
-      console.log('サーバーからのレスポンス:', result);
-      return result;
-    },
-    onSuccess: (data) => {
-      console.log('プロフィール更新成功:', data);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "成功",
-        description: "プロフィールを更新しました",
-      });
-    },
-    onError: (error: Error) => {
-      console.error('プロフィール更新エラー:', error);
-      toast({
-        title: "エラー",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleProfileSubmit = async (data: UpdateProfile) => {
-    console.log('フォーム送信データ:', data);
-    try {
-      await updateProfileMutation.mutateAsync({
-        title: data.title || null,
-        bio: data.bio || null,
-        avatarUrl: data.avatarUrl || null,
-      });
-    } catch (error) {
-      console.error('フォーム送信エラー:', error);
-    }
-  };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -125,7 +44,11 @@ export default function Settings() {
 
       const { url } = await response.json();
       setAvatarPreview(url);
-      profileForm.setValue("avatarUrl", url);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "成功",
+        description: "プロフィール画像を更新しました",
+      });
     } catch (error) {
       toast({
         title: "エラー",
@@ -133,31 +56,6 @@ export default function Settings() {
         variant: "destructive",
       });
     }
-  };
-
-  const changePasswordMutation = useMutation({
-    mutationFn: (data: ChangePassword) => {
-      return apiRequest("POST", `/api/users/${user?.id}/change-password`, data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "成功",
-        description: "パスワードを変更しました",
-      });
-      passwordForm.reset();
-    },
-    onError: (error) => {
-      toast({
-        title: "エラー",
-        description: `パスワードの変更に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handlePasswordSubmit = (data: ChangePassword) => {
-    console.log('パスワード変更データ:', data);
-    changePasswordMutation.mutate(data);
   };
 
   return (
@@ -175,138 +73,33 @@ export default function Settings() {
             <CardTitle>プロフィール設定</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={profileForm.handleSubmit(handleProfileSubmit)} className="space-y-6">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage
-                    src={avatarPreview || user?.avatarUrl || undefined}
-                    alt={user?.name}
-                  />
-                  <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <Label htmlFor="avatar" className="cursor-pointer">
-                    <div className="flex items-center gap-2 rounded-md bg-secondary px-4 py-2">
-                      <Camera className="h-4 w-4" />
-                      <span>画像を変更</span>
-                    </div>
-                    <Input
-                      id="avatar"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleAvatarChange}
-                    />
-                  </Label>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    推奨: 500x500px以上、5MB以下
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">肩書き</Label>
+            <div className="flex items-center gap-4">
+              <Avatar className="h-24 w-24">
+                <AvatarImage
+                  src={avatarPreview || user?.avatarUrl || undefined}
+                  alt={user?.name}
+                />
+                <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
+              </Avatar>
+              <div>
+                <Label htmlFor="avatar" className="cursor-pointer">
+                  <div className="flex items-center gap-2 rounded-md bg-secondary px-4 py-2">
+                    <Camera className="h-4 w-4" />
+                    <span>画像を変更</span>
+                  </div>
                   <Input
-                    id="title"
-                    {...profileForm.register("title")}
+                    id="avatar"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
                   />
-                  {profileForm.formState.errors.title && (
-                    <p className="text-sm text-destructive">
-                      {profileForm.formState.errors.title.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">プロフィール文</Label>
-                  <Textarea
-                    id="bio"
-                    {...profileForm.register("bio")}
-                    placeholder="自己紹介や得意分野などを入力してください"
-                  />
-                  {profileForm.formState.errors.bio && (
-                    <p className="text-sm text-destructive">
-                      {profileForm.formState.errors.bio.message}
-                    </p>
-                  )}
-                </div>
+                </Label>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  推奨: 500x500px以上、5MB以下
+                </p>
               </div>
-
-              <Button
-                type="submit"
-                disabled={updateProfileMutation.isPending}
-              >
-                {updateProfileMutation.isPending
-                  ? "更新中..."
-                  : "プロフィールを更新"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>パスワード変更</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...passwordForm}>
-              <form
-                onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={passwordForm.control}
-                  name="currentPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>現在のパスワード</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={passwordForm.control}
-                  name="newPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>新しいパスワード</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={passwordForm.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>新しいパスワード（確認）</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  disabled={changePasswordMutation.isPending}
-                >
-                  {changePasswordMutation.isPending
-                    ? "変更中..."
-                    : "パスワードを変更"}
-                </Button>
-              </form>
-            </Form>
+            </div>
           </CardContent>
         </Card>
       </div>

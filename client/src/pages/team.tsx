@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import UserForm from "@/components/user-form";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const roleLabels = {
   DIRECTOR: "ディレクター",
@@ -177,9 +178,10 @@ export default function Team() {
         {users?.map((user) => (
           <Card key={user.id}>
             <CardHeader className="flex flex-row items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Users className="h-6 w-6 text-primary" />
-              </div>
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={user.avatarUrl || undefined} alt={user.name} />
+                <AvatarFallback>{user.name[0]}</AvatarFallback>
+              </Avatar>
               <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg truncate">{user.name}</CardTitle>
                 <p className="text-sm text-muted-foreground truncate">
