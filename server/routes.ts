@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema, changePasswordSchema, registrationRequestSchema, registrationRequests, users, type RegistrationRequest, type InsertRegistrationRequest } from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
-import { isAdmin } from "./middleware/admin";
+import { isAdmin, canUpdateProjectStatus, canChangePassword } from "./middleware/permissions";
 import { comparePasswords, hashPassword } from "./auth";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
@@ -15,7 +15,7 @@ export async function registerRoutes(app: Express) {
 
   const httpServer = createServer(app);
 
-  // Get all projects
+  // Get all projects (読み取り可能)
   app.get("/api/projects", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
@@ -24,42 +24,36 @@ export async function registerRoutes(app: Express) {
     res.json(projects);
   });
 
-  // Get a single project
+  // Get a single project (読み取り可能)
   app.get("/api/projects/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
     const project = await storage.getProject(Number(req.params.id));
     if (!project) {
-      res.status(404).json({ message: "Project not found" });
+      res.status(404).json({ message: "プロジェクトが見つかりません" });
       return;
     }
     res.json(project);
   });
 
-  // Create a project
-  app.post("/api/projects", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
+  // Create a project (管理者のみ)
+  app.post("/api/projects", isAdmin, async (req, res) => {
     try {
       const projectData = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(projectData);
       res.status(201).json(project);
     } catch (error) {
       if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid project data", errors: error.errors });
+        res.status(400).json({ message: "無効なプロジェクトデータです", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create project" });
+        res.status(500).json({ message: "プロジェクトの作成に失敗しました" });
       }
     }
   });
 
-  // Update a project
-  app.patch("/api/projects/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
+  // Update a project (ステータス変更は全員可能、その他は管理者のみ)
+  app.patch("/api/projects/:id", canUpdateProjectStatus, async (req, res) => {
     try {
       const projectData = {
         ...insertProjectSchema.partial().parse(req.body),
@@ -71,23 +65,20 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Project update error:', error);
       if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid project data", errors: error.errors });
+        res.status(400).json({ message: "無効なプロジェクトデータです", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to update project" });
+        res.status(500).json({ message: "プロジェクトの更新に失敗しました" });
       }
     }
   });
 
-  // Delete a project
-  app.delete("/api/projects/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
+  // Delete a project (管理者のみ)
+  app.delete("/api/projects/:id", isAdmin, async (req, res) => {
     await storage.deleteProject(Number(req.params.id));
     res.status(204).send();
   });
 
-  // Get project comments
+  // Get project comments (読み取り可能)
   app.get("/api/projects/:id/comments", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
@@ -96,11 +87,8 @@ export async function registerRoutes(app: Express) {
     res.json(comments);
   });
 
-  // Add a comment
-  app.post("/api/projects/:id/comments", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
+  // Add a comment (管理者のみ)
+  app.post("/api/projects/:id/comments", isAdmin, async (req, res) => {
     try {
       const commentData = insertCommentSchema.parse({
         ...req.body,
@@ -110,14 +98,14 @@ export async function registerRoutes(app: Express) {
       res.status(201).json(comment);
     } catch (error) {
       if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid comment data", errors: error.errors });
+        res.status(400).json({ message: "無効なコメントデータです", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create comment" });
+        res.status(500).json({ message: "コメントの作成に失敗しました" });
       }
     }
   });
 
-  // Get all users
+  // Get all users (読み取り可能)
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
@@ -126,47 +114,72 @@ export async function registerRoutes(app: Express) {
     res.json(users);
   });
 
-  // Get a single user
+  // Get a single user (読み取り可能)
   app.get("/api/users/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
     const user = await storage.getUser(Number(req.params.id));
     if (!user) {
-      res.status(404).json({ message: "User not found" });
+      res.status(404).json({ message: "ユーザーが見つかりません" });
       return;
     }
     res.json(user);
   });
 
-  // Update a user
-  app.patch("/api/users/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
+  // Update a user (管理者のみ)
+  app.patch("/api/users/:id", isAdmin, async (req, res) => {
     try {
       const userData = updateUserSchema.parse(req.body);
       const user = await storage.updateUser(Number(req.params.id), userData);
       res.json(user);
     } catch (error) {
       if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid user data", errors: error.errors });
+        res.status(400).json({ message: "無効なユーザーデータです", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to update user" });
+        res.status(500).json({ message: "ユーザーの更新に失敗しました" });
       }
     }
   });
 
-  // Delete a user
-  app.delete("/api/users/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
+  // Delete a user (管理者のみ)
+  app.delete("/api/users/:id", isAdmin, async (req, res) => {
     await storage.deleteUser(Number(req.params.id));
     res.status(204).send();
   });
 
-  // Get all portfolios
+  // パスワード変更エンドポイント (自分のパスワードのみ変更可能)
+  app.post("/api/users/:id/change-password", canChangePassword, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+      const user = await storage.getUser(Number(req.params.id));
+
+      if (!user) {
+        return res.status(404).json({ message: "ユーザーが見つかりません" });
+      }
+
+      // 現在のパスワードを検証
+      const isValid = await comparePasswords(currentPassword, user.password);
+      if (!isValid) {
+        return res.status(400).json({ message: "現在のパスワードが正しくありません" });
+      }
+
+      // 新しいパスワードをハッシュ化して保存
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUser(user.id, { password: hashedPassword });
+
+      res.json({ message: "パスワードを変更しました" });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "入力データが無効です", errors: error.errors });
+      } else {
+        console.error("Password change error:", error);
+        res.status(500).json({ message: "パスワードの変更に失敗しました" });
+      }
+    }
+  });
+
+  // Get all portfolios (読み取り可能)
   app.get("/api/portfolios", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
@@ -175,7 +188,7 @@ export async function registerRoutes(app: Express) {
     res.json(portfolios);
   });
 
-  // Get project portfolios
+  // Get project portfolios (読み取り可能)
   app.get("/api/projects/:id/portfolios", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
@@ -184,24 +197,21 @@ export async function registerRoutes(app: Express) {
     res.json(portfolios);
   });
 
-  // Get a single portfolio
+  // Get a single portfolio (読み取り可能)
   app.get("/api/portfolios/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
     const portfolio = await storage.getPortfolio(Number(req.params.id));
     if (!portfolio) {
-      res.status(404).json({ message: "Portfolio not found" });
+      res.status(404).json({ message: "ポートフォリオが見つかりません" });
       return;
     }
     res.json(portfolio);
   });
 
-  // Create a portfolio
-  app.post("/api/projects/:id/portfolios", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
+  // Create a portfolio (管理者のみ)
+  app.post("/api/projects/:id/portfolios", isAdmin, async (req, res) => {
     try {
       const portfolioData = insertPortfolioSchema.parse({
         ...req.body,
@@ -212,41 +222,35 @@ export async function registerRoutes(app: Express) {
       res.status(201).json(portfolio);
     } catch (error) {
       if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid portfolio data", errors: error.errors });
+        res.status(400).json({ message: "無効なポートフォリオデータです", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create portfolio" });
+        res.status(500).json({ message: "ポートフォリオの作成に失敗しました" });
       }
     }
   });
 
-  // Update a portfolio
-  app.patch("/api/portfolios/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
+  // Update a portfolio (管理者のみ)
+  app.patch("/api/portfolios/:id", isAdmin, async (req, res) => {
     try {
       const portfolioData = insertPortfolioSchema.partial().parse(req.body);
       const portfolio = await storage.updatePortfolio(Number(req.params.id), portfolioData);
       res.json(portfolio);
     } catch (error) {
       if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid portfolio data", errors: error.errors });
+        res.status(400).json({ message: "無効なポートフォリオデータです", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to update portfolio" });
+        res.status(500).json({ message: "ポートフォリオの更新に失敗しました" });
       }
     }
   });
 
-  // Delete a portfolio
-  app.delete("/api/portfolios/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
+  // Delete a portfolio (管理者のみ)
+  app.delete("/api/portfolios/:id", isAdmin, async (req, res) => {
     await storage.deletePortfolio(Number(req.params.id));
     res.status(204).send();
   });
 
-  // Get OGP image for a URL
+  // Get OGP image for a URL (読み取り可能)
   app.get("/api/ogp", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
@@ -287,7 +291,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // 登録リクエストの作成
+  // 登録リクエストの作成 (誰でも可能)
   app.post("/api/registration-request", async (req, res) => {
     try {
       const requestData = registrationRequestSchema.parse(req.body);
@@ -331,7 +335,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // 管理者用の登録リクエスト一覧取得
+  // 管理者用の登録リクエスト一覧取得 (管理者のみ)
   app.get("/api/admin/registration-requests", isAdmin, async (req, res) => {
     try {
       const requests = await storage.getRegistrationRequests();
@@ -346,7 +350,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // 管理者用の登録リクエスト承認/拒否
+  // 管理者用の登録リクエスト承認/拒否 (管理者のみ)
   app.post("/api/admin/registration-requests/:id/:action", isAdmin, async (req, res) => {
     try {
       const { id, action } = req.params;
@@ -392,7 +396,7 @@ export async function registerRoutes(app: Express) {
   });
 
 
-  // 管理者用APIエンドポイントを追加
+  // 管理者用APIエンドポイントを追加 (管理者のみ)
   app.get("/api/admin/users", isAdmin, async (req, res) => {
     try {
       const users = await storage.getUsers();
@@ -422,41 +426,6 @@ export async function registerRoutes(app: Express) {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "ユーザーの削除に失敗しました" });
-    }
-  });
-
-  // パスワード変更エンドポイントを追加
-  app.post("/api/users/change-password", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
-
-    try {
-      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
-      const user = await storage.getUser(req.user.id);
-
-      if (!user) {
-        return res.status(404).json({ message: "ユーザーが見つかりません" });
-      }
-
-      // 現在のパスワードを検証
-      const isValid = await comparePasswords(currentPassword, user.password);
-      if (!isValid) {
-        return res.status(400).json({ message: "現在のパスワードが正しくありません" });
-      }
-
-      // 新しいパスワードをハッシュ化して保存
-      const hashedPassword = await hashPassword(newPassword);
-      await storage.updateUser(user.id, { password: hashedPassword });
-
-      res.json({ message: "パスワードを変更しました" });
-    } catch (error) {
-      if (error instanceof ZodError) {
-        res.status(400).json({ message: "入力データが無効です", errors: error.errors });
-      } else {
-        console.error("Password change error:", error);
-        res.status(500).json({ message: "パスワードの変更に失敗しました" });
-      }
     }
   });
 
