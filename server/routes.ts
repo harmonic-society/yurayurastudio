@@ -8,6 +8,9 @@ import { isAdmin, canUpdateProjectStatus, canChangePassword } from "./middleware
 import { comparePasswords, hashPassword } from "./auth";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
+import * as path from 'path'; //Import path module
+import { updateProfileSchema } from "@shared/schema"; //Import updateProfileSchema
+
 
 export async function registerRoutes(app: Express) {
   // Set up authentication routes and middleware
@@ -430,6 +433,54 @@ export async function registerRoutes(app: Express) {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "ユーザーの削除に失敗しました" });
+    }
+  });
+
+  // プロフィール更新エンドポイント
+  app.patch("/api/users/profile", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    try {
+      const profileData = updateProfileSchema.parse(req.body);
+      await storage.updateUser(req.user.id, profileData);
+
+      const updatedUser = await storage.getUser(req.user.id);
+      res.json(updatedUser);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "入力データが無効です", errors: error.errors });
+      } else {
+        console.error("Profile update error:", error);
+        res.status(500).json({ message: "プロフィールの更新に失敗しました" });
+      }
+    }
+  });
+
+  // アバター画像アップロードエンドポイント
+  app.post("/api/users/avatar", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    if (!req.files || !req.files.avatar) {
+      return res.status(400).json({ message: "画像ファイルが必要です" });
+    }
+
+    try {
+      const avatarFile = req.files.avatar;
+      const fileName = `avatar-${req.user.id}-${Date.now()}.${avatarFile.name.split('.').pop()}`;
+      const uploadPath = path.join(__dirname, '..', 'public', 'uploads', fileName);
+
+      await avatarFile.mv(uploadPath);
+      const avatarUrl = `/uploads/${fileName}`;
+
+      await storage.updateUser(req.user.id, { avatarUrl });
+      res.json({ url: avatarUrl });
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      res.status(500).json({ message: "画像のアップロードに失敗しました" });
     }
   });
 

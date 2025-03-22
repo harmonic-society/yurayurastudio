@@ -37,6 +37,10 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   approved: pgBoolean("approved").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // プロフィール関連のフィールドを追加
+  avatarUrl: text("avatar_url"),
+  bio: text("bio"),
+  title: text("title"),
 });
 
 export const projects = pgTable("projects", {
@@ -166,7 +170,7 @@ export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type Portfolio = typeof portfolios.$inferSelect;
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
 export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
-export type { ChangePassword };
+export { ChangePassword };
 
 
 // 登録リクエスト用のスキーマを更新
@@ -185,3 +189,12 @@ export const registrationRequestSchema = createInsertSchema(registrationRequests
 
 export type RegistrationRequest = typeof registrationRequests.$inferSelect;
 export type InsertRegistrationRequest = z.infer<typeof registrationRequestSchema>;
+
+// ユーザープロフィール更新用のスキーマを追加
+export const updateProfileSchema = z.object({
+  avatarUrl: z.string().url("有効な画像URLを入力してください").optional(),
+  bio: z.string().max(500, "プロフィール文は500文字以内で入力してください").optional(),
+  title: z.string().max(100, "肩書きは100文字以内で入力してください").optional(),
+});
+
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;

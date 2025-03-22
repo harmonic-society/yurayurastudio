@@ -1,10 +1,29 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import fileUpload from "express-fileupload";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// アップロードディレクトリの作成
+const uploadsDir = path.join(__dirname, "..", "public", "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// ファイルアップロードミドルウェアの設定
+app.use(fileUpload());
+
+// 静的ファイルのサービング
+app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.use((req, res, next) => {
   const start = Date.now();
