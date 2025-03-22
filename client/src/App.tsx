@@ -13,6 +13,10 @@ import Team from "@/pages/team";
 import Settings from "@/pages/settings";
 import Portfolios from "@/pages/portfolios";
 import AuthPage from "@/pages/auth";
+import { useAuth } from "@/hooks/use-auth"; // Import useAuth
+import AdminUsers from "@/pages/admin/users"; // Import AdminUsers component
+import { Redirect } from "wouter";
+
 
 function Router() {
   return (
@@ -28,6 +32,17 @@ function Router() {
               <ProtectedRoute path="/portfolios" component={Portfolios} />
               <ProtectedRoute path="/team" component={Team} />
               <ProtectedRoute path="/settings" component={Settings} />
+              {/* 管理者用ルートを追加 */}
+              <ProtectedRoute
+                path="/admin/users"
+                component={() => {
+                  const { isAdmin } = useAuth();
+                  if (!isAdmin) {
+                    return <Redirect to="/" />;
+                  }
+                  return <AdminUsers />;
+                }}
+              />
               <Route component={NotFound} />
             </Switch>
           </Layout>

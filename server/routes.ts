@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
+import { isAdmin } from "./middleware/admin";
 
 export async function registerRoutes(app: Express) {
   // Set up authentication routes and middleware
@@ -280,6 +281,39 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('OGP fetch error:', error);
       res.status(500).json({ message: "Failed to fetch OGP data" });
+    }
+  });
+
+  // 管理者用APIエンドポイントを追加
+  app.get("/api/admin/users", isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: "ユーザー一覧の取得に失敗しました" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      const userData = updateUserSchema.parse(req.body);
+      const user = await storage.updateUser(Number(req.params.id), userData);
+      res.json(user);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なユーザーデータです", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "ユーザーの更新に失敗しました" });
+      }
+    }
+  });
+
+  app.delete("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      await storage.deleteUser(Number(req.params.id));
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "ユーザーの削除に失敗しました" });
     }
   });
 

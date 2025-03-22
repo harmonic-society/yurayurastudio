@@ -128,5 +128,12 @@ export function useAuth() {
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context;
+
+  // isAdmin関数を追加
+  const isAdmin = context.user?.role === "ADMIN";
+
+  return {
+    ...context,
+    isAdmin,
+  };
 }

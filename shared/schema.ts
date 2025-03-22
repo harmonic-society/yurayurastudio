@@ -3,18 +3,16 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// 既存のenumとtypes定義は変更なし
 export const projectStatus = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "ON_HOLD"] as const;
 export type ProjectStatus = (typeof projectStatus)[number];
 
-export const userRoles = ["DIRECTOR", "SALES", "CREATOR"] as const;
+// ADMINロールを追加
+export const userRoles = ["ADMIN", "DIRECTOR", "SALES", "CREATOR"] as const;
 export type UserRole = (typeof userRoles)[number];
 
-// work_typeの定義を追加
 export const workTypes = ["DESIGN", "DEVELOPMENT", "WRITING", "VIDEO", "PHOTO"] as const;
 export type WorkType = (typeof workTypes)[number];
 
-// ユーザーテーブルにパスワードとユーザー名を追加
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -65,7 +63,6 @@ export const portfolios = pgTable("portfolios", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// リレーションの定義
 export const portfoliosRelations = relations(portfolios, ({ one }) => ({
   project: one(projects, {
     fields: [portfolios.projectId],
@@ -77,7 +74,6 @@ export const portfoliosRelations = relations(portfolios, ({ one }) => ({
   }),
 }));
 
-// スキーマのバリデーション
 export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   id: true,
   createdAt: true
@@ -113,7 +109,6 @@ export const insertUserSchema = createInsertSchema(users).omit({
   role: z.enum(userRoles)
 });
 
-// 認証用のスキーマを追加
 export const authUserSchema = z.object({
   username: z.string().min(3, "ユーザー名は3文字以上で入力してください"),
   password: z.string().min(6, "パスワードは6文字以上で入力してください"),
@@ -128,6 +123,10 @@ export const registerUserSchema = insertUserSchema.extend({
   })
 });
 
+export const verifyEmailSchema = z.object({
+  token: z.string().min(1, "認証トークンは必須です"),
+});
+
 export const updateUserSchema = insertUserSchema.partial();
 
 export type Project = typeof projects.$inferSelect;
@@ -139,6 +138,4 @@ export type InsertUser = z.infer<typeof registerUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type Portfolio = typeof portfolios.$inferSelect;
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
-
-// 認証用の型定義を追加
-export type AuthUser = z.infer<typeof authUserSchema>;
+export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
