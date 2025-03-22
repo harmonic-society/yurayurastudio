@@ -198,3 +198,27 @@ export const updateProfileSchema = z.object({
 });
 
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
+
+// タイムラインポストのテーブル定義
+export const timelinePosts = pgTable("timeline_posts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// タイムラインポストとユーザーのリレーション定義
+export const timelinePostsRelations = relations(timelinePosts, ({ one }) => ({
+  user: one(users, {
+    fields: [timelinePosts.userId],
+    references: [users.id],
+  }),
+}));
+
+// タイムラインポスト挿入用のスキーマ
+export const insertTimelinePostSchema = createInsertSchema(timelinePosts).omit({
+  id: true,
+  createdAt: true
+}).extend({
+  content: z.string().min(1, "投稿内容は必須です").max(140, "投稿は140文字以内で入力してください"),
+});
