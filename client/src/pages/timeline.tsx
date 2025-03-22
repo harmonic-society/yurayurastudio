@@ -35,7 +35,7 @@ export default function Timeline() {
   // Fetch timeline posts
   const { data: posts, isLoading } = useQuery({
     queryKey: ['/api/timeline'],
-    queryFn: () => apiRequest('/api/timeline') as Promise<TimelinePost[]>,
+    queryFn: () => apiRequest('/api/timeline'),
   });
 
   // Create a new post
@@ -44,7 +44,7 @@ export default function Timeline() {
       apiRequest('/api/timeline', {
         method: 'POST',
         body: JSON.stringify({ content }),
-      }) as Promise<TimelinePost>,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/timeline'] });
       setPostContent('');
@@ -68,7 +68,7 @@ export default function Timeline() {
     mutationFn: (postId: number) => 
       apiRequest(`/api/timeline/${postId}`, {
         method: 'DELETE',
-      }) as Promise<void>,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/timeline'] });
       toast({

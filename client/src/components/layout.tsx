@@ -44,6 +44,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: "ダッシュボード", href: "/", icon: LayoutDashboard },
     { name: "プロジェクト", href: "/projects", icon: FolderKanban },
     { name: "ポートフォリオ", href: "/portfolios", icon: Image },
+    { name: "タイムライン", href: "/timeline", icon: MessageSquare },
     { name: "チーム", href: "/team", icon: Users },
     { name: "設定", href: "/settings", icon: Settings },
     // 管理者の場合のみ表示
