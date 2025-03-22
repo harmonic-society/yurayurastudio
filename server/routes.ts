@@ -1,10 +1,11 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema } from "@shared/schema";
+import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema, changePasswordSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
 import { isAdmin } from "./middleware/admin";
+import { comparePasswords, hashPassword } from "./auth";
 
 export async function registerRoutes(app: Express) {
   // Set up authentication routes and middleware
@@ -314,6 +315,41 @@ export async function registerRoutes(app: Express) {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "ユーザーの削除に失敗しました" });
+    }
+  });
+
+  // パスワード変更エンドポイントを追加
+  app.post("/api/users/change-password", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    try {
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+      const user = await storage.getUser(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({ message: "ユーザーが見つかりません" });
+      }
+
+      // 現在のパスワードを検証
+      const isValid = await comparePasswords(currentPassword, user.password);
+      if (!isValid) {
+        return res.status(400).json({ message: "現在のパスワードが正しくありません" });
+      }
+
+      // 新しいパスワードをハッシュ化して保存
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUser(user.id, { password: hashedPassword });
+
+      res.json({ message: "パスワードを変更しました" });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "入力データが無効です", errors: error.errors });
+      } else {
+        console.error("Password change error:", error);
+        res.status(500).json({ message: "パスワードの変更に失敗しました" });
+      }
     }
   });
 
