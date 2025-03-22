@@ -87,12 +87,16 @@ export async function registerRoutes(app: Express) {
     res.json(comments);
   });
 
-  // Add a comment (管理者のみ)
-  app.post("/api/projects/:id/comments", isAdmin, async (req, res) => {
+  // Add a comment (認証済みユーザーが可能)
+  app.post("/api/projects/:id/comments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
     try {
       const commentData = insertCommentSchema.parse({
         ...req.body,
-        projectId: Number(req.params.id)
+        projectId: Number(req.params.id),
+        userId: req.user.id // ログインユーザーのIDを使用
       });
       const comment = await storage.createComment(commentData);
       res.status(201).json(comment);

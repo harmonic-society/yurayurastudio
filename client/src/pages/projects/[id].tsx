@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/hooks/use-auth";
 
 const statusLabels = {
   NOT_STARTED: "未着手",
@@ -49,6 +50,7 @@ export default function ProjectDetails() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { isAdmin } = useAuth();
 
   const { data: project, isLoading, error } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
@@ -101,7 +103,6 @@ export default function ProjectDetails() {
     return users?.find((user) => user.id === userId)?.name || "不明なユーザー";
   };
 
-  // ポートフォリオ関連のクエリとミューテーション
   const { data: portfolios = [] } = useQuery<Portfolio[]>({
     queryKey: [`/api/projects/${projectId}/portfolios`],
   });
@@ -213,21 +214,29 @@ export default function ProjectDetails() {
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button
-            onClick={() => setIsEditDialogOpen(true)}
-            className="flex-1 sm:flex-none"
-          >
-            <Edit2 className="h-4 w-4 mr-2" />
-            プロジェクトを編集
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => setIsDeleteDialogOpen(true)}
-            className="flex-1 sm:flex-none"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            削除
-          </Button>
+          {isAdmin ? (
+            <>
+              <Button
+                onClick={() => setIsEditDialogOpen(true)}
+                className="flex-1 sm:flex-none"
+              >
+                <Edit2 className="h-4 w-4 mr-2" />
+                プロジェクトを編集
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                className="flex-1 sm:flex-none"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                削除
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              プロジェクトの編集・削除は管理者のみ可能です
+            </p>
+          )}
         </div>
       </div>
 
@@ -311,27 +320,38 @@ export default function ProjectDetails() {
         <Card className="md:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>成果物</CardTitle>
-            <Button onClick={() => {
-              setSelectedPortfolio(null);
-              setIsPortfolioDialogOpen(true);
-            }}>
-              <Plus className="h-4 w-4 mr-2" />
-              成果物を追加
-            </Button>
+            {isAdmin && (
+              <Button onClick={() => {
+                setSelectedPortfolio(null);
+                setIsPortfolioDialogOpen(true);
+              }}>
+                <Plus className="h-4 w-4 mr-2" />
+                成果物を追加
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <PortfolioList
               projectId={projectId}
               portfolios={portfolios}
-              onEdit={(portfolio) => {
-                setSelectedPortfolio(portfolio);
-                setIsPortfolioDialogOpen(true);
-              }}
-              onDelete={(portfolio) => {
-                setSelectedPortfolio(portfolio);
-                setIsPortfolioDeleteDialogOpen(true);
-              }}
+              onEdit={isAdmin ? (
+                (portfolio) => {
+                  setSelectedPortfolio(portfolio);
+                  setIsPortfolioDialogOpen(true);
+                }
+              ) : undefined}
+              onDelete={isAdmin ? (
+                (portfolio) => {
+                  setSelectedPortfolio(portfolio);
+                  setIsPortfolioDeleteDialogOpen(true);
+                }
+              ) : undefined}
             />
+            {!isAdmin && (
+              <p className="text-sm text-muted-foreground mt-4">
+                成果物の追加・編集・削除は管理者のみ可能です
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -345,100 +365,104 @@ export default function ProjectDetails() {
         </Card>
       </div>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
-          <DialogHeader>
-            <DialogTitle>プロジェクトを編集</DialogTitle>
-            <DialogDescription>
-              プロジェクトの詳細情報を更新します。
-            </DialogDescription>
-          </DialogHeader>
-          <ProjectForm
-            onSubmit={(data) => updateMutation.mutate(data)}
-            defaultValues={project}
-            isSubmitting={updateMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
+      {isAdmin && (
+        <>
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+              <DialogHeader>
+                <DialogTitle>プロジェクトを編集</DialogTitle>
+                <DialogDescription>
+                  プロジェクトの詳細情報を更新します。
+                </DialogDescription>
+              </DialogHeader>
+              <ProjectForm
+                onSubmit={(data) => updateMutation.mutate(data)}
+                defaultValues={project}
+                isSubmitting={updateMutation.isPending}
+              />
+            </DialogContent>
+          </Dialog>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>プロジェクトの削除</AlertDialogTitle>
-            <AlertDialogDescription>
-              {project.name}を削除してもよろしいですか？
-              この操作は取り消せません。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="mt-2 sm:mt-0">キャンセル</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending ? "削除中..." : "削除"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>プロジェクトの削除</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {project.name}を削除してもよろしいですか？
+                  この操作は取り消せません。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                <AlertDialogCancel className="mt-2 sm:mt-0">キャンセル</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleteMutation.isPending ? "削除中..." : "削除"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
-      <Dialog open={isPortfolioDialogOpen} onOpenChange={setIsPortfolioDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedPortfolio
-                ? "既存の成果物の情報を更新します。"
-                : "プロジェクトに新しい成果物を追加します。"
-              }
-            </DialogDescription>
-          </DialogHeader>
-          <div className="overflow-y-auto pr-2">
-            <PortfolioForm
-              projectId={projectId}
-              onSubmit={(data) => {
-                if (selectedPortfolio) {
-                  updatePortfolioMutation.mutate(data);
-                } else {
-                  createPortfolioMutation.mutate(data);
-                }
-              }}
-              defaultValues={selectedPortfolio || undefined}
-              isSubmitting={
-                createPortfolioMutation.isPending || updatePortfolioMutation.isPending
-              }
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
+          <Dialog open={isPortfolioDialogOpen} onOpenChange={setIsPortfolioDialogOpen}>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedPortfolio
+                    ? "既存の成果物の情報を更新します。"
+                    : "プロジェクトに新しい成果物を追加します。"
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <div className="overflow-y-auto pr-2">
+                <PortfolioForm
+                  projectId={projectId}
+                  onSubmit={(data) => {
+                    if (selectedPortfolio) {
+                      updatePortfolioMutation.mutate(data);
+                    } else {
+                      createPortfolioMutation.mutate(data);
+                    }
+                  }}
+                  defaultValues={selectedPortfolio || undefined}
+                  isSubmitting={
+                    createPortfolioMutation.isPending || updatePortfolioMutation.isPending
+                  }
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
 
-      <AlertDialog
-        open={isPortfolioDeleteDialogOpen}
-        onOpenChange={setIsPortfolioDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>成果物の削除</AlertDialogTitle>
-            <AlertDialogDescription>
-              この成果物を削除してもよろしいですか？
-              この操作は取り消せません。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="mt-2 sm:mt-0">キャンセル</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deletePortfolioMutation.mutate()}
-              disabled={deletePortfolioMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deletePortfolioMutation.isPending ? "削除中..." : "削除"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <AlertDialog
+            open={isPortfolioDeleteDialogOpen}
+            onOpenChange={setIsPortfolioDeleteDialogOpen}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>成果物の削除</AlertDialogTitle>
+                <AlertDialogDescription>
+                  この成果物を削除してもよろしいですか？
+                  この操作は取り消せません。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                <AlertDialogCancel className="mt-2 sm:mt-0">キャンセル</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deletePortfolioMutation.mutate()}
+                  disabled={deletePortfolioMutation.isPending}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deletePortfolioMutation.isPending ? "削除中..." : "削除"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
     </div>
   );
 }
