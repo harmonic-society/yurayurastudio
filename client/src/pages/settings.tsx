@@ -46,11 +46,22 @@ export default function Settings() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: (data: UpdateProfile) => {
+    mutationFn: async (data: UpdateProfile) => {
       console.log('プロフィール更新リクエスト:', data);
-      return apiRequest("PATCH", "/api/users/profile", data);
+      try {
+        const response = await apiRequest("PATCH", "/api/users/profile", data);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "プロフィールの更新に失敗しました");
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('API error:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('更新成功:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "成功",
@@ -87,9 +98,13 @@ export default function Settings() {
     },
   });
 
-  const handleProfileSubmit = (data: UpdateProfile) => {
+  const onProfileSubmit = async (data: UpdateProfile) => {
     console.log('フォーム送信データ:', data);
-    updateProfileMutation.mutate(data);
+    try {
+      await updateProfileMutation.mutateAsync(data);
+    } catch (error) {
+      console.error('フォーム送信エラー:', error);
+    }
   };
 
   const handlePasswordSubmit = (data: ChangePassword) => {
@@ -103,7 +118,7 @@ export default function Settings() {
 
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "ファイルサイズが大きすぎます",
+        title: "エラー",
         description: "5MB以下の画像を選択してください",
         variant: "destructive",
       });
@@ -151,72 +166,77 @@ export default function Settings() {
             <CardTitle>プロフィール設定</CardTitle>
           </CardHeader>
           <CardContent>
-            <form
-              onSubmit={profileForm.handleSubmit(handleProfileSubmit)}
-              className="space-y-6"
-            >
-              <div className="flex items-center gap-4">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage
-                    src={avatarPreview || user?.avatarUrl || undefined}
-                    alt={user?.name}
-                  />
-                  <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <Label htmlFor="avatar" className="cursor-pointer">
-                    <div className="flex items-center gap-2 rounded-md bg-secondary px-4 py-2">
-                      <Camera className="h-4 w-4" />
-                      <span>画像を変更</span>
-                    </div>
-                    <Input
-                      id="avatar"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleAvatarChange}
+            <Form {...profileForm}>
+              <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage
+                      src={avatarPreview || user?.avatarUrl || undefined}
+                      alt={user?.name}
                     />
-                  </Label>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    推奨: 500x500px以上、5MB以下
-                  </p>
+                    <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <Label htmlFor="avatar" className="cursor-pointer">
+                      <div className="flex items-center gap-2 rounded-md bg-secondary px-4 py-2">
+                        <Camera className="h-4 w-4" />
+                        <span>画像を変更</span>
+                      </div>
+                      <Input
+                        id="avatar"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarChange}
+                      />
+                    </Label>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      推奨: 500x500px以上、5MB以下
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">肩書き</Label>
-                  <Input
-                    id="title"
-                    {...profileForm.register("title")}
-                  />
-                  {profileForm.formState.errors.title && (
-                    <p className="text-sm text-destructive">{profileForm.formState.errors.title.message}</p>
+                <FormField
+                  control={profileForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>肩書き</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="bio">プロフィール文</Label>
-                  <Textarea
-                    id="bio"
-                    {...profileForm.register("bio")}
-                    placeholder="自己紹介や得意分野などを入力してください"
-                  />
-                  {profileForm.formState.errors.bio && (
-                    <p className="text-sm text-destructive">{profileForm.formState.errors.bio.message}</p>
+                <FormField
+                  control={profileForm.control}
+                  name="bio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>プロフィール文</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="自己紹介や得意分野などを入力してください"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </div>
-              </div>
+                />
 
-              <Button
-                type="submit"
-                disabled={updateProfileMutation.isPending}
-              >
-                {updateProfileMutation.isPending
-                  ? "更新中..."
-                  : "プロフィールを更新"}
-              </Button>
-            </form>
+                <Button
+                  type="submit"
+                  disabled={updateProfileMutation.isPending}
+                >
+                  {updateProfileMutation.isPending
+                    ? "更新中..."
+                    : "プロフィールを更新"}
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
 
@@ -225,61 +245,63 @@ export default function Settings() {
             <CardTitle>パスワード変更</CardTitle>
           </CardHeader>
           <CardContent>
-            <form
-              onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
-              className="space-y-4"
-            >
-              <div className="space-y-2">
-                <Label htmlFor="currentPassword">現在のパスワード</Label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  {...passwordForm.register("currentPassword")}
-                />
-                {passwordForm.formState.errors.currentPassword && (
-                  <p className="text-sm text-destructive">
-                    {passwordForm.formState.errors.currentPassword.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">新しいパスワード</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  {...passwordForm.register("newPassword")}
-                />
-                {passwordForm.formState.errors.newPassword && (
-                  <p className="text-sm text-destructive">
-                    {passwordForm.formState.errors.newPassword.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">新しいパスワード（確認）</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  {...passwordForm.register("confirmPassword")}
-                />
-                {passwordForm.formState.errors.confirmPassword && (
-                  <p className="text-sm text-destructive">
-                    {passwordForm.formState.errors.confirmPassword.message}
-                  </p>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                disabled={changePasswordMutation.isPending}
+            <Form {...passwordForm}>
+              <form
+                onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
+                className="space-y-4"
               >
-                {changePasswordMutation.isPending
-                  ? "変更中..."
-                  : "パスワードを変更"}
-              </Button>
-            </form>
+                <FormField
+                  control={passwordForm.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>現在のパスワード</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={passwordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>新しいパスワード</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={passwordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>新しいパスワード（確認）</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  disabled={changePasswordMutation.isPending}
+                >
+                  {changePasswordMutation.isPending
+                    ? "変更中..."
+                    : "パスワードを変更"}
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>

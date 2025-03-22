@@ -192,9 +192,9 @@ export type InsertRegistrationRequest = z.infer<typeof registrationRequestSchema
 
 // ユーザープロフィール更新用のスキーマを追加
 export const updateProfileSchema = z.object({
-  avatarUrl: z.string().url("有効な画像URLを入力してください").optional(),
-  bio: z.string().max(500, "プロフィール文は500文字以内で入力してください").optional(),
-  title: z.string().max(100, "肩書きは100文字以内で入力してください").optional(),
+  avatarUrl: z.string().url("有効な画像URLを入力してください").optional().nullable(),
+  bio: z.string().max(500, "プロフィール文は500文字以内で入力してください").optional().nullable(),
+  title: z.string().max(100, "肩書きは100文字以内で入力してください").optional().nullable(),
 });
 
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
