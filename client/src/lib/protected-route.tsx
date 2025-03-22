@@ -9,11 +9,13 @@ export function ProtectedRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  const { user, isLoading } = useAuth();
-
   return (
     <Route path={path}>
       {() => {
+        // Always call hooks at the top level
+        const { user, isLoading } = useAuth();
+
+        // Then return the appropriate UI based on state
         if (isLoading) {
           return (
             <div className="flex items-center justify-center min-h-screen">

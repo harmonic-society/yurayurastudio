@@ -1,11 +1,14 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema, changePasswordSchema } from "@shared/schema";
+import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema, changePasswordSchema, registrationRequestSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
 import { isAdmin } from "./middleware/admin";
 import { comparePasswords, hashPassword } from "./auth";
+import { users } from './db';
+import { db } from './db';
+import { eq } from 'drizzle-orm';
 
 export async function registerRoutes(app: Express) {
   // Set up authentication routes and middleware
@@ -284,6 +287,104 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch OGP data" });
     }
   });
+
+  // 登録リクエストの作成
+  app.post("/api/registration-request", async (req, res) => {
+    try {
+      const requestData = registrationRequestSchema.parse(req.body);
+
+      // メールアドレスまたはユーザー名が既に使用されているか確認
+      const existingUser = await storage.getUserByUsername(requestData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "このユーザー名は既に使用されています" });
+      }
+
+      const [existingEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, requestData.email));
+
+      if (existingEmail) {
+        return res.status(400).json({ message: "このメールアドレスは既に使用されています" });
+      }
+
+      // パスワードをハッシュ化
+      const hashedPassword = await hashPassword(requestData.password);
+      const request = await storage.createRegistrationRequest({
+        ...requestData,
+        password: hashedPassword
+      });
+
+      res.json({
+        message: "登録リクエストを受け付けました。管理者の承認をお待ちください。",
+        request: {
+          ...request,
+          password: undefined
+        }
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "入力データが無効です", errors: error.errors });
+      } else {
+        console.error("Registration request error:", error);
+        res.status(500).json({ message: "登録リクエストの作成に失敗しました" });
+      }
+    }
+  });
+
+  // 管理者用の登録リクエスト一覧取得
+  app.get("/api/admin/registration-requests", isAdmin, async (req, res) => {
+    try {
+      const requests = await storage.getRegistrationRequests();
+      // パスワードハッシュを除外
+      const sanitizedRequests = requests.map(req => ({
+        ...req,
+        password: undefined
+      }));
+      res.json(sanitizedRequests);
+    } catch (error) {
+      res.status(500).json({ message: "登録リクエストの取得に失敗しました" });
+    }
+  });
+
+  // 管理者用の登録リクエスト承認/拒否
+  app.post("/api/admin/registration-requests/:id/:action", isAdmin, async (req, res) => {
+    try {
+      const { id, action } = req.params;
+      const request = await storage.getRegistrationRequest(Number(id));
+
+      if (!request) {
+        return res.status(404).json({ message: "登録リクエストが見つかりません" });
+      }
+
+      if (request.status !== "PENDING") {
+        return res.status(400).json({ message: "このリクエストは既に処理済みです" });
+      }
+
+      if (action === "approve") {
+        // ユーザーを作成
+        await storage.createUser({
+          name: request.name,
+          role: request.role,
+          email: request.email,
+          username: request.username,
+          password: request.password,
+          approved: true
+        });
+        await storage.updateRegistrationRequestStatus(Number(id), "APPROVED");
+        res.json({ message: "ユーザー登録を承認しました" });
+      } else if (action === "reject") {
+        await storage.updateRegistrationRequestStatus(Number(id), "REJECTED");
+        res.json({ message: "ユーザー登録を拒否しました" });
+      } else {
+        res.status(400).json({ message: "無効なアクション" });
+      }
+    } catch (error) {
+      console.error("Registration request action error:", error);
+      res.status(500).json({ message: "操作に失敗しました" });
+    }
+  });
+
 
   // 管理者用APIエンドポイントを追加
   app.get("/api/admin/users", isAdmin, async (req, res) => {

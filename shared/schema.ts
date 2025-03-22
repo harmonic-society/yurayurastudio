@@ -6,12 +6,23 @@ import { relations } from "drizzle-orm";
 export const projectStatus = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "ON_HOLD"] as const;
 export type ProjectStatus = (typeof projectStatus)[number];
 
-// ADMINロールを追加
 export const userRoles = ["ADMIN", "DIRECTOR", "SALES", "CREATOR"] as const;
 export type UserRole = (typeof userRoles)[number];
 
 export const workTypes = ["DESIGN", "DEVELOPMENT", "WRITING", "VIDEO", "PHOTO"] as const;
 export type WorkType = (typeof workTypes)[number];
+
+// ユーザー登録リクエストテーブルを追加
+export const registrationRequests = pgTable("registration_requests", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  role: text("role", { enum: userRoles }).notNull(),
+  email: text("email").notNull(),
+  username: text("username").notNull(),
+  password: text("password").notNull(),
+  status: text("status", { enum: ["PENDING", "APPROVED", "REJECTED"] }).notNull().default("PENDING"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -20,6 +31,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  approved: pgBoolean("approved").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -129,7 +141,6 @@ export const verifyEmailSchema = z.object({
 
 export const updateUserSchema = insertUserSchema.partial();
 
-// パスワード変更用のスキーマを追加
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "現在のパスワードを入力してください"),
   newPassword: z.string().min(6, "新しいパスワードは6文字以上で入力してください"),
@@ -152,3 +163,21 @@ export type Portfolio = typeof portfolios.$inferSelect;
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
 export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
 export type { ChangePassword };
+
+
+// 登録リクエスト用のスキーマを追加
+export const registrationRequestSchema = createInsertSchema(registrationRequests).omit({
+  id: true,
+  status: true,
+  createdAt: true,
+}).extend({
+  password: z.string().min(6, "パスワードは6文字以上で入力してください"),
+  username: z.string().min(3, "ユーザー名は3文字以上で入力してください"),
+  email: z.string().email("有効なメールアドレスを入力してください"),
+  role: z.enum(userRoles, {
+    errorMap: () => ({ message: "役割を選択してください" })
+  })
+});
+
+export type RegistrationRequest = typeof registrationRequests.$inferSelect;
+export type InsertRegistrationRequest = z.infer<typeof registrationRequestSchema>;

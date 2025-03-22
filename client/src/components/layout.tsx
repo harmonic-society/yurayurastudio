@@ -9,7 +9,8 @@ import {
   X,
   Image,
   LogOut,
-  UserCog
+  UserCog,
+  UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: "チーム", href: "/team", icon: Users },
     { name: "設定", href: "/settings", icon: Settings },
     // 管理者の場合のみ表示
-    ...(isAdmin ? [{ name: "ユーザー管理", href: "/admin/users", icon: UserCog }] : []),
+    ...(isAdmin ? [
+      { name: "ユーザー管理", href: "/admin/users", icon: UserCog },
+      { name: "登録リクエスト", href: "/admin/registration-requests", icon: UserPlus }
+    ] : []),
   ];
 
   const NavLinks = () => (

@@ -27,8 +27,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { authUserSchema, registerUserSchema, type AuthUser, type InsertUser, userRoles } from "@shared/schema";
+import { registrationRequestSchema, userRoles } from "@shared/schema";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const roleLabels = {
   DIRECTOR: "ディレクター",
@@ -38,19 +40,24 @@ const roleLabels = {
 } as const;
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
+  // すべてのフックを最初に呼び出す
+  const { user, loginMutation } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
-  const loginForm = useForm<AuthUser>({
-    resolver: zodResolver(authUserSchema),
+  const loginForm = useForm({
+    resolver: zodResolver(registrationRequestSchema.pick({ 
+      username: true, 
+      password: true 
+    })),
     defaultValues: {
       username: "",
       password: "",
     },
   });
 
-  const registerForm = useForm<InsertUser>({
-    resolver: zodResolver(registerUserSchema),
+  const registerForm = useForm({
+    resolver: zodResolver(registrationRequestSchema),
     defaultValues: {
       username: "",
       password: "",
@@ -60,7 +67,37 @@ export default function AuthPage() {
     },
   });
 
-  // すでにログインしている場合はリダイレクト
+  const registerMutation = useMutation({
+    mutationFn: async (data) => {
+      const response = await fetch("/api/registration-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "登録リクエストを送信しました",
+        description: "管理者の承認をお待ちください",
+      });
+      registerForm.reset();
+      setActiveTab("login");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "登録に失敗しました",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // ログイン済みの場合はリダイレクト
   if (user) {
     return <Redirect to="/" />;
   }
@@ -143,9 +180,9 @@ export default function AuthPage() {
             <TabsContent value="register">
               <Card>
                 <CardHeader>
-                  <CardTitle>新規登録</CardTitle>
+                  <CardTitle>新規登録申請</CardTitle>
                   <CardDescription>
-                    新しいアカウントを作成してプロジェクト管理を始めましょう。
+                    アカウントの作成を申請します。管理者の承認後にログインできます。
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -238,7 +275,7 @@ export default function AuthPage() {
                         className="w-full"
                         disabled={registerMutation.isPending}
                       >
-                        {registerMutation.isPending ? "登録中..." : "登録"}
+                        {registerMutation.isPending ? "送信中..." : "登録を申請"}
                       </Button>
                     </form>
                   </Form>

@@ -14,6 +14,7 @@ import Settings from "@/pages/settings";
 import Portfolios from "@/pages/portfolios";
 import AuthPage from "@/pages/auth";
 import AdminUsers from "@/pages/admin/users";
+import RegistrationRequests from "@/pages/admin/registration-requests";
 
 function Router() {
   return (
@@ -30,6 +31,7 @@ function Router() {
               <ProtectedRoute path="/team" component={Team} />
               <ProtectedRoute path="/settings" component={Settings} />
               <ProtectedRoute path="/admin/users" component={AdminUsers} />
+              <ProtectedRoute path="/admin/registration-requests" component={RegistrationRequests} />
               <Route component={NotFound} />
             </Switch>
           </Layout>

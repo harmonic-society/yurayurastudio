@@ -2,6 +2,7 @@ import {
   projects,
   comments,
   users,
+  registrationRequests,
   projectAssignments,
   portfolios,
   type Project, 
@@ -11,7 +12,9 @@ import {
   type User,
   type InsertUser,
   type Portfolio,
-  type InsertPortfolio
+  type InsertPortfolio,
+  type RegistrationRequest,
+  type InsertRegistrationRequest
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -23,6 +26,12 @@ const PostgresSessionStore = connectPg(session);
 export interface IStorage {
   // Session store
   sessionStore: session.Store;
+
+  // Registration requests
+  getRegistrationRequests(): Promise<RegistrationRequest[]>;
+  createRegistrationRequest(request: InsertRegistrationRequest): Promise<RegistrationRequest>;
+  updateRegistrationRequestStatus(id: number, status: "APPROVED" | "REJECTED"): Promise<RegistrationRequest>;
+  getRegistrationRequest(id: number): Promise<RegistrationRequest | undefined>;
 
   // Projects
   getProjects(): Promise<Project[]>;
@@ -62,6 +71,36 @@ export class DatabaseStorage implements IStorage {
       },
       createTableIfMissing: true,
     });
+  }
+
+  // Registration requests methods
+  async getRegistrationRequests(): Promise<RegistrationRequest[]> {
+    return await db.select().from(registrationRequests).orderBy(registrationRequests.createdAt);
+  }
+
+  async createRegistrationRequest(request: InsertRegistrationRequest): Promise<RegistrationRequest> {
+    const [newRequest] = await db
+      .insert(registrationRequests)
+      .values(request)
+      .returning();
+    return newRequest;
+  }
+
+  async updateRegistrationRequestStatus(id: number, status: "APPROVED" | "REJECTED"): Promise<RegistrationRequest> {
+    const [updated] = await db
+      .update(registrationRequests)
+      .set({ status })
+      .where(eq(registrationRequests.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getRegistrationRequest(id: number): Promise<RegistrationRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(registrationRequests)
+      .where(eq(registrationRequests.id, id));
+    return request;
   }
 
   async getProjects(): Promise<Project[]> {
