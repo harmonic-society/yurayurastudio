@@ -8,8 +8,8 @@ import { useState, useEffect } from "react";
 interface PortfolioListProps {
   projectId: number;
   portfolios: Portfolio[];
-  onEdit: (portfolio: Portfolio) => void;
-  onDelete: (portfolio: Portfolio) => void;
+  onEdit?: (portfolio: Portfolio) => void;
+  onDelete?: (portfolio: Portfolio) => void;
 }
 
 export default function PortfolioList({
@@ -69,22 +69,26 @@ export default function PortfolioList({
                 </p>
               </div>
               <div className="flex gap-1 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onEdit(portfolio)}
-                  className="h-8 w-8"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onDelete(portfolio)}
-                  className="h-8 w-8"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {onEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit(portfolio)}
+                    className="h-8 w-8"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete(portfolio)}
+                    className="h-8 w-8"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
             <div className="mt-4 space-y-1">
