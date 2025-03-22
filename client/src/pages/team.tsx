@@ -19,9 +19,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { type User } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import UserForm from "@/components/user-form";
 
 const roleLabels = {
@@ -37,6 +44,7 @@ export default function Team() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"]
@@ -102,6 +110,48 @@ export default function Team() {
     },
   });
 
+  const ActionButton = ({ 
+    onClick, 
+    icon: Icon,
+    label,
+    variant = "ghost"
+  }: { 
+    onClick?: () => void,
+    icon: typeof Plus | typeof Pencil | typeof Trash2,
+    label: string,
+    variant?: "ghost" | "default"
+  }) => {
+    const button = (
+      <Button
+        variant={variant}
+        size={variant === "ghost" ? "icon" : "default"}
+        onClick={onClick}
+        disabled={!onClick}
+        className={variant === "ghost" ? "h-8 w-8" : undefined}
+      >
+        <Icon className={variant === "ghost" ? "h-4 w-4" : "h-4 w-4 mr-2"} />
+        {variant !== "ghost" && label}
+      </Button>
+    );
+
+    if (!onClick) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>{button}</div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>この操作は管理者のみが行えます</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return button;
+  };
+
   if (isLoading) {
     return <div>読み込み中...</div>;
   }
@@ -115,10 +165,12 @@ export default function Team() {
             プロジェクトに携わるメンバー一覧
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          メンバーを追加
-        </Button>
+        <ActionButton
+          onClick={isAdmin ? () => setIsCreateDialogOpen(true) : undefined}
+          icon={Plus}
+          label="メンバーを追加"
+          variant="default"
+        />
       </div>
 
       <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -135,26 +187,22 @@ export default function Team() {
                 </p>
               </div>
               <div className="flex gap-2 shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
+                <ActionButton
+                  onClick={isAdmin ? () => {
                     setSelectedUser(user);
                     setIsEditDialogOpen(true);
-                  }}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
+                  } : undefined}
+                  icon={Pencil}
+                  label="編集"
+                />
+                <ActionButton
+                  onClick={isAdmin ? () => {
                     setSelectedUser(user);
                     setIsDeleteDialogOpen(true);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                  } : undefined}
+                  icon={Trash2}
+                  label="削除"
+                />
               </div>
             </CardHeader>
             <CardContent>
@@ -167,54 +215,59 @@ export default function Team() {
         ))}
       </div>
 
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>新規メンバーの追加</DialogTitle>
-          </DialogHeader>
-          <UserForm
-            onSubmit={(data) => createMutation.mutate(data)}
-            isSubmitting={createMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
+      {isAdmin && (
+        <>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>新規メンバーの追加</DialogTitle>
+              </DialogHeader>
+              <UserForm
+                onSubmit={(data) => createMutation.mutate(data)}
+                isSubmitting={createMutation.isPending}
+              />
+            </DialogContent>
+          </Dialog>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>メンバー情報の編集</DialogTitle>
-          </DialogHeader>
-          <UserForm
-            onSubmit={(data) => updateMutation.mutate(data)}
-            defaultValues={selectedUser || undefined}
-            isSubmitting={updateMutation.isPending}
-          />
-        </DialogContent>
-      </Dialog>
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>メンバー情報の編集</DialogTitle>
+              </DialogHeader>
+              <UserForm
+                onSubmit={(data) => updateMutation.mutate(data)}
+                defaultValues={selectedUser || undefined}
+                isSubmitting={updateMutation.isPending}
+              />
+            </DialogContent>
+          </Dialog>
 
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>メンバーの削除</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedUser?.name}を削除してもよろしいですか？この操作は取り消せません。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending ? "削除中..." : "削除"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <AlertDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>メンバーの削除</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {selectedUser?.name}を削除してもよろしいですか？
+                  この操作は取り消せません。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                <AlertDialogCancel className="mt-2 sm:mt-0">キャンセル</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleteMutation.isPending ? "削除中..." : "削除"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
     </div>
   );
 }
