@@ -1,14 +1,22 @@
 #!/bin/bash
 
-# このスクリプトはAndroidアプリをビルドするためのものです
+# エラー時に終了するように設定
+set -e
 
-echo "=== Webアプリをビルド中... ==="
+echo "🚀 Androidアプリのビルドを開始します..."
+
+# Webアプリケーションをビルド
+echo "📦 Webアプリのビルド中..."
 npm run build
 
-echo "=== Capacitorの同期中... ==="
+# Capacitor構成を同期
+echo "🔄 Capacitorの設定を同期中..."
 npx cap sync android
 
-echo "=== Android Studioを開く... ==="
-npx cap open android
+# Androidビルド
+echo "🤖 Androidアプリをビルド中..."
+cd android
+chmod +x ./gradlew
+./gradlew assembleDebug
 
-echo "完了！Android Studioが開きました。ビルドして実機またはエミュレータで実行してください。"
+echo "✅ ビルド完了！APKファイルは android/app/build/outputs/apk/debug/app-debug.apk にあります"

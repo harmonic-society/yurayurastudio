@@ -1,14 +1,18 @@
 #!/bin/bash
 
-# このスクリプトはAndroidアプリを実行するためのものです
+# エラー時に終了するように設定
+set -e
 
-echo "=== Webアプリをビルド中... ==="
-npm run build
+echo "📱 Androidアプリの実行を開始します..."
 
-echo "=== Capacitorの同期中... ==="
+# 最新のWebアプリを同期
+echo "🔄 Capacitorの設定を同期中..."
 npx cap sync android
 
-echo "=== Androidデバイスで実行中... ==="
-npx cap run android
+# Androidアプリを起動
+echo "▶️ Androidアプリを起動中..."
+cd android
+chmod +x ./gradlew
+./gradlew installDebug
 
-echo "完了！アプリが起動しました。"
+echo "✅ インストール完了！デバイスでアプリを開いてください"
