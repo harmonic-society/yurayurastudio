@@ -1,132 +1,376 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ProjectStatus, type Project } from "@shared/schema";
+import { Link } from "wouter";
+import { format, isBefore, addDays } from "date-fns";
 import { 
   PieChart, 
   Pie, 
   Cell, 
   ResponsiveContainer,
-  Legend 
+  Legend,
+  Tooltip
 } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  BarChart3,
+  LayoutDashboard,
+  Clock,
+  CheckCircle2,
+  PauseCircle,
+  PlusCircle,
+  ArrowRight,
+  CalendarRange,
+  AlertTriangle,
+  Loader2
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+
+// スタイルと設定
+const STATUS_CONFIG = {
+  NOT_STARTED: {
+    color: "#9ca3af", // gray-400
+    icon: Clock,
+    label: "未着手",
+    bgClass: "bg-gray-100"
+  },
+  IN_PROGRESS: {
+    color: "#3b82f6", // blue-500
+    icon: Loader2, 
+    label: "進行中",
+    bgClass: "bg-blue-100"
+  },
+  COMPLETED: {
+    color: "#10b981", // green-500
+    icon: CheckCircle2,
+    label: "完了",
+    bgClass: "bg-green-100"
+  },
+  ON_HOLD: {
+    color: "#f59e0b", // amber-500
+    icon: PauseCircle,
+    label: "保留中",
+    bgClass: "bg-amber-100"
+  }
+};
 
 export default function Dashboard() {
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"]
   });
 
+  // 統計データの計算
+  const calculateStats = () => {
+    if (!projects) return { statusCounts: {}, upcomingDeadlines: [], pieData: [], totalReward: 0 };
+    
+    const statusCounts = projects.reduce((acc, project) => {
+      acc[project.status] = (acc[project.status] || 0) + 1;
+      return acc;
+    }, {} as Record<ProjectStatus, number>);
+    
+    // 期限が近いプロジェクト（7日以内）
+    const today = new Date();
+    const oneWeekLater = addDays(today, 7);
+    const upcomingDeadlines = projects
+      .filter(project => 
+        project.status !== "COMPLETED" && 
+        isBefore(new Date(project.dueDate), oneWeekLater)
+      )
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .slice(0, 3);
+    
+    // 円グラフ用データ
+    const pieData = Object.entries(statusCounts).map(([status, value]) => ({
+      name: STATUS_CONFIG[status as ProjectStatus].label,
+      value,
+      color: STATUS_CONFIG[status as ProjectStatus].color
+    }));
+    
+    // 総報酬額
+    const totalReward = projects.reduce((sum, project) => sum + project.totalReward, 0);
+    
+    return { statusCounts, upcomingDeadlines, pieData, totalReward };
+  };
+  
+  const { statusCounts, upcomingDeadlines, pieData, totalReward } = calculateStats();
+
+  // 日付に基づいて期限切れか近いかを判断
+  const getDueDateStatus = (dueDate: Date | string) => {
+    const date = new Date(dueDate);
+    const today = new Date();
+    
+    if (isBefore(date, today)) {
+      return { color: "text-red-500", label: "期限切れ", icon: <AlertTriangle className="h-4 w-4 text-red-500" /> };
+    } else {
+      const daysLeft = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return { 
+        color: "text-amber-500", 
+        label: `あと${daysLeft}日`, 
+        icon: <CalendarRange className="h-4 w-4 text-amber-500" /> 
+      };
+    }
+  };
+
+  // ローディング状態
   if (isLoading) {
-    return <div>読み込み中...</div>;
+    return (
+      <div className="space-y-8">
+        <div>
+          <Skeleton className="h-10 w-[250px] mb-2" />
+          <Skeleton className="h-5 w-[350px]" />
+        </div>
+        
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-[120px]" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-[60px]" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-[200px]" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[300px] w-full rounded-md" />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-[200px]" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-20 w-full rounded-md" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (!projects) {
     return null;
   }
 
-  const statusCounts = projects.reduce((acc, project) => {
-    acc[project.status] = (acc[project.status] || 0) + 1;
-    return acc;
-  }, {} as Record<ProjectStatus, number>);
-
-  const pieData = Object.entries(statusCounts).map(([name, value]) => ({
-    name: name === "NOT_STARTED" ? "未着手" :
-         name === "IN_PROGRESS" ? "進行中" :
-         name === "COMPLETED" ? "完了" :
-         name === "ON_HOLD" ? "保留" : name,
-    value
-  }));
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
-
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">ダッシュボード</h1>
         <p className="text-sm md:text-base text-muted-foreground">
-          全てのプロジェクトの概要と進捗状況
+          全てのプロジェクトの概要と進捗状況を確認できます
         </p>
       </div>
 
+      {/* ステータスカード */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="bg-gradient-to-br from-background to-background/95 transition-shadow hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               プロジェクト総数
             </CardTitle>
+            <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">{projects.length}</div>
+            <div className="text-2xl md:text-3xl font-bold">{projects.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              合計報酬額: ¥{totalReward.toLocaleString()}
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={cn("transition-shadow hover:shadow-md", STATUS_CONFIG.IN_PROGRESS.bgClass)}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               進行中
             </CardTitle>
+            <STATUS_CONFIG.IN_PROGRESS.icon className="h-5 w-5 text-blue-500 animate-spin" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">
+            <div className="text-2xl md:text-3xl font-bold text-blue-600">
               {statusCounts["IN_PROGRESS"] || 0}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              全体の{Math.round(((statusCounts["IN_PROGRESS"] || 0) / (projects.length || 1)) * 100)}%
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={cn("transition-shadow hover:shadow-md", STATUS_CONFIG.COMPLETED.bgClass)}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               完了
             </CardTitle>
+            <STATUS_CONFIG.COMPLETED.icon className="h-5 w-5 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">
+            <div className="text-2xl md:text-3xl font-bold text-green-600">
               {statusCounts["COMPLETED"] || 0}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              全体の{Math.round(((statusCounts["COMPLETED"] || 0) / (projects.length || 1)) * 100)}%
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={cn("transition-shadow hover:shadow-md", STATUS_CONFIG.ON_HOLD.bgClass)}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               保留中
             </CardTitle>
+            <STATUS_CONFIG.ON_HOLD.icon className="h-5 w-5 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">
+            <div className="text-2xl md:text-3xl font-bold text-amber-600">
               {statusCounts["ON_HOLD"] || 0}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              全体の{Math.round(((statusCounts["ON_HOLD"] || 0) / (projects.length || 1)) * 100)}%
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="col-span-4">
-        <CardHeader>
-          <CardTitle>プロジェクト状況の分布</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] md:h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => 
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
-                >
-                  {pieData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {/* グラフとリスト */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* 円グラフ */}
+        <Card className="transition-all duration-300 hover:shadow-md">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">プロジェクト状況の分布</CardTitle>
+              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <CardDescription>各状態のプロジェクト数の割合</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={2}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => 
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
+                    labelLine={false}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.color} 
+                        stroke={entry.color}
+                        className="transition-opacity hover:opacity-80"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    layout="horizontal"
+                    formatter={(value) => (
+                      <span className="text-sm">{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 期限が近いプロジェクト */}
+        <Card className="transition-all duration-300 hover:shadow-md">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">期限が近いプロジェクト</CardTitle>
+              <CalendarRange className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <CardDescription>直近の納期が設定されたプロジェクト</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {upcomingDeadlines.length > 0 ? (
+              <div className="space-y-4">
+                {upcomingDeadlines.map((project) => {
+                  const { color, label, icon } = getDueDateStatus(project.dueDate);
+                  return (
+                    <Link key={project.id} href={`/projects/${project.id}`}>
+                      <div className="rounded-lg border p-3 transition-all hover:bg-muted/50">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">{project.name}</div>
+                          <Badge 
+                            className={cn(
+                              "border", 
+                              "bg-background"
+                            )}
+                            style={{color: STATUS_CONFIG[project.status].color}}
+                          >
+                            {STATUS_CONFIG[project.status].label}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 flex items-center text-sm">
+                          <div className="flex items-center gap-1 mr-3">
+                            <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{format(new Date(project.dueDate), "yyyy年M月d日")}</span>
+                          </div>
+                          <div className={cn("flex items-center gap-1", color)}>
+                            {icon}
+                            <span>{label}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 text-center">
+                <CheckCircle2 className="h-10 w-10 text-green-500 mb-2" />
+                <h3 className="font-medium">直近の期限はありません</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  今週の期限が迫ったプロジェクトはありません
+                </p>
+              </div>
+            )}
+            
+            <div className="mt-4 flex justify-end">
+              <Link href="/projects">
+                <Button variant="outline" size="sm" className="gap-1">
+                  <span>すべてのプロジェクトを見る</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* アクションボタン */}
+      <div className="flex justify-end">
+        <Link href="/projects">
+          <Button className="gap-2">
+            <PlusCircle className="h-4 w-4" />
+            <span>新規プロジェクトを作成</span>
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
