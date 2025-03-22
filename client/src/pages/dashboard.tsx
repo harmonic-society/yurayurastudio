@@ -63,12 +63,22 @@ export default function Dashboard() {
 
   // 統計データの計算
   const calculateStats = () => {
-    if (!projects) return { statusCounts: {}, upcomingDeadlines: [], pieData: [], totalReward: 0 };
+    if (!projects) return { 
+      statusCounts: {} as Record<ProjectStatus, number>, 
+      upcomingDeadlines: [] as Project[], 
+      pieData: [] as Array<{name: string, value: number, color: string}>, 
+      totalReward: 0 
+    };
     
-    const statusCounts = projects.reduce((acc, project) => {
+    const statusCounts = projects.reduce<Record<ProjectStatus, number>>((acc, project) => {
       acc[project.status] = (acc[project.status] || 0) + 1;
       return acc;
-    }, {} as Record<ProjectStatus, number>);
+    }, {
+      "NOT_STARTED": 0,
+      "IN_PROGRESS": 0,
+      "COMPLETED": 0,
+      "ON_HOLD": 0
+    });
     
     // 期限が近いプロジェクト（7日以内）
     const today = new Date();
@@ -177,27 +187,31 @@ export default function Dashboard() {
 
       {/* ステータスカード */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-background to-background/95 transition-shadow hover:shadow-md">
+        <Card className="bg-white border-primary/10 shadow-sm transition-all duration-200 hover:shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-semibold text-primary">
               プロジェクト総数
             </CardTitle>
-            <LayoutDashboard className="h-5 w-5 text-muted-foreground" />
+            <div className="p-1.5 rounded-full bg-primary/10">
+              <LayoutDashboard className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl md:text-3xl font-bold">{projects.length}</div>
+            <div className="text-2xl md:text-3xl font-bold text-primary/90">{projects.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
               合計報酬額: ¥{totalReward.toLocaleString()}
             </p>
           </CardContent>
         </Card>
 
-        <Card className={cn("transition-shadow hover:shadow-md", STATUS_CONFIG.IN_PROGRESS.bgClass)}>
+        <Card className="bg-white border-blue-200 shadow-sm transition-all duration-200 hover:shadow-blue-100/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-semibold text-blue-600">
               進行中
             </CardTitle>
-            <STATUS_CONFIG.IN_PROGRESS.icon className="h-5 w-5 text-blue-500 animate-spin" />
+            <div className="p-1.5 rounded-full bg-blue-100">
+              <STATUS_CONFIG.IN_PROGRESS.icon className="h-4 w-4 text-blue-500 animate-spin" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl md:text-3xl font-bold text-blue-600">
@@ -209,12 +223,14 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className={cn("transition-shadow hover:shadow-md", STATUS_CONFIG.COMPLETED.bgClass)}>
+        <Card className="bg-white border-green-200 shadow-sm transition-all duration-200 hover:shadow-green-100/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-semibold text-green-600">
               完了
             </CardTitle>
-            <STATUS_CONFIG.COMPLETED.icon className="h-5 w-5 text-green-500" />
+            <div className="p-1.5 rounded-full bg-green-100">
+              <STATUS_CONFIG.COMPLETED.icon className="h-4 w-4 text-green-500" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl md:text-3xl font-bold text-green-600">
@@ -226,12 +242,14 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className={cn("transition-shadow hover:shadow-md", STATUS_CONFIG.ON_HOLD.bgClass)}>
+        <Card className="bg-white border-amber-200 shadow-sm transition-all duration-200 hover:shadow-amber-100/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-semibold text-amber-600">
               保留中
             </CardTitle>
-            <STATUS_CONFIG.ON_HOLD.icon className="h-5 w-5 text-amber-500" />
+            <div className="p-1.5 rounded-full bg-amber-100">
+              <STATUS_CONFIG.ON_HOLD.icon className="h-4 w-4 text-amber-500" />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl md:text-3xl font-bold text-amber-600">
@@ -247,11 +265,13 @@ export default function Dashboard() {
       {/* グラフとリスト */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* 円グラフ */}
-        <Card className="transition-all duration-300 hover:shadow-md">
+        <Card className="bg-white border-primary/10 shadow-sm transition-all duration-300 hover:shadow-md">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">プロジェクト状況の分布</CardTitle>
-              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              <div className="p-1.5 rounded-full bg-primary/10">
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </div>
             </div>
             <CardDescription>各状態のプロジェクト数の割合</CardDescription>
           </CardHeader>
@@ -297,11 +317,13 @@ export default function Dashboard() {
         </Card>
 
         {/* 期限が近いプロジェクト */}
-        <Card className="transition-all duration-300 hover:shadow-md">
+        <Card className="bg-white border-primary/10 shadow-sm transition-all duration-300 hover:shadow-md">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">期限が近いプロジェクト</CardTitle>
-              <CalendarRange className="h-5 w-5 text-muted-foreground" />
+              <div className="p-1.5 rounded-full bg-primary/10">
+                <CalendarRange className="h-4 w-4 text-primary" />
+              </div>
             </div>
             <CardDescription>直近の納期が設定されたプロジェクト</CardDescription>
           </CardHeader>
@@ -317,10 +339,12 @@ export default function Dashboard() {
                           <div className="font-medium">{project.name}</div>
                           <Badge 
                             className={cn(
-                              "border", 
-                              "bg-background"
+                              "border",
+                              project.status === "IN_PROGRESS" ? "bg-blue-200 text-blue-700" : 
+                              project.status === "COMPLETED" ? "bg-green-200 text-green-700" :
+                              project.status === "ON_HOLD" ? "bg-amber-200 text-amber-700" :
+                              "bg-slate-200 text-slate-700"
                             )}
-                            style={{color: STATUS_CONFIG[project.status].color}}
                           >
                             {STATUS_CONFIG[project.status].label}
                           </Badge>

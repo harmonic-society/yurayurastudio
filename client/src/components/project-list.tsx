@@ -17,20 +17,20 @@ import { cn } from "@/lib/utils";
 
 const statusVariants = {
   NOT_STARTED: {
-    color: "bg-slate-500/10 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300 border-slate-500/50",
-    icon: <Clock className="h-3.5 w-3.5 text-slate-500" />
+    color: "bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-100 border-slate-300",
+    icon: <Clock className="h-3.5 w-3.5 text-slate-600" />
   },
   IN_PROGRESS: {
-    color: "bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border-blue-500/50",
-    icon: <Clock className="h-3.5 w-3.5 text-blue-500 animate-pulse" />
+    color: "bg-blue-200 text-blue-700 dark:bg-blue-600 dark:text-blue-100 border-blue-300",
+    icon: <Clock className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
   },
   COMPLETED: {
-    color: "bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300 border-green-500/50",
-    icon: <Clock className="h-3.5 w-3.5 text-green-500" />
+    color: "bg-green-200 text-green-700 dark:bg-green-600 dark:text-green-100 border-green-300",
+    icon: <Clock className="h-3.5 w-3.5 text-green-600" />
   },
   ON_HOLD: {
-    color: "bg-yellow-500/10 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300 border-yellow-500/50",
-    icon: <Clock className="h-3.5 w-3.5 text-yellow-500" />
+    color: "bg-amber-200 text-amber-700 dark:bg-amber-600 dark:text-amber-100 border-amber-300",
+    icon: <Clock className="h-3.5 w-3.5 text-amber-600" />
   }
 } as const;
 
@@ -64,7 +64,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
   const MobileView = () => (
     <div className="space-y-4">
       {projects.map((project) => (
-        <Card key={project.id} className="overflow-hidden transition-all duration-200 hover:shadow-md group">
+        <Card key={project.id} className="overflow-hidden transition-all duration-200 hover:shadow-md group bg-white">
           <CardContent className="p-0">
             <div className="p-4 relative">
               <div className="absolute top-0 right-0 p-4">
@@ -140,24 +140,30 @@ export default function ProjectList({ projects }: ProjectListProps) {
 
   // デスクトップ用のテーブルビュー
   const DesktopView = () => (
-    <div className="rounded-md border">
+    <div className="rounded-md border shadow-sm">
       <Table>
-        <TableHeader className="bg-muted/50">
+        <TableHeader className="bg-primary/5">
           <TableRow>
-            <TableHead>プロジェクト名</TableHead>
-            <TableHead>状態</TableHead>
-            <TableHead>顧客名</TableHead>
-            <TableHead>納期</TableHead>
-            <TableHead>報酬総額</TableHead>
-            <TableHead>報酬分配</TableHead>
+            <TableHead className="font-semibold text-primary">プロジェクト名</TableHead>
+            <TableHead className="font-semibold text-primary">状態</TableHead>
+            <TableHead className="font-semibold text-primary">顧客名</TableHead>
+            <TableHead className="font-semibold text-primary">納期</TableHead>
+            <TableHead className="font-semibold text-primary">報酬総額</TableHead>
+            <TableHead className="font-semibold text-primary">報酬分配</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {projects.map((project) => (
-            <TableRow key={project.id} className="transition-colors hover:bg-muted/30">
+          {projects.map((project, i) => (
+            <TableRow 
+              key={project.id} 
+              className={cn(
+                "transition-colors hover:bg-primary/5",
+                i % 2 === 0 ? "bg-white" : "bg-slate-50"
+              )}
+            >
               <TableCell className="font-medium">
-                <Link href={`/projects/${project.id}`} className="text-primary hover:underline">
+                <Link href={`/projects/${project.id}`} className="text-primary hover:underline hover:text-primary/80 transition-colors">
                   {project.name}
                 </Link>
               </TableCell>
@@ -166,7 +172,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
                   className={cn(
                     "border", 
                     statusVariants[project.status].color,
-                    "px-2.5 py-0.5 text-xs flex items-center gap-1.5 capitalize"
+                    "px-2.5 py-0.5 text-xs flex items-center gap-1.5"
                   )}
                 >
                   {statusVariants[project.status].icon}
@@ -181,7 +187,15 @@ export default function ProjectList({ projects }: ProjectListProps) {
                 ¥{project.totalReward.toLocaleString()}
               </TableCell>
               <TableCell>
-                <Badge variant={project.rewardDistributed ? "default" : "outline"} className="font-normal">
+                <Badge 
+                  variant={project.rewardDistributed ? "default" : "outline"} 
+                  className={cn(
+                    "font-normal",
+                    project.rewardDistributed 
+                      ? "bg-green-200 text-green-700 hover:bg-green-300" 
+                      : "border-amber-300 text-amber-700 hover:bg-amber-100"
+                  )}
+                >
                   {project.rewardDistributed ? "完了" : "未分配"}
                 </Badge>
               </TableCell>
