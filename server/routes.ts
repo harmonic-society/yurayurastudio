@@ -8,9 +8,19 @@ import { isAdmin, canUpdateProjectStatus, canChangePassword } from "./middleware
 import { comparePasswords, hashPassword } from "./auth";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
-import * as path from 'path'; //Import path module
-import { updateProfileSchema } from "@shared/schema"; //Import updateProfileSchema
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import { updateProfileSchema } from "@shared/schema";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// アップロードディレクトリの作成
+const uploadsDir = path.join(__dirname, "..", "public", "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 export async function registerRoutes(app: Express) {
   // Set up authentication routes and middleware
@@ -471,7 +481,7 @@ export async function registerRoutes(app: Express) {
     try {
       const avatarFile = req.files.avatar;
       const fileName = `avatar-${req.user.id}-${Date.now()}.${avatarFile.name.split('.').pop()}`;
-      const uploadPath = path.join(__dirname, '..', 'public', 'uploads', fileName);
+      const uploadPath = path.join(uploadsDir, fileName);
 
       await avatarFile.mv(uploadPath);
       const avatarUrl = `/uploads/${fileName}`;
