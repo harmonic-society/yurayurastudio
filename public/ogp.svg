@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" fill="#F8FAFC"/>
+  <rect x="50" y="50" width="1100" height="530" rx="20" fill="#4F46E5" fill-opacity="0.05"/>
+  <rect x="75" y="75" width="1050" height="480" rx="12" fill="white"/>
+  
+  <!-- Logo -->
+  <rect x="150" y="150" width="80" height="80" rx="12" fill="#4F46E5"/>
+  <path d="M165 190C165 171.775 179.775 157 198 157C216.225 157 231 171.775 231 190C231 208.225 216.225 223 198 223" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <path d="M198 223C189.716 223 183 216.284 183 208C183 199.716 189.716 193 198 193C206.284 193 213 199.716 213 208C213 216.284 206.284 223 198 223Z" stroke="white" stroke-width="8"/>
+  <path d="M183 172L213 172" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Title -->
+  <text x="280" y="190" font-family="sans-serif" font-size="48" font-weight="bold" fill="#1E293B">Yura Yura STUDIO</text>
+  <text x="280" y="230" font-family="sans-serif" font-size="36" fill="#475569">プロジェクト管理ツール</text>
+  
+  <!-- Description -->
+  <text x="150" y="320" font-family="sans-serif" font-size="28" fill="#64748B">千葉県で地域貢献できるWeb制作・集客支援！</text>
+  <text x="150" y="360" font-family="sans-serif" font-size="28" fill="#64748B">地域の事業者をサポートしませんか？</text>
+  <text x="150" y="400" font-family="sans-serif" font-size="28" fill="#64748B">地域愛にあふれるクリエイターの方、ぜひ登録を。</text>
+  
+  <!-- Decorative elements -->
+  <circle cx="900" cy="200" r="80" fill="#4F46E5" fill-opacity="0.1"/>
+  <circle cx="950" cy="150" r="40" fill="#4F46E5" fill-opacity="0.2"/>
+  <circle cx="1000" cy="250" r="60" fill="#4F46E5" fill-opacity="0.15"/>
+  
+  <!-- Footer -->
+  <text x="150" y="500" font-family="sans-serif" font-size="24" fill="#94A3B8">© 2025 Yura Yura STUDIO - ベータ版</text>
+</svg>
