@@ -12,6 +12,7 @@ import ProjectDetails from "@/pages/projects/[id]";
 import Team from "@/pages/team";
 import Settings from "@/pages/settings";
 import Portfolios from "@/pages/portfolios";
+import Timeline from "@/pages/timeline";
 import AuthPage from "@/pages/auth";
 import AdminUsers from "@/pages/admin/users";
 import RegistrationRequests from "@/pages/admin/registration-requests";
@@ -28,6 +29,7 @@ function Router() {
               <ProtectedRoute path="/projects" component={ProjectList} />
               <ProtectedRoute path="/projects/:id" component={ProjectDetails} />
               <ProtectedRoute path="/portfolios" component={Portfolios} />
+              <ProtectedRoute path="/timeline" component={Timeline} />
               <ProtectedRoute path="/team" component={Team} />
               <ProtectedRoute path="/settings" component={Settings} />
               <ProtectedRoute path="/admin/users" component={AdminUsers} />

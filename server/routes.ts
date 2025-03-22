@@ -500,6 +500,132 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "画像のアップロードに失敗しました" });
     }
   });
+  
+  // Timeline API endpoints
+  // Get all timeline posts
+  app.get("/api/timeline", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    try {
+      const posts = await storage.getTimelinePosts();
+      
+      // Get user information for each post
+      const postsWithUserInfo = await Promise.all(
+        posts.map(async (post) => {
+          const user = await storage.getUser(post.userId);
+          return {
+            ...post,
+            user: user ? {
+              id: user.id,
+              name: user.name,
+              username: user.username,
+              avatarUrl: user.avatarUrl
+            } : null
+          };
+        })
+      );
+      
+      res.json(postsWithUserInfo);
+    } catch (error) {
+      console.error("Timeline fetch error:", error);
+      res.status(500).json({ message: "タイムラインの取得に失敗しました" });
+    }
+  });
+
+  // Get timeline posts by user ID
+  app.get("/api/timeline/user/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    try {
+      const posts = await storage.getTimelinePostsByUser(Number(req.params.userId));
+      
+      // Get user information
+      const user = await storage.getUser(Number(req.params.userId));
+      if (!user) {
+        return res.status(404).json({ message: "ユーザーが見つかりません" });
+      }
+      
+      const postsWithUserInfo = posts.map(post => ({
+        ...post,
+        user: {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          avatarUrl: user.avatarUrl
+        }
+      }));
+      
+      res.json(postsWithUserInfo);
+    } catch (error) {
+      console.error("User timeline fetch error:", error);
+      res.status(500).json({ message: "ユーザータイムラインの取得に失敗しました" });
+    }
+  });
+
+  // Create a new timeline post
+  app.post("/api/timeline", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    try {
+      const postData = insertTimelinePostSchema.parse({
+        ...req.body,
+        userId: req.user.id // Use the authenticated user's ID
+      });
+      
+      const post = await storage.createTimelinePost(postData);
+      
+      // Include user info in the response
+      const user = await storage.getUser(req.user.id);
+      const postWithUser = {
+        ...post,
+        user: {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          avatarUrl: user.avatarUrl
+        }
+      };
+      
+      res.status(201).json(postWithUser);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効な投稿データです", errors: error.errors });
+      } else {
+        console.error("Timeline post creation error:", error);
+        res.status(500).json({ message: "投稿の作成に失敗しました" });
+      }
+    }
+  });
+
+  // Delete a timeline post (only the author or admin can delete)
+  app.delete("/api/timeline/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const postId = Number(req.params.id);
+      const post = await storage.getTimelinePost(postId);
+      
+      if (!post) {
+        return res.status(404).json({ message: "投稿が見つかりません" });
+      }
+      
+      // Only the author or an admin can delete the post
+      if (post.userId !== req.user.id && req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "この操作を行う権限がありません" });
+      }
+      
+      await storage.deleteTimelinePost(postId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Timeline post deletion error:", error);
+      res.status(500).json({ message: "投稿の削除に失敗しました" });
+    }
+  });
 
   return httpServer;
 }

@@ -11,6 +11,7 @@ import {
   LogOut,
   UserCog,
   UserPlus,
+  MessageSquare,
   Sun,
   Moon
 } from "lucide-react";
