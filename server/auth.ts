@@ -86,7 +86,10 @@ export function setupAuth(app: Express) {
       });
 
       req.login(user, (err) => {
-        if (err) throw err;
+        if (err) {
+          console.error("Login after registration error:", err);
+          return res.status(500).json({ message: "登録後のログインに失敗しました" });
+        }
         res.status(201).json(user);
       });
     } catch (error) {
@@ -96,13 +99,19 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
-      if (err) return next(err);
+    passport.authenticate("local", (err: Error, user: Express.User | false, info: any) => {
+      if (err) {
+        console.error("Login error:", err);
+        return res.status(500).json({ message: "ログイン処理中にエラーが発生しました" });
+      }
       if (!user) {
         return res.status(401).json({ message: "ユーザー名またはパスワードが正しくありません" });
       }
-      req.login(user, (err) => {
-        if (err) return next(err);
+      req.login(user, (err: Error) => {
+        if (err) {
+          console.error("Session error:", err);
+          return res.status(500).json({ message: "セッション作成中にエラーが発生しました" });
+        }
         res.json(user);
       });
     })(req, res, next);
