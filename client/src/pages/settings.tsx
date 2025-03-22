@@ -58,15 +58,15 @@ export default function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
-        title: "プロフィールを更新しました",
-        variant: "default",
+        title: "成功",
+        description: "プロフィールを更新しました",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       console.error('Profile update error:', error);
       toast({
-        title: "プロフィールの更新に失敗しました",
-        description: error.message,
+        title: "エラー",
+        description: `プロフィールの更新に失敗しました: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -90,8 +90,8 @@ export default function Settings() {
     },
     onError: (error: Error) => {
       toast({
-        title: "パスワードの変更に失敗しました",
-        description: error.message,
+        title: "エラー",
+        description: `パスワードの変更に失敗しました: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -136,12 +136,12 @@ export default function Settings() {
     }
   };
 
-  const onSubmitProfile = async (data: UpdateProfile) => {
-    console.log('Handling profile submit:', data);
+  const onSubmitProfile = async (values: UpdateProfile) => {
+    console.log("フォーム送信:", values);
     try {
-      await updateProfileMutation.mutateAsync(data);
+      await updateProfileMutation.mutateAsync(values);
     } catch (error) {
-      console.error('Profile submission error:', error);
+      console.error("プロフィール更新エラー:", error);
     }
   };
 
