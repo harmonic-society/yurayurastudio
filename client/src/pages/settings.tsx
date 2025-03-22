@@ -30,30 +30,16 @@ export default function Settings() {
   const profileForm = useForm<UpdateProfile>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
-      avatarUrl: user?.avatarUrl || "",
-      bio: user?.bio || "",
       title: user?.title || "",
-    },
-  });
-
-  const passwordForm = useForm<ChangePassword>({
-    resolver: zodResolver(changePasswordSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
+      bio: user?.bio || "",
+      avatarUrl: user?.avatarUrl || "",
+    }
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: UpdateProfile) => {
+    mutationFn: (data: UpdateProfile) => {
       console.log('プロフィール更新リクエスト:', data);
-      const response = await apiRequest("PATCH", "/api/users/profile", data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "プロフィールの更新に失敗しました");
-      }
-      return response.json();
+      return apiRequest("PATCH", "/api/users/profile", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
@@ -66,42 +52,22 @@ export default function Settings() {
       console.error('プロフィール更新エラー:', error);
       toast({
         title: "エラー",
-        description: `プロフィールの更新に失敗しました: ${error.message}`,
+        description: `プロフィールの更新に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
         variant: "destructive",
       });
     },
   });
 
-  const changePasswordMutation = useMutation({
-    mutationFn: async (data: ChangePassword) => {
-      const response = await apiRequest("POST", "/api/users/change-password", data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "パスワードの変更に失敗しました");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "パスワードを変更しました",
-        description: "新しいパスワードでログインできます",
-      });
-      passwordForm.reset();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "エラー",
-        description: `パスワードの変更に失敗しました: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
+  const handleProfileSubmit = (data: UpdateProfile) => {
+    console.log('フォーム送信データ:', data);
+    updateProfileMutation.mutate(data);
+  };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB制限
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "ファイルサイズが大きすぎます",
         description: "5MB以下の画像を選択してください",
@@ -136,11 +102,6 @@ export default function Settings() {
     }
   };
 
-  function onSubmit(data: UpdateProfile) {
-    console.log("フォーム送信:", data);
-    updateProfileMutation.mutate(data);
-  }
-
   return (
     <div className="space-y-8">
       <div>
@@ -156,83 +117,74 @@ export default function Settings() {
             <CardTitle>プロフィール設定</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form {...profileForm}>
-              <form
-                onSubmit={profileForm.handleSubmit(onSubmit)}
-                className="space-y-6"
-              >
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage
-                      src={avatarPreview || user?.avatarUrl || undefined}
-                      alt={user?.name}
+            <form
+              onSubmit={profileForm.handleSubmit(handleProfileSubmit)}
+              className="space-y-6"
+            >
+              <div className="flex items-center gap-4">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage
+                    src={avatarPreview || user?.avatarUrl || undefined}
+                    alt={user?.name}
+                  />
+                  <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <Label htmlFor="avatar" className="cursor-pointer">
+                    <div className="flex items-center gap-2 rounded-md bg-secondary px-4 py-2">
+                      <Camera className="h-4 w-4" />
+                      <span>画像を変更</span>
+                    </div>
+                    <Input
+                      id="avatar"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarChange}
                     />
-                    <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <Label htmlFor="avatar" className="cursor-pointer">
-                      <div className="flex items-center gap-2 rounded-md bg-secondary px-4 py-2">
-                        <Camera className="h-4 w-4" />
-                        <span>画像を変更</span>
-                      </div>
-                      <Input
-                        id="avatar"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarChange}
-                      />
-                    </Label>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      推奨: 500x500px以上、5MB以下
-                    </p>
-                  </div>
+                  </Label>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    推奨: 500x500px以上、5MB以下
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">肩書き</Label>
+                  <Input
+                    id="title"
+                    {...profileForm.register("title")}
+                  />
+                  {profileForm.formState.errors.title && (
+                    <p className="text-sm text-destructive">{profileForm.formState.errors.title.message}</p>
+                  )}
                 </div>
 
-                <FormField
-                  control={profileForm.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>肩書き</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                <div className="space-y-2">
+                  <Label htmlFor="bio">プロフィール文</Label>
+                  <Textarea
+                    id="bio"
+                    {...profileForm.register("bio")}
+                    placeholder="自己紹介や得意分野などを入力してください"
+                  />
+                  {profileForm.formState.errors.bio && (
+                    <p className="text-sm text-destructive">{profileForm.formState.errors.bio.message}</p>
                   )}
-                />
+                </div>
+              </div>
 
-                <FormField
-                  control={profileForm.control}
-                  name="bio"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>プロフィール文</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder="自己紹介や得意分野などを入力してください"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  disabled={updateProfileMutation.isPending}
-                >
-                  {updateProfileMutation.isPending
-                    ? "更新中..."
-                    : "プロフィールを更新"}
-                </Button>
-              </form>
-            </Form>
+              <Button
+                type="submit"
+                disabled={updateProfileMutation.isPending}
+              >
+                {updateProfileMutation.isPending
+                  ? "更新中..."
+                  : "プロフィールを更新"}
+              </Button>
+            </form>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>パスワード変更</CardTitle>
