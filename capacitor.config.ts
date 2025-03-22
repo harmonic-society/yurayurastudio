@@ -7,7 +7,10 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     cleartext: true,
-    hostname: 'app.yurayurastudio.com'
+    // デプロイ時は本番ホスト名に変更します
+    // hostname: 'app.yurayurastudio.com'
+    // 開発時はローカルサーバーを使用します（実際のIPアドレスに変更してください）
+    hostname: 'localhost:5000'
   },
   plugins: {
     SplashScreen: {
