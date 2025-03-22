@@ -1,12 +1,5 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { changePasswordSchema, type ChangePassword, updateProfileSchema, type UpdateProfile } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Form,
@@ -65,6 +58,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "プロフィールを更新しました",
+        variant: "default",
       });
     },
     onError: (error: Error) => {
@@ -79,6 +73,10 @@ export default function Settings() {
   const changePasswordMutation = useMutation({
     mutationFn: async (data: ChangePassword) => {
       const response = await apiRequest("POST", "/api/users/change-password", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "パスワードの変更に失敗しました");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -136,11 +134,20 @@ export default function Settings() {
     }
   };
 
+  const handleProfileSubmit = async (data: UpdateProfile) => {
+    try {
+      await updateProfileMutation.mutateAsync(data);
+    } catch (error) {
+      // エラーはmutationのonErrorで処理されます
+      console.error("Profile update error:", error);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">設定</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">設定</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           アプリケーションの設定を管理します
         </p>
       </div>
@@ -153,7 +160,7 @@ export default function Settings() {
           <CardContent>
             <Form {...profileForm}>
               <form
-                onSubmit={profileForm.handleSubmit((data) => updateProfileMutation.mutate(data))}
+                onSubmit={profileForm.handleSubmit(handleProfileSubmit)}
                 className="space-y-6"
               >
                 <div className="flex items-center gap-4">
