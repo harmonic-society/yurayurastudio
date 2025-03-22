@@ -446,7 +446,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // プロフィール更新エンドポイント
+  // プロフィール更新エンドポイントを修正
   app.patch("/api/users/profile", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });

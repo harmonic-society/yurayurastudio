@@ -47,6 +47,7 @@ export default function Settings() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateProfile) => {
+      console.log('Submitting profile update:', data);
       const response = await apiRequest("PATCH", "/api/users/profile", data);
       if (!response.ok) {
         const errorData = await response.json();
@@ -62,6 +63,7 @@ export default function Settings() {
       });
     },
     onError: (error: Error) => {
+      console.error('Profile update error:', error);
       toast({
         title: "プロフィールの更新に失敗しました",
         description: error.message,
@@ -134,12 +136,12 @@ export default function Settings() {
     }
   };
 
-  const handleProfileSubmit = async (data: UpdateProfile) => {
+  const onSubmitProfile = async (data: UpdateProfile) => {
+    console.log('Handling profile submit:', data);
     try {
       await updateProfileMutation.mutateAsync(data);
     } catch (error) {
-      // エラーはmutationのonErrorで処理されます
-      console.error("Profile update error:", error);
+      console.error('Profile submission error:', error);
     }
   };
 
@@ -160,7 +162,7 @@ export default function Settings() {
           <CardContent>
             <Form {...profileForm}>
               <form
-                onSubmit={profileForm.handleSubmit(handleProfileSubmit)}
+                onSubmit={profileForm.handleSubmit(onSubmitProfile)}
                 className="space-y-6"
               >
                 <div className="flex items-center gap-4">
