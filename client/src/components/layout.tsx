@@ -7,14 +7,18 @@ import {
   Settings,
   Menu,
   X,
-  Image
+  Image,
+  LogOut,
+  UserCog
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAdmin, logoutMutation } = useAuth();
 
   const navigation = [
     { name: "ダッシュボード", href: "/", icon: LayoutDashboard },
@@ -22,6 +26,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: "ポートフォリオ", href: "/portfolios", icon: Image },
     { name: "チーム", href: "/team", icon: Users },
     { name: "設定", href: "/settings", icon: Settings },
+    // 管理者の場合のみ表示
+    ...(isAdmin ? [{ name: "ユーザー管理", href: "/admin/users", icon: UserCog }] : []),
   ];
 
   const NavLinks = () => (
@@ -46,6 +52,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </Link>
         );
       })}
+      {/* ログアウトボタン */}
+      <Button
+        variant="ghost"
+        className="w-full justify-start px-4 py-3 text-base rounded-md transition-colors text-foreground hover:bg-accent hover:text-accent-foreground"
+        onClick={() => logoutMutation.mutate()}
+      >
+        <LogOut className="h-5 w-5 mr-3 flex-shrink-0" />
+        ログアウト
+      </Button>
     </nav>
   );
 
