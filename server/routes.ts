@@ -979,5 +979,142 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // 報酬分配関連のエンドポイント
+
+  // プロジェクトの報酬分配情報を取得
+  app.get("/api/projects/:id/reward-distribution", canAccessProject, async (req, res) => {
+    try {
+      const projectId = Number(req.params.id);
+      const distribution = await storage.getRewardDistribution(projectId);
+      
+      if (!distribution) {
+        // デフォルト値を返す
+        return res.json({
+          projectId,
+          operationPercentage: 10,
+          salesPercentage: 15,
+          directorPercentage: 25,
+          creatorPercentage: 50
+        });
+      }
+      
+      res.json(distribution);
+    } catch (error) {
+      console.error("Error fetching reward distribution:", error);
+      res.status(500).json({ message: "報酬分配情報の取得に失敗しました" });
+    }
+  });
+
+  // 報酬分配情報を更新（管理者のみ）
+  app.post("/api/projects/:id/reward-distribution", isAdmin, async (req, res) => {
+    try {
+      const projectId = Number(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "プロジェクトが見つかりません" });
+      }
+      
+      // すでに報酬が分配済みの場合は更新不可
+      if (project.rewardDistributed) {
+        return res.status(400).json({ message: "すでに報酬が分配済みのプロジェクトです" });
+      }
+      
+      const data = {
+        projectId,
+        salesPercentage: req.body.salesPercentage,
+        directorPercentage: req.body.directorPercentage,
+        creatorPercentage: req.body.creatorPercentage
+      };
+      
+      // 既存の報酬分配情報を確認
+      const existingDistribution = await storage.getRewardDistribution(projectId);
+      
+      let distribution;
+      if (existingDistribution) {
+        distribution = await storage.updateRewardDistribution(projectId, data);
+      } else {
+        distribution = await storage.createRewardDistribution(data);
+      }
+      
+      res.json(distribution);
+    } catch (error) {
+      console.error("Error updating reward distribution:", error);
+      res.status(500).json({ message: "報酬分配情報の更新に失敗しました" });
+    }
+  });
+
+  // ユーザーの報酬情報を取得
+  app.get("/api/users/:id/rewards/project/:projectId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    const userId = Number(req.params.id);
+    const projectId = Number(req.params.projectId);
+    
+    // 自分自身の報酬情報か管理者のみ閲覧可能
+    if (userId !== req.user?.id && req.user?.role !== "ADMIN") {
+      return res.status(403).json({ message: "権限がありません" });
+    }
+    
+    try {
+      const rewardInfo = await storage.calculateUserReward(projectId, userId);
+      
+      if (!rewardInfo) {
+        return res.status(404).json({ message: "報酬情報が見つかりません" });
+      }
+      
+      res.json(rewardInfo);
+    } catch (error) {
+      console.error("Error calculating user reward:", error);
+      res.status(500).json({ message: "報酬情報の計算に失敗しました" });
+    }
+  });
+
+  // ユーザーに関連するすべてのプロジェクトの報酬情報を取得
+  app.get("/api/users/:id/rewards", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    const userId = Number(req.params.id);
+    
+    // 自分自身の報酬情報か管理者のみ閲覧可能
+    if (userId !== req.user?.id && req.user?.role !== "ADMIN") {
+      return res.status(403).json({ message: "権限がありません" });
+    }
+    
+    try {
+      // ユーザーに関連するプロジェクトを取得
+      const allProjects = await storage.getProjects();
+      const userProjects = allProjects.filter(project => 
+        project.directorId === userId || 
+        project.salesId === userId || 
+        (project.assignedUsers && project.assignedUsers.includes(userId))
+      );
+      
+      // 各プロジェクトの報酬情報を計算
+      const rewards = await Promise.all(
+        userProjects.map(async project => {
+          const rewardInfo = await storage.calculateUserReward(project.id, userId);
+          return {
+            projectId: project.id,
+            projectName: project.name,
+            ...rewardInfo
+          };
+        })
+      );
+      
+      // 結果から undefined を除去
+      const validRewards = rewards.filter(reward => reward !== undefined);
+      
+      res.json(validRewards);
+    } catch (error) {
+      console.error("Error calculating user rewards:", error);
+      res.status(500).json({ message: "報酬情報の計算に失敗しました" });
+    }
+  });
+
   return httpServer;
 }
