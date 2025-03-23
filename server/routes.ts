@@ -1,7 +1,24 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertProjectSchema, insertCommentSchema, insertUserSchema, updateUserSchema, insertPortfolioSchema, changePasswordSchema, registrationRequestSchema, registrationRequests, users, type RegistrationRequest, type InsertRegistrationRequest, insertTimelinePostSchema } from "@shared/schema";
+import { 
+  insertProjectSchema, 
+  insertCommentSchema, 
+  insertUserSchema, 
+  updateUserSchema, 
+  insertPortfolioSchema, 
+  changePasswordSchema, 
+  registrationRequestSchema, 
+  registrationRequests, 
+  users, 
+  type RegistrationRequest, 
+  type InsertRegistrationRequest, 
+  insertTimelinePostSchema,
+  insertSkillCategorySchema,
+  insertSkillTagSchema,
+  userSkillSchema,
+  updateProfileSchema
+} from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
 import { isAdmin, canUpdateProjectStatus, canChangePassword } from "./middleware/permissions";
@@ -11,7 +28,6 @@ import { eq } from 'drizzle-orm';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { updateProfileSchema } from "@shared/schema";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -624,6 +640,297 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Timeline post deletion error:", error);
       res.status(500).json({ message: "投稿の削除に失敗しました" });
+    }
+  });
+  
+  // ====== Skills API endpoints ======
+  
+  // Get all skill categories with tags
+  app.get("/api/skills/categories", async (req, res) => {
+    try {
+      const categories = await storage.getSkillCategories();
+      const tags = await storage.getSkillTags();
+      
+      // カテゴリーとタグを結合
+      const categoriesWithTags = categories.map(category => {
+        const categoryTags = tags.filter(tag => tag.categoryId === category.id);
+        return {
+          ...category,
+          tags: categoryTags
+        };
+      });
+      
+      res.json(categoriesWithTags);
+    } catch (error) {
+      console.error("Error fetching skill categories:", error);
+      res.status(500).json({ message: "スキルカテゴリの取得に失敗しました" });
+    }
+  });
+  
+  // Get a specific skill category with its tags
+  app.get("/api/skills/categories/:id", async (req, res) => {
+    try {
+      const categoryId = Number(req.params.id);
+      const category = await storage.getSkillCategory(categoryId);
+      
+      if (!category) {
+        return res.status(404).json({ message: "スキルカテゴリが見つかりません" });
+      }
+      
+      const tags = await storage.getSkillTagsByCategory(categoryId);
+      
+      res.json({
+        ...category,
+        tags
+      });
+    } catch (error) {
+      console.error("Error fetching skill category:", error);
+      res.status(500).json({ message: "スキルカテゴリの取得に失敗しました" });
+    }
+  });
+  
+  // Create a new skill category (admin only)
+  app.post("/api/skills/categories", isAdmin, async (req, res) => {
+    try {
+      const categoryData = insertSkillCategorySchema.parse(req.body);
+      const newCategory = await storage.createSkillCategory(categoryData);
+      res.status(201).json(newCategory);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なカテゴリデータです", errors: error.errors });
+      } else {
+        console.error("Skill category creation error:", error);
+        res.status(500).json({ message: "スキルカテゴリの作成に失敗しました" });
+      }
+    }
+  });
+  
+  // Update a skill category (admin only)
+  app.put("/api/skills/categories/:id", isAdmin, async (req, res) => {
+    try {
+      const categoryId = Number(req.params.id);
+      const category = await storage.getSkillCategory(categoryId);
+      
+      if (!category) {
+        return res.status(404).json({ message: "スキルカテゴリが見つかりません" });
+      }
+      
+      const categoryData = insertSkillCategorySchema.partial().parse(req.body);
+      const updatedCategory = await storage.updateSkillCategory(categoryId, categoryData);
+      res.json(updatedCategory);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なカテゴリデータです", errors: error.errors });
+      } else {
+        console.error("Skill category update error:", error);
+        res.status(500).json({ message: "スキルカテゴリの更新に失敗しました" });
+      }
+    }
+  });
+  
+  // Delete a skill category (admin only)
+  app.delete("/api/skills/categories/:id", isAdmin, async (req, res) => {
+    try {
+      const categoryId = Number(req.params.id);
+      const category = await storage.getSkillCategory(categoryId);
+      
+      if (!category) {
+        return res.status(404).json({ message: "スキルカテゴリが見つかりません" });
+      }
+      
+      await storage.deleteSkillCategory(categoryId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Skill category deletion error:", error);
+      res.status(500).json({ message: "スキルカテゴリの削除に失敗しました" });
+    }
+  });
+  
+  // Get all skill tags
+  app.get("/api/skills/tags", async (req, res) => {
+    try {
+      const tags = await storage.getSkillTags();
+      res.json(tags);
+    } catch (error) {
+      console.error("Error fetching skill tags:", error);
+      res.status(500).json({ message: "スキルタグの取得に失敗しました" });
+    }
+  });
+  
+  // Get skill tags by category
+  app.get("/api/skills/categories/:id/tags", async (req, res) => {
+    try {
+      const categoryId = Number(req.params.id);
+      const category = await storage.getSkillCategory(categoryId);
+      
+      if (!category) {
+        return res.status(404).json({ message: "スキルカテゴリが見つかりません" });
+      }
+      
+      const tags = await storage.getSkillTagsByCategory(categoryId);
+      res.json(tags);
+    } catch (error) {
+      console.error("Error fetching skill tags by category:", error);
+      res.status(500).json({ message: "スキルタグの取得に失敗しました" });
+    }
+  });
+  
+  // Create a new skill tag (admin only)
+  app.post("/api/skills/tags", isAdmin, async (req, res) => {
+    try {
+      const tagData = insertSkillTagSchema.parse(req.body);
+      
+      // カテゴリが存在するか確認
+      const category = await storage.getSkillCategory(tagData.categoryId);
+      if (!category) {
+        return res.status(404).json({ message: "指定されたカテゴリが見つかりません" });
+      }
+      
+      const newTag = await storage.createSkillTag(tagData);
+      res.status(201).json(newTag);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なタグデータです", errors: error.errors });
+      } else {
+        console.error("Skill tag creation error:", error);
+        res.status(500).json({ message: "スキルタグの作成に失敗しました" });
+      }
+    }
+  });
+  
+  // Update a skill tag (admin only)
+  app.put("/api/skills/tags/:id", isAdmin, async (req, res) => {
+    try {
+      const tagId = Number(req.params.id);
+      const tag = await storage.getSkillTag(tagId);
+      
+      if (!tag) {
+        return res.status(404).json({ message: "スキルタグが見つかりません" });
+      }
+      
+      const tagData = insertSkillTagSchema.partial().parse(req.body);
+      
+      // カテゴリIDが変更される場合、そのカテゴリが存在するか確認
+      if (tagData.categoryId && tagData.categoryId !== tag.categoryId) {
+        const category = await storage.getSkillCategory(tagData.categoryId);
+        if (!category) {
+          return res.status(404).json({ message: "指定されたカテゴリが見つかりません" });
+        }
+      }
+      
+      const updatedTag = await storage.updateSkillTag(tagId, tagData);
+      res.json(updatedTag);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なタグデータです", errors: error.errors });
+      } else {
+        console.error("Skill tag update error:", error);
+        res.status(500).json({ message: "スキルタグの更新に失敗しました" });
+      }
+    }
+  });
+  
+  // Delete a skill tag (admin only)
+  app.delete("/api/skills/tags/:id", isAdmin, async (req, res) => {
+    try {
+      const tagId = Number(req.params.id);
+      const tag = await storage.getSkillTag(tagId);
+      
+      if (!tag) {
+        return res.status(404).json({ message: "スキルタグが見つかりません" });
+      }
+      
+      await storage.deleteSkillTag(tagId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Skill tag deletion error:", error);
+      res.status(500).json({ message: "スキルタグの削除に失敗しました" });
+    }
+  });
+  
+  // Get user skills
+  app.get("/api/users/:id/skills", async (req, res) => {
+    try {
+      const userId = Number(req.params.id);
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "ユーザーが見つかりません" });
+      }
+      
+      const userSkills = await storage.getUserSkills(userId);
+      const skillTagIds = userSkills.map(skill => skill.skillTagId);
+      
+      // スキルの詳細情報を取得
+      const allTags = await storage.getSkillTags();
+      const allCategories = await storage.getSkillCategories();
+      
+      const userSkillDetails = userSkills.map(skill => {
+        const tag = allTags.find(t => t.id === skill.skillTagId);
+        const category = tag ? allCategories.find(c => c.id === tag.categoryId) : null;
+        
+        return {
+          ...skill,
+          tag,
+          category
+        };
+      });
+      
+      res.json({
+        userId,
+        skills: userSkillDetails,
+        skillTagIds
+      });
+    } catch (error) {
+      console.error("Error fetching user skills:", error);
+      res.status(500).json({ message: "ユーザースキルの取得に失敗しました" });
+    }
+  });
+  
+  // Update user skills
+  app.put("/api/users/:id/skills", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const userId = Number(req.params.id);
+      
+      // 自分自身のスキルのみ更新可能
+      if (req.user.id !== userId && req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "この操作を行う権限がありません" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "ユーザーが見つかりません" });
+      }
+      
+      const updateData = userSkillSchema.parse(req.body);
+      
+      // 全てのスキルタグIDが存在するか確認
+      const allTags = await storage.getSkillTags();
+      const tagIds = allTags.map(tag => tag.id);
+      
+      for (const skillTagId of updateData.skillTagIds) {
+        if (!tagIds.includes(skillTagId)) {
+          return res.status(404).json({ message: `スキルタグID ${skillTagId} が見つかりません` });
+        }
+      }
+      
+      await storage.updateUserSkills({
+        userId,
+        skillTagIds: updateData.skillTagIds
+      });
+      
+      res.status(200).json({ message: "ユーザースキルを更新しました" });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なスキルデータです", errors: error.errors });
+      } else {
+        console.error("User skills update error:", error);
+        res.status(500).json({ message: "ユーザースキルの更新に失敗しました" });
+      }
     }
   });
 
