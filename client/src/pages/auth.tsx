@@ -125,11 +125,17 @@ export default function AuthPage() {
         <div className="relative z-20 flex items-center text-lg font-medium">
           <h1 className="text-3xl font-bold tracking-tight">Yura Yura STUDIO</h1>
         </div>
-        <div className="relative z-20 mt-auto">
+        <div className="relative z-20 mt-10">
+          <div className="bg-white/10 rounded-lg p-5 mb-8 backdrop-blur-sm border border-white/20">
+            <img 
+              src="/app-icon.svg" 
+              alt="Yura Yura Studio Demo" 
+              className="w-full rounded-md shadow-xl mb-5" 
+            />
+          </div>
           <blockquote className="space-y-2">
-            <p className="text-xl leading-relaxed">
-              Web制作と集客支援のためのプロジェクト管理システム。
-              チームの効率的な案件管理と柔軟な人員配置を支援するWebアプリケーション。
+            <p className="text-lg leading-relaxed">
+              Yura Yura STUDIOは、小規模事業者向けWeb制作・集客支援サービスです。千葉県を中心にプロジェクトを受注・発注。地域貢献したいクリエイターの方、新規ユーザー登録で一緒に地域を盛り上げませんか？
             </p>
             <footer className="text-sm opacity-80 mt-4">
               プロジェクト管理の新しいスタンダード
@@ -144,7 +150,7 @@ export default function AuthPage() {
           <div className="flex flex-col space-y-2 text-center mb-4">
             <h1 className="text-2xl font-bold tracking-tight lg:hidden">Yura Yura STUDIO</h1>
             <p className="text-sm text-muted-foreground lg:hidden px-4">
-              Web制作と集客支援のためのプロジェクト管理システム
+              小規模事業者向けWeb制作・集客支援サービス。千葉県を中心にプロジェクトを受注・発注。
             </p>
           </div>
         
