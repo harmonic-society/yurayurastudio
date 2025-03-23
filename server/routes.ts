@@ -1077,12 +1077,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // OGP情報を取得するエンドポイント
+  // OGP情報を取得するエンドポイント - 公開エンドポイントに変更（認証不要）
   app.get("/api/ogp", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
-    
     try {
       const url = req.query.url as string;
       
