@@ -148,7 +148,10 @@ export default function UserProfile() {
       if (!userId) return null;
       return await apiRequest(`/api/users/${userId}/skills`, {
         method: 'PUT',
-        body: JSON.stringify({ skillTagIds })
+        body: JSON.stringify({ 
+          userId: Number(userId),
+          skillTagIds 
+        })
       });
     },
     onSuccess: () => {
