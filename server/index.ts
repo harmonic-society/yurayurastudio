@@ -72,7 +72,7 @@ function createOgpResponse(req: Request, res: Response) {
       <body>
         <h1>Yura Yura STUDIO - プロジェクト管理ツール</h1>
         <p>千葉県で地域貢献できるWeb制作・集客支援！</p>
-        <img src="${baseUrl}/yurayurastudio-ogp.png" alt="Yura Yura STUDIO プロジェクト管理ツール" width="1200" height="630">
+        <img src="${baseUrl}/ogp-image" alt="Yura Yura STUDIO プロジェクト管理ツール" width="1200" height="630">
         <script>
           setTimeout(() => {
             window.location.href = "/";
@@ -168,7 +168,7 @@ app.get("/facebook-debug", (req, res) => {
     <body>
       <h1>Yura Yura STUDIO</h1>
       <p>千葉県で地域貢献できるWeb制作・集客支援！</p>
-      <img src="${baseUrl}/yurayurastudio-ogp.png" alt="Yura Yura STUDIO プロジェクト管理ツール" width="1200" height="630">
+      <img src="${baseUrl}/ogp-image" alt="Yura Yura STUDIO プロジェクト管理ツール" width="1200" height="630">
       <script>
         setTimeout(() => {
           window.location.href = "/";
