@@ -34,7 +34,10 @@ export default function Projects() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/projects", data),
+    mutationFn: (data: any) => apiRequest("/api/projects", { 
+      method: "POST", 
+      body: JSON.stringify(data)
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setIsCreateDialogOpen(false);

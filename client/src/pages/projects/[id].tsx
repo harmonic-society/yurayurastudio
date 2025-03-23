@@ -64,7 +64,10 @@ export default function ProjectDetails() {
 
   const updateMutation = useMutation({
     mutationFn: (data: any) =>
-      apiRequest("PATCH", `/api/projects/${projectId}`, data),
+      apiRequest(`/api/projects/${projectId}`, { 
+        method: "PATCH",
+        body: JSON.stringify(data)
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
       setIsEditDialogOpen(false);
@@ -83,7 +86,7 @@ export default function ProjectDetails() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", `/api/projects/${projectId}`),
+    mutationFn: () => apiRequest(`/api/projects/${projectId}`, { method: "DELETE" }),
     onSuccess: () => {
       setLocation("/projects");
       toast({
@@ -125,7 +128,10 @@ export default function ProjectDetails() {
           workType: data.workType
         };
         console.log('Creating portfolio with data:', submitData);
-        return await apiRequest("POST", `/api/projects/${projectId}/portfolios`, submitData);
+        return await apiRequest(`/api/projects/${projectId}/portfolios`, {
+          method: "POST",
+          body: JSON.stringify(submitData)
+        });
       } catch (error) {
         console.error('Portfolio creation error:', error);
         throw error;
@@ -151,7 +157,10 @@ export default function ProjectDetails() {
 
   const updatePortfolioMutation = useMutation({
     mutationFn: (data: any) =>
-      apiRequest("PATCH", `/api/portfolios/${selectedPortfolio?.id}`, data),
+      apiRequest(`/api/portfolios/${selectedPortfolio?.id}`, {
+        method: "PATCH", 
+        body: JSON.stringify(data)
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/portfolios`] });
       setIsPortfolioDialogOpen(false);
@@ -172,7 +181,7 @@ export default function ProjectDetails() {
 
   const deletePortfolioMutation = useMutation({
     mutationFn: () =>
-      apiRequest("DELETE", `/api/portfolios/${selectedPortfolio?.id}`),
+      apiRequest(`/api/portfolios/${selectedPortfolio?.id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/portfolios`] });
       setIsPortfolioDeleteDialogOpen(false);
@@ -298,46 +307,74 @@ export default function ProjectDetails() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">顧客連絡先</p>
-              <p className="break-all">{project.clientContact}</p>
+              {isAdmin ? (
+                <p className="break-all">{project.clientContact}</p>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="italic text-muted-foreground">管理者のみ閲覧可能</p>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>顧客連絡先情報は管理者のみが閲覧できます</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
             <div>
               <p className="text-sm text-muted-foreground">報酬総額</p>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <p className={!isAdmin ? "opacity-50" : ""}>
-                      ¥{project.totalReward.toLocaleString()}
-                    </p>
-                  </TooltipTrigger>
-                  {!isAdmin && (
+              {isAdmin ? (
+                <p>¥{project.totalReward?.toLocaleString() || "未設定"}</p>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="italic text-muted-foreground">管理者のみ閲覧可能</p>
+                    </TooltipTrigger>
                     <TooltipContent>
-                      <p>報酬金額の編集は管理者のみが行えます</p>
+                      <p>報酬情報は管理者のみが閲覧できます</p>
                     </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
             <div>
               <p className="text-sm text-muted-foreground">報酬分配</p>
-              <p className="whitespace-pre-line">{project.rewardRules}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant={project.rewardDistributed ? "default" : "secondary"}>
-                  {project.rewardDistributed ? "分配済み" : "未分配"}
-                </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    updateMutation.mutate({
-                      rewardDistributed: !project.rewardDistributed,
-                    })
-                  }
-                  disabled={updateMutation.isPending}
-                >
-                  <ArrowRightLeft className="h-4 w-4 mr-2" />
-                  {updateMutation.isPending ? "更新中..." : "状態を切り替え"}
-                </Button>
-              </div>
+              {isAdmin ? (
+                <>
+                  <p className="whitespace-pre-line">{project.rewardRules}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant={project.rewardDistributed ? "default" : "secondary"}>
+                      {project.rewardDistributed ? "分配済み" : "未分配"}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        updateMutation.mutate({
+                          rewardDistributed: !project.rewardDistributed,
+                        })
+                      }
+                      disabled={updateMutation.isPending}
+                    >
+                      <ArrowRightLeft className="h-4 w-4 mr-2" />
+                      {updateMutation.isPending ? "更新中..." : "状態を切り替え"}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className="italic text-muted-foreground">管理者のみ閲覧可能</p>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>報酬分配情報は管理者のみが閲覧できます</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </CardContent>
         </Card>
