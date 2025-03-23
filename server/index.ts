@@ -96,6 +96,25 @@ app.get("/share", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "facebook-ogp.html"));
 });
 
+// X (Twitter) 向けの特化したルート
+app.get("/twitter", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "twitter-card.html"));
+});
+app.get("/x", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "twitter-card.html"));
+});
+app.get("/twitter-card", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "twitter-card.html"));
+});
+
+// LinkedIn 向けの特化したルート
+app.get("/linkedin", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "linkedin-card.html"));
+});
+app.get("/linkedin-card", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "linkedin-card.html"));
+});
+
 // OGP画像への直接アクセスを提供 - 複数のパスに対応
 function serveOgpImage(req: Request, res: Response) {
   const ogpImagePath = path.join(__dirname, "..", "public", "yurayurastudio-ogp.png");
