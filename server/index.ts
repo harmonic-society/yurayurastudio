@@ -86,11 +86,40 @@ function createOgpResponse(req: Request, res: Response) {
 // Facebook向けの複数のエンドポイントを設定（Facebookクローラー対応）
 // Facebookは様々なパスでコンテンツを探索するため、複数のエントリーポイントを用意
 app.get("/fb-ogp", createOgpResponse);
+// テンプレート変数を処理する関数
+function processTemplate(template: string, variables: Record<string, string>): string {
+  return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+    return variables[key.trim()] || match;
+  });
+}
+
+// 共通のベースURLを取得する関数
+function getBaseUrl(req: Request): string {
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers.host;
+  return `${protocol}://${host}`;
+}
+
+// HTML テンプレートファイルを読み込み、変数を置換して送信する関数
+function serveTemplatedHtml(templatePath: string, req: Request, res: Response): void {
+  try {
+    const baseUrl = getBaseUrl(req);
+    const template = fs.readFileSync(templatePath, 'utf8');
+    const processedHtml = processTemplate(template, { base_url: baseUrl });
+    
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
+    res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
+    res.setHeader('Content-Type', 'text/html');
+    res.send(processedHtml);
+  } catch (error) {
+    console.error(`テンプレート処理エラー: ${error}`);
+    res.status(500).send('Internal Server Error');
+  }
+}
+
 // Facebook向けの特化したルート
 function serveFacebookCard(req: Request, res: Response) {
-  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
-  res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
-  res.sendFile(path.join(__dirname, "..", "public", "facebook-ogp.html"));
+  serveTemplatedHtml(path.join(__dirname, "..", "public", "facebook-ogp.html"), req, res);
 }
 
 app.get("/facebook", serveFacebookCard);
@@ -101,9 +130,7 @@ app.get("/og", createOgpResponse);
 
 // X (Twitter) 向けの特化したルート
 function serveTwitterCard(req: Request, res: Response) {
-  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
-  res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
-  res.sendFile(path.join(__dirname, "..", "public", "twitter-card.html"));
+  serveTemplatedHtml(path.join(__dirname, "..", "public", "twitter-card.html"), req, res);
 }
 
 app.get("/twitter", serveTwitterCard);
@@ -112,9 +139,7 @@ app.get("/twitter-card", serveTwitterCard);
 
 // LinkedIn 向けの特化したルート
 function serveLinkedInCard(req: Request, res: Response) {
-  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
-  res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
-  res.sendFile(path.join(__dirname, "..", "public", "linkedin-card.html"));
+  serveTemplatedHtml(path.join(__dirname, "..", "public", "linkedin-card.html"), req, res);
 }
 
 app.get("/linkedin", serveLinkedInCard);
