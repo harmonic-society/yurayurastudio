@@ -32,6 +32,7 @@ import { useAuth } from "@/hooks/use-auth";
 import UserForm from "@/components/user-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 
 // スキルデータの型定義
 interface SkillTag {
@@ -276,7 +277,11 @@ export default function Team() {
                 <AvatarFallback>{user.name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg truncate">{user.name}</CardTitle>
+                <Link href={`/users/${user.id}`}>
+                  <CardTitle className="text-lg truncate hover:text-primary hover:underline cursor-pointer">
+                    {user.name}
+                  </CardTitle>
+                </Link>
                 <p className="text-sm text-muted-foreground truncate">
                   {roleLabels[user.role as keyof typeof roleLabels]}
                 </p>
