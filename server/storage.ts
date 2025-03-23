@@ -9,6 +9,7 @@ import {
   skillCategories,
   skillTags,
   userSkills,
+  rewardDistributions,
   type Project, 
   type InsertProject,
   type Comment,
@@ -26,7 +27,9 @@ import {
   type SkillTag,
   type InsertSkillTag,
   type UserSkill,
-  type UserSkillUpdate
+  type UserSkillUpdate,
+  type RewardDistribution,
+  type InsertRewardDistribution
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -97,6 +100,12 @@ export interface IStorage {
   // User Skills
   getUserSkills(userId: number): Promise<UserSkill[]>;
   updateUserSkills(update: UserSkillUpdate): Promise<void>;
+  
+  // Reward Distributions
+  getRewardDistribution(projectId: number): Promise<RewardDistribution | undefined>;
+  createRewardDistribution(distribution: InsertRewardDistribution): Promise<RewardDistribution>;
+  updateRewardDistribution(projectId: number, distribution: Partial<InsertRewardDistribution>): Promise<RewardDistribution>;
+  calculateUserReward(projectId: number, userId: number): Promise<{ totalReward: number; percentage: number; amount: number } | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -465,6 +474,70 @@ export class DatabaseStorage implements IStorage {
         }))
       );
     }
+  }
+
+  // 報酬分配メソッド
+  async getRewardDistribution(projectId: number): Promise<RewardDistribution | undefined> {
+    const [distribution] = await db
+      .select()
+      .from(rewardDistributions)
+      .where(eq(rewardDistributions.projectId, projectId));
+    return distribution;
+  }
+
+  async createRewardDistribution(distribution: InsertRewardDistribution): Promise<RewardDistribution> {
+    const [newDistribution] = await db
+      .insert(rewardDistributions)
+      .values(distribution)
+      .returning();
+    return newDistribution;
+  }
+
+  async updateRewardDistribution(projectId: number, distribution: Partial<InsertRewardDistribution>): Promise<RewardDistribution> {
+    const [updated] = await db
+      .update(rewardDistributions)
+      .set(distribution)
+      .where(eq(rewardDistributions.projectId, projectId))
+      .returning();
+    return updated;
+  }
+
+  async calculateUserReward(projectId: number, userId: number): Promise<{ totalReward: number; percentage: number; amount: number } | undefined> {
+    // プロジェクト情報を取得
+    const project = await this.getProject(projectId);
+    if (!project) return undefined;
+
+    // 報酬分配情報を取得
+    const distribution = await this.getRewardDistribution(projectId);
+    if (!distribution) return undefined;
+
+    // ユーザーの役割を計算
+    const isDirector = project.directorId === userId;
+    const isSales = project.salesId === userId;
+    const isCreator = project.assignedUsers?.includes(userId) || false;
+
+    // 該当するロールが無い場合は報酬なし
+    if (!isDirector && !isSales && !isCreator) return undefined;
+
+    // ユーザーの報酬割合を計算
+    let percentage = 0;
+    if (isDirector) percentage += distribution.directorPercentage;
+    if (isSales) percentage += distribution.salesPercentage;
+
+    // クリエイターの場合、クリエイター報酬を担当者数で分配
+    if (isCreator) {
+      const creatorCount = project.assignedUsers?.length || 1;
+      percentage += distribution.creatorPercentage / creatorCount;
+    }
+
+    // 報酬額を計算
+    const amount = Math.round(project.totalReward * (percentage / 100));
+
+    return {
+      totalReward: project.totalReward,
+      percentage,
+      amount
+    };
   }
 }
 

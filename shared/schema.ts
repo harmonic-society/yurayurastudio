@@ -54,6 +54,11 @@ export const projects = pgTable("projects", {
   totalReward: integer("total_reward").notNull(),
   rewardRules: text("reward_rules").notNull(),
   rewardDistributed: pgBoolean("reward_distributed").notNull().default(false),
+  // 報酬分配率（％）
+  operationFeeRate: integer("operation_fee_rate").notNull().default(10), // 運営費: デフォルト10%
+  salesRate: integer("sales_rate").notNull().default(15), // 営業担当: デフォルト15%
+  directorRate: integer("director_rate").notNull().default(25), // ディレクター担当: デフォルト25%
+  creatorRate: integer("creator_rate").notNull().default(50), // クリエイター担当: デフォルト50%
   directorId: integer("director_id").references(() => users.id),
   salesId: integer("sales_id").references(() => users.id),
 });
@@ -77,10 +82,31 @@ export const projectAssignmentsRelations = relations(projectAssignments, ({ one 
 }));
 
 // プロジェクトのリレーション
-export const projectsRelations = relations(projects, ({ many }) => ({
+// 報酬分配テーブル
+export const rewardDistributions = pgTable("reward_distributions", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  operationPercentage: integer("operation_percentage").notNull().default(10), // 運営費は固定10%
+  salesPercentage: integer("sales_percentage").notNull().default(0),
+  directorPercentage: integer("director_percentage").notNull().default(0),
+  creatorPercentage: integer("creator_percentage").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// 報酬分配のリレーション
+export const rewardDistributionsRelations = relations(rewardDistributions, ({ one }) => ({
+  project: one(projects, {
+    fields: [rewardDistributions.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const projectsRelations = relations(projects, ({ many, one }) => ({
   assignments: many(projectAssignments),
   comments: many(comments),
   portfolios: many(portfolios),
+  rewardDistribution: one(rewardDistributions),
 }));
 
 export const comments = pgTable("comments", {
@@ -320,3 +346,27 @@ export type SkillTag = typeof skillTags.$inferSelect;
 export type InsertSkillTag = z.infer<typeof insertSkillTagSchema>;
 export type UserSkill = typeof userSkills.$inferSelect;
 export type UserSkillUpdate = z.infer<typeof userSkillSchema>;
+
+// 報酬分配に関するスキーマ
+export const insertRewardDistributionSchema = createInsertSchema(rewardDistributions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  operationPercentage: true, // 運営費は固定10%のため
+}).extend({
+  projectId: z.number().int().positive(),
+  salesPercentage: z.number().int().min(0).max(90),
+  directorPercentage: z.number().int().min(0).max(90),
+  creatorPercentage: z.number().int().min(0).max(90),
+}).superRefine((data, ctx) => {
+  const total = 10 + data.salesPercentage + data.directorPercentage + data.creatorPercentage;
+  if (total !== 100) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `報酬の合計は100%である必要があります。現在: ${total}%`,
+    });
+  }
+});
+
+export type RewardDistribution = typeof rewardDistributions.$inferSelect;
+export type InsertRewardDistribution = z.infer<typeof insertRewardDistributionSchema>;
