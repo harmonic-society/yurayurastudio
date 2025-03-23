@@ -63,7 +63,11 @@ interface UserSkillsResponse {
 function UserSkills({ userId }: { userId: number }) {
   const { data: userSkills, isLoading } = useQuery({
     queryKey: ['/api/users', userId, 'skills'],
-    queryFn: () => apiRequest('GET', `/api/users/${userId}/skills`),
+    queryFn: async () => {
+      if (!userId) return null;
+      const response = await apiRequest('GET', `/api/users/${userId}/skills`);
+      return response;
+    },
     enabled: !!userId
   });
 
@@ -78,7 +82,7 @@ function UserSkills({ userId }: { userId: number }) {
   // カテゴリでスキルをグループ化
   const skillsByCategory: Record<string, SkillTag[]> = {};
   
-  userSkills.skills.forEach(skill => {
+  userSkills.skills.forEach((skill: any) => {
     if (skill.category && skill.tag) {
       const categoryName = skill.category.name;
       if (!skillsByCategory[categoryName]) {
@@ -123,11 +127,18 @@ export default function Team() {
   const { isAdmin } = useAuth();
 
   const { data: users, isLoading } = useQuery<User[]>({
-    queryKey: ["/api/users"]
+    queryKey: ["/api/users"],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/users');
+      return response;
+    }
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/users", data),
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("POST", "/api/users", data);
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setIsCreateDialogOpen(false);
@@ -136,7 +147,7 @@ export default function Team() {
         description: "ユーザーが作成されました",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "エラー",
         description: `ユーザーの作成に失敗しました: ${error.message}`,
@@ -146,8 +157,11 @@ export default function Team() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: any) =>
-      apiRequest("PATCH", `/api/users/${selectedUser?.id}`, data),
+    mutationFn: async (data: any) => {
+      if (!selectedUser?.id) return null;
+      const response = await apiRequest("PATCH", `/api/users/${selectedUser.id}`, data);
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setIsEditDialogOpen(false);
@@ -157,7 +171,7 @@ export default function Team() {
         description: "ユーザー情報が更新されました",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "エラー",
         description: `ユーザー情報の更新に失敗しました: ${error.message}`,
@@ -167,7 +181,11 @@ export default function Team() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", `/api/users/${selectedUser?.id}`),
+    mutationFn: async () => {
+      if (!selectedUser?.id) return null;
+      const response = await apiRequest("DELETE", `/api/users/${selectedUser.id}`);
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setIsDeleteDialogOpen(false);
@@ -177,7 +195,7 @@ export default function Team() {
         description: "ユーザーが削除されました",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "エラー",
         description: `ユーザーの削除に失敗しました: ${error.message}`,

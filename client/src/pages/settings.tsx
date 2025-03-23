@@ -54,15 +54,22 @@ export default function Settings() {
   // スキルカテゴリを取得
   const { data: skillCategories, isLoading: isLoadingSkills } = useQuery({
     queryKey: ['/api/skills/categories'],
-    queryFn: () => apiRequest('GET', '/api/skills/categories'),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/skills/categories');
+      return response;
+    },
     enabled: !!user
   });
   
   // ユーザーのスキルを取得
   const { data: userSkills, isLoading: isLoadingUserSkills } = useQuery({
     queryKey: ['/api/users', user?.id, 'skills'],
-    queryFn: () => apiRequest('GET', `/api/users/${user?.id}/skills`),
-    enabled: !!user
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const response = await apiRequest('GET', `/api/users/${user.id}/skills`);
+      return response;
+    },
+    enabled: !!user?.id
   });
   
   // スキルデータが取得できたらselectedSkillsを更新
@@ -74,8 +81,11 @@ export default function Settings() {
   
   // スキル更新のミューテーション
   const updateSkillsMutation = useMutation({
-    mutationFn: (skillTagIds: number[]) => 
-      apiRequest('PUT', `/api/users/${user?.id}/skills`, { skillTagIds }),
+    mutationFn: async (skillTagIds: number[]) => {
+      if (!user?.id) return null;
+      const response = await apiRequest('PUT', `/api/users/${user.id}/skills`, { skillTagIds });
+      return response;
+    },
     onSuccess: () => {
       toast({
         title: "成功",
@@ -118,8 +128,10 @@ export default function Settings() {
   });
 
   const changePasswordMutation = useMutation({
-    mutationFn: (data: ChangePassword) => {
-      return apiRequest("POST", `/api/users/${user?.id}/change-password`, data);
+    mutationFn: async (data: ChangePassword) => {
+      if (!user?.id) return null;
+      const response = await apiRequest("POST", `/api/users/${user.id}/change-password`, data);
+      return response;
     },
     onSuccess: () => {
       toast({
