@@ -64,6 +64,25 @@ export const projectAssignments = pgTable("project_assignments", {
   userId: integer("user_id").notNull().references(() => users.id),
 });
 
+// プロジェクトアサインメントのリレーション
+export const projectAssignmentsRelations = relations(projectAssignments, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectAssignments.projectId],
+    references: [projects.id],
+  }),
+  user: one(users, {
+    fields: [projectAssignments.userId],
+    references: [users.id],
+  }),
+}));
+
+// プロジェクトのリレーション
+export const projectsRelations = relations(projects, ({ many }) => ({
+  assignments: many(projectAssignments),
+  comments: many(comments),
+  portfolios: many(portfolios),
+}));
+
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id").notNull().references(() => projects.id),
@@ -160,7 +179,10 @@ export const changePasswordSchema = z.object({
 
 export type ChangePassword = z.infer<typeof changePasswordSchema>;
 
-export type Project = typeof projects.$inferSelect;
+// 基本的なプロジェクト型を拡張して、アサイン済みユーザーを含める
+export type Project = typeof projects.$inferSelect & {
+  assignedUsers?: number[];
+};
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Comment = typeof comments.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;

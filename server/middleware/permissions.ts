@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { storage } from "../storage";
 
 // 管理者権限チェック
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
@@ -46,4 +47,35 @@ export function canChangePassword(req: Request, res: Response, next: NextFunctio
   }
 
   next();
+}
+
+// プロジェクトアクセス権限チェック
+export async function canAccessProject(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "認証が必要です" });
+  }
+
+  // 管理者は全てのプロジェクトにアクセス可能
+  if (req.user?.role === "ADMIN") {
+    return next();
+  }
+
+  const projectId = parseInt(req.params.id);
+  const project = await storage.getProject(projectId);
+
+  if (!project) {
+    return res.status(404).json({ message: "プロジェクトが見つかりません" });
+  }
+
+  // 担当者のみアクセス可能
+  const userId = req.user?.id;
+  if (
+    project.directorId === userId || 
+    project.salesId === userId || 
+    project.assignedUsers?.includes(userId)
+  ) {
+    return next();
+  }
+
+  return res.status(403).json({ message: "このプロジェクトへのアクセス権限がありません" });
 }

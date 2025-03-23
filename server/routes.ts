@@ -21,7 +21,7 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
-import { isAdmin, canUpdateProjectStatus, canChangePassword } from "./middleware/permissions";
+import { isAdmin, canUpdateProjectStatus, canChangePassword, canAccessProject } from "./middleware/permissions";
 import { comparePasswords, hashPassword } from "./auth";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
@@ -44,25 +44,54 @@ export async function registerRoutes(app: Express) {
 
   const httpServer = createServer(app);
 
-  // Get all projects (読み取り可能)
+  // Get all projects (読み取り可能だがフィルタリング)
   app.get("/api/projects", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
-    const projects = await storage.getProjects();
-    res.json(projects);
+    
+    const allProjects = await storage.getProjects();
+    
+    // 管理者の場合は全プロジェクトを返す
+    if (req.user.role === "ADMIN") {
+      return res.json(allProjects);
+    }
+    
+    // 一般ユーザーの場合は担当プロジェクトのみ返す
+    const userId = req.user.id;
+    const filteredProjects = allProjects.filter(project => 
+      project.directorId === userId || 
+      project.salesId === userId || 
+      project.assignedUsers?.includes(userId)
+    );
+    
+    res.json(filteredProjects);
   });
 
-  // Get a single project (読み取り可能)
-  app.get("/api/projects/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
-    const project = await storage.getProject(Number(req.params.id));
+  // Get a single project (読み取り可能だが権限チェック)
+  app.get("/api/projects/:id", canAccessProject, async (req, res) => {
+    const projectId = Number(req.params.id);
+    const project = await storage.getProject(projectId);
+    
+    // プロジェクトが見つからない場合は404を返す
+    // （canAccessProjectミドルウェアでもチェックしているが念のため）
     if (!project) {
-      res.status(404).json({ message: "プロジェクトが見つかりません" });
-      return;
+      return res.status(404).json({ message: "プロジェクトが見つかりません" });
     }
+    
+    // 一般ユーザーの場合、報酬と顧客連絡先を非表示にする
+    if (req.user.role !== "ADMIN") {
+      const { totalReward, rewardRules, clientContact, ...visibleData } = project;
+      return res.json({
+        ...visibleData,
+        // プレースホルダーを設定
+        totalReward: null,
+        rewardRules: null,
+        clientContact: null
+      });
+    }
+    
+    // 管理者の場合は全ての情報を返す
     res.json(project);
   });
 
