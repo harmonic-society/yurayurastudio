@@ -312,46 +312,7 @@ export async function registerRoutes(app: Express) {
     res.status(204).send();
   });
 
-  // Get OGP image for a URL (読み取り可能)
-  app.get("/api/ogp", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "認証が必要です" });
-    }
-    try {
-      const url = req.query.url as string;
-      if (!url) {
-        return res.status(400).json({ message: "URL is required" });
-      }
-
-      const response = await fetch(url);
-      const html = await response.text();
-
-      // Extract OGP image URL from meta tags
-      const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/);
-      const ogImage = ogImageMatch ? ogImageMatch[1] : null;
-
-      // If no OGP image, try twitter:image
-      const twitterImageMatch = !ogImage && html.match(/<meta[^>]*name="twitter:image"[^>]*content="([^"]*)"[^>]*>/);
-      const twitterImage = twitterImageMatch ? twitterImageMatch[1] : null;
-
-      // If no social media images, try first img tag
-      const imgMatch = !ogImage && !twitterImage && html.match(/<img[^>]*src="([^"]*)"[^>]*>/);
-      const firstImage = imgMatch ? imgMatch[1] : null;
-
-      const imageUrl = ogImage || twitterImage || firstImage;
-
-      if (!imageUrl) {
-        return res.status(404).json({ message: "No image found" });
-      }
-
-      // Convert relative URLs to absolute
-      const finalImageUrl = new URL(imageUrl, url).href;
-      res.json({ imageUrl: finalImageUrl });
-    } catch (error) {
-      console.error('OGP fetch error:', error);
-      res.status(500).json({ message: "Failed to fetch OGP data" });
-    }
-  });
+  // First OGP implementation removed to fix duplicate endpoint
 
   // 登録リクエストの作成 (誰でも可能)
   app.post("/api/registration-request", async (req, res) => {
@@ -1118,6 +1079,10 @@ export async function registerRoutes(app: Express) {
 
   // OGP情報を取得するエンドポイント
   app.get("/api/ogp", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
     try {
       const url = req.query.url as string;
       
