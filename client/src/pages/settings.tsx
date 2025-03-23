@@ -24,10 +24,89 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 
+// スキルカテゴリとタグの型定義
+interface SkillTag {
+  id: number;
+  categoryId: number;
+  name: string;
+  displayOrder: number;
+}
+
+interface SkillCategory {
+  id: number;
+  name: string;
+  displayOrder: number;
+  tags: SkillTag[];
+}
+
+interface UserSkillsData {
+  userId: number;
+  skills: any[];
+  skillTagIds: number[];
+}
+
 export default function Settings() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [selectedSkills, setSelectedSkills] = useState<number[]>([]);
+  
+  // スキルカテゴリを取得
+  const { data: skillCategories, isLoading: isLoadingSkills } = useQuery({
+    queryKey: ['/api/skills/categories'],
+    queryFn: () => apiRequest('GET', '/api/skills/categories'),
+    enabled: !!user
+  });
+  
+  // ユーザーのスキルを取得
+  const { data: userSkills, isLoading: isLoadingUserSkills } = useQuery({
+    queryKey: ['/api/users', user?.id, 'skills'],
+    queryFn: () => apiRequest('GET', `/api/users/${user?.id}/skills`),
+    enabled: !!user
+  });
+  
+  // スキルデータが取得できたらselectedSkillsを更新
+  useEffect(() => {
+    if (userSkills && userSkills.skillTagIds) {
+      setSelectedSkills(userSkills.skillTagIds);
+    }
+  }, [userSkills]);
+  
+  // スキル更新のミューテーション
+  const updateSkillsMutation = useMutation({
+    mutationFn: (skillTagIds: number[]) => 
+      apiRequest('PUT', `/api/users/${user?.id}/skills`, { skillTagIds }),
+    onSuccess: () => {
+      toast({
+        title: "成功",
+        description: "スキルを更新しました",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/users', user?.id, 'skills'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `スキルの更新に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // スキル選択の処理
+  const handleSkillToggle = (skillId: number) => {
+    setSelectedSkills(prev => {
+      if (prev.includes(skillId)) {
+        return prev.filter(id => id !== skillId);
+      } else {
+        return [...prev, skillId];
+      }
+    });
+  };
+  
+  // スキル更新の処理
+  const handleSaveSkills = () => {
+    updateSkillsMutation.mutate(selectedSkills);
+  };
 
   const passwordForm = useForm<ChangePassword>({
     resolver: zodResolver(changePasswordSchema),
@@ -148,6 +227,80 @@ export default function Settings() {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>スキル</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingSkills ? (
+              <div className="flex justify-center py-4">
+                <p>スキル情報を読み込み中...</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    あなたが持っているスキルを選択してください。チームメンバーとプロジェクトで共有されます。
+                  </p>
+                  
+                  {/* 選択済みスキル表示エリア */}
+                  {selectedSkills.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium mb-2">選択中のスキル:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedSkills.map(skillId => {
+                          // 全カテゴリから該当するスキルタグを探す
+                          const tag = skillCategories?.flatMap(cat => cat.tags).find(tag => tag.id === skillId);
+                          return tag ? (
+                            <Badge key={skillId} variant="outline" className="px-2 py-1">
+                              {tag.name}
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* カテゴリとスキル選択エリア */}
+                  <Accordion type="multiple" className="w-full">
+                    {skillCategories?.map((category) => (
+                      <AccordionItem key={category.id} value={`category-${category.id}`}>
+                        <AccordionTrigger className="text-base">
+                          {category.name}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                            {category.tags.map((tag) => (
+                              <div key={tag.id} className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`skill-${tag.id}`} 
+                                  checked={selectedSkills.includes(tag.id)}
+                                  onCheckedChange={() => handleSkillToggle(tag.id)}
+                                />
+                                <Label htmlFor={`skill-${tag.id}`} className="cursor-pointer">
+                                  {tag.name}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+                
+                <Button 
+                  className="mt-6"
+                  onClick={handleSaveSkills}
+                  disabled={updateSkillsMutation.isPending}
+                >
+                  {updateSkillsMutation.isPending ? "保存中..." : "スキルを保存"}
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
 

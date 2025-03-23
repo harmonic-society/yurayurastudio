@@ -31,6 +31,81 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import UserForm from "@/components/user-form";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+
+// スキルデータの型定義
+interface SkillTag {
+  id: number;
+  categoryId: number;
+  name: string;
+  displayOrder: number;
+}
+
+interface SkillCategory {
+  id: number;
+  name: string;
+  displayOrder: number;
+}
+
+interface UserSkillsResponse {
+  userId: number;
+  skills: Array<{
+    id: number;
+    userId: number;
+    skillTagId: number;
+    tag?: SkillTag;
+    category?: SkillCategory;
+  }>;
+  skillTagIds: number[];
+}
+
+// ユーザースキル表示コンポーネント
+function UserSkills({ userId }: { userId: number }) {
+  const { data: userSkills, isLoading } = useQuery({
+    queryKey: ['/api/users', userId, 'skills'],
+    queryFn: () => apiRequest('GET', `/api/users/${userId}/skills`),
+    enabled: !!userId
+  });
+
+  if (isLoading) {
+    return <p className="text-xs text-muted-foreground">スキル読み込み中...</p>;
+  }
+
+  if (!userSkills || !userSkills.skills || userSkills.skills.length === 0) {
+    return <p className="text-xs text-muted-foreground">登録されたスキルはありません</p>;
+  }
+
+  // カテゴリでスキルをグループ化
+  const skillsByCategory: Record<string, SkillTag[]> = {};
+  
+  userSkills.skills.forEach(skill => {
+    if (skill.category && skill.tag) {
+      const categoryName = skill.category.name;
+      if (!skillsByCategory[categoryName]) {
+        skillsByCategory[categoryName] = [];
+      }
+      skillsByCategory[categoryName].push(skill.tag);
+    }
+  });
+
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-medium text-muted-foreground">スキル</div>
+      {Object.entries(skillsByCategory).map(([category, tags]) => (
+        <div key={category} className="space-y-1">
+          <div className="text-xs">{category}</div>
+          <div className="flex flex-wrap gap-1">
+            {tags.map(tag => (
+              <Badge key={tag.id} variant="outline" className="text-xs px-1.5 py-0">
+                {tag.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const roleLabels = {
   DIRECTOR: "ディレクター",
@@ -207,11 +282,13 @@ export default function Team() {
                 />
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
               <p className="text-sm truncate">
                 <span className="text-muted-foreground">メール：</span>
                 {user.email}
               </p>
+              
+              <UserSkills userId={user.id} />
             </CardContent>
           </Card>
         ))}
