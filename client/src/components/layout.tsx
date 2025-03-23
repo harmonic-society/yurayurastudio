@@ -4,6 +4,7 @@ import {
   LayoutDashboard, 
   FolderKanban,
   Users,
+  UserCircle,
   Settings,
   Menu,
   X,
@@ -48,7 +49,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { name: "プロジェクト", href: "/projects", icon: FolderKanban },
     { name: "ポートフォリオ", href: "/portfolios", icon: Image },
     { name: "タイムライン", href: "/timeline", icon: MessageSquare },
-    { name: "チーム", href: "/team", icon: Users },
+    // 管理者には「チーム」と「プロフィール」を表示し、一般ユーザーには「プロフィール」のみ表示
+    ...(isAdmin ? [
+      { name: "チーム", href: "/team", icon: Users },
+      { name: "プロフィール", href: `/users/${user?.id}`, icon: UserCircle }
+    ] : [
+      { name: "プロフィール", href: `/users/${user?.id}`, icon: UserCircle }
+    ]),
     { name: "設定", href: "/settings", icon: Settings },
     // 管理者の場合のみ表示
     ...(isAdmin ? [
