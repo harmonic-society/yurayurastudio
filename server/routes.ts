@@ -647,6 +647,10 @@ export async function registerRoutes(app: Express) {
   
   // Get all skill categories with tags
   app.get("/api/skills/categories", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
     try {
       const categories = await storage.getSkillCategories();
       const tags = await storage.getSkillTags();
@@ -669,6 +673,10 @@ export async function registerRoutes(app: Express) {
   
   // Get a specific skill category with its tags
   app.get("/api/skills/categories/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
     try {
       const categoryId = Number(req.params.id);
       const category = await storage.getSkillCategory(categoryId);
@@ -748,6 +756,10 @@ export async function registerRoutes(app: Express) {
   
   // Get all skill tags
   app.get("/api/skills/tags", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
     try {
       const tags = await storage.getSkillTags();
       res.json(tags);
@@ -850,6 +862,10 @@ export async function registerRoutes(app: Express) {
   
   // Get user skills
   app.get("/api/users/:id/skills", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
     try {
       const userId = Number(req.params.id);
       const user = await storage.getUser(userId);
