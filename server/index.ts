@@ -23,7 +23,15 @@ if (!fs.existsSync(uploadsDir)) {
 app.use(fileUpload());
 
 // 静的ファイルのサービング
-app.use(express.static(path.join(__dirname, "..", "public")));
+app.use(express.static(path.join(__dirname, "..", "public"), {
+  setHeaders: (res, filePath) => {
+    // OGP画像へのアクセスを改善するためのヘッダー設定
+    if (filePath.endsWith('.png') || filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
+      res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
+    }
+  }
+}));
 
 // Facebookなどのクローラー向けのOGP確認用エンドポイント
 function createOgpResponse(req: Request, res: Response) {
@@ -74,6 +82,55 @@ app.get("/facebook", createOgpResponse);
 app.get("/ogp", createOgpResponse);
 app.get("/og", createOgpResponse);
 app.get("/fb", createOgpResponse);
+
+// OGP画像への直接アクセスを提供
+app.get("/ogp-image", (req, res) => {
+  const ogpImagePath = path.join(__dirname, "..", "public", "ogp.png");
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
+  res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
+  fs.createReadStream(ogpImagePath).pipe(res);
+});
+
+// FacebookのOGPデバッガー用の特別なエンドポイント
+app.get("/facebook-debug", (req, res) => {
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers.host;
+  const baseUrl = `${protocol}://${host}`;
+  
+  res.setHeader('Content-Type', 'text/html');
+  res.send(`
+    <!DOCTYPE html>
+    <html prefix="og: https://ogp.me/ns# fb: https://ogp.me/ns/fb#">
+    <head>
+      <meta charset="UTF-8">
+      <meta property="og:title" content="Yura Yura STUDIO - プロジェクト管理ツール">
+      <meta property="og:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？地域愛にあふれるクリエイターの方、ぜひ登録を。">
+      <meta property="og:type" content="website">
+      <meta property="og:image" content="${baseUrl}/ogp-image">
+      <meta property="og:image:secure_url" content="${baseUrl}/ogp-image">
+      <meta property="og:image:type" content="image/png">
+      <meta property="og:image:width" content="1200">
+      <meta property="og:image:height" content="630">
+      <meta property="og:url" content="${baseUrl}">
+      <meta property="og:locale" content="ja_JP">
+      <meta property="og:site_name" content="Yura Yura STUDIO">
+      <meta property="fb:app_id" content="YOUR_FB_APP_ID">
+      <title>Yura Yura STUDIO - プロジェクト管理ツール</title>
+    </head>
+    <body>
+      <h1>Yura Yura STUDIO</h1>
+      <p>千葉県で地域貢献できるWeb制作・集客支援！</p>
+      <img src="${baseUrl}/ogp.png" alt="Yura Yura STUDIO プロジェクト管理ツール" width="1200" height="630">
+      <script>
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 5000);
+      </script>
+    </body>
+    </html>
+  `);
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
