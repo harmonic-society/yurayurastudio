@@ -94,7 +94,7 @@ export default function Portfolios() {
                   </div>
                 )}
                 <div className="absolute top-2 left-2">
-                  <Badge className="text-xs font-medium px-2 bg-background/80 backdrop-blur-sm border-background/50">
+                  <Badge className="text-xs font-medium px-2 bg-background/80 backdrop-blur-sm border-background/50 text-black dark:text-black">
                     {workTypeLabels[portfolio.workType]}
                   </Badge>
                 </div>
