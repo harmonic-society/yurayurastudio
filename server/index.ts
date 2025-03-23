@@ -48,8 +48,8 @@ function createOgpResponse(req: Request, res: Response) {
         <meta property="og:title" content="Yura Yura STUDIO - プロジェクト管理ツール">
         <meta property="og:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？地域愛にあふれるクリエイターの方、ぜひ登録を。">
         <meta property="og:type" content="website">
-        <meta property="og:image" content="${baseUrl}/yurayurastudio-ogp.png">
-        <meta property="og:image:secure_url" content="${baseUrl}/yurayurastudio-ogp.png">
+        <meta property="og:image" content="${baseUrl}/ogp-image">
+        <meta property="og:image:secure_url" content="${baseUrl}/ogp-image">
         <meta property="og:image:type" content="image/png">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
@@ -65,7 +65,7 @@ function createOgpResponse(req: Request, res: Response) {
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="Yura Yura STUDIO - プロジェクト管理ツール">
         <meta name="twitter:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？">
-        <meta name="twitter:image" content="${baseUrl}/yurayurastudio-ogp.png">
+        <meta name="twitter:image" content="${baseUrl}/ogp-image">
         
         <title>Yura Yura STUDIO - プロジェクト管理ツール</title>
       </head>
@@ -123,9 +123,14 @@ app.get("/linkedin-card", serveLinkedInCard);
 // OGP画像への直接アクセスを提供 - 複数のパスに対応
 function serveOgpImage(req: Request, res: Response) {
   const ogpImagePath = path.join(__dirname, "..", "public", "yurayurastudio-ogp.png");
+  
+  // 本番環境でも確実にキャッシュが機能するよう、強固なキャッシュ設定を追加
   res.setHeader('Content-Type', 'image/png');
-  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
+  res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=31536000, immutable'); // クライアント24時間、CDN 1年
   res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
+  res.setHeader('Vary', 'Origin'); // 正しいCORSキャッシュ
+  res.setHeader('X-Content-Type-Options', 'nosniff'); // セキュリティ強化
+  
   fs.createReadStream(ogpImagePath).pipe(res);
 }
 
