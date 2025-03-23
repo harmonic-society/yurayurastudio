@@ -1116,5 +1116,42 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // OGP情報を取得するエンドポイント
+  app.get("/api/ogp", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      
+      // URLパラメータがない場合はデフォルトのOGP画像を返す
+      if (!url) {
+        return res.json({
+          imageUrl: "/ogp.svg"
+        });
+      }
+      
+      // URLのドメインに基づいて画像を返す（簡易実装）
+      if (url.includes("github.com")) {
+        return res.json({
+          imageUrl: "https://github.githubassets.com/assets/github-mark-4c31de01ad6d.svg"
+        });
+      } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        return res.json({
+          imageUrl: "https://www.youtube.com/img/desktop/yt_1200.png"
+        });
+      } else if (url.includes("twitter.com") || url.includes("x.com")) {
+        return res.json({
+          imageUrl: "https://abs.twimg.com/responsive-web/web/icon-default.604e2486a34a2f6e.png"
+        });
+      } else {
+        // その他のURLの場合はデフォルト画像を返す
+        return res.json({
+          imageUrl: "/ogp.svg"
+        });
+      }
+    } catch (error) {
+      console.error("OGP fetch error:", error);
+      res.status(500).json({ message: "OGP情報の取得に失敗しました" });
+    }
+  });
+
   return httpServer;
 }
