@@ -86,34 +86,39 @@ function createOgpResponse(req: Request, res: Response) {
 // Facebook向けの複数のエンドポイントを設定（Facebookクローラー対応）
 // Facebookは様々なパスでコンテンツを探索するため、複数のエントリーポイントを用意
 app.get("/fb-ogp", createOgpResponse);
-app.get("/facebook", (req, res) => {
+// Facebook向けの特化したルート
+function serveFacebookCard(req: Request, res: Response) {
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
+  res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
   res.sendFile(path.join(__dirname, "..", "public", "facebook-ogp.html"));
-});
+}
+
+app.get("/facebook", serveFacebookCard);
+app.get("/share", serveFacebookCard);
+app.get("/fb", serveFacebookCard);
 app.get("/ogp", createOgpResponse);
 app.get("/og", createOgpResponse);
-app.get("/fb", createOgpResponse);
-app.get("/share", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "public", "facebook-ogp.html"));
-});
 
 // X (Twitter) 向けの特化したルート
-app.get("/twitter", (req, res) => {
+function serveTwitterCard(req: Request, res: Response) {
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
+  res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
   res.sendFile(path.join(__dirname, "..", "public", "twitter-card.html"));
-});
-app.get("/x", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "public", "twitter-card.html"));
-});
-app.get("/twitter-card", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "public", "twitter-card.html"));
-});
+}
+
+app.get("/twitter", serveTwitterCard);
+app.get("/x", serveTwitterCard);
+app.get("/twitter-card", serveTwitterCard);
 
 // LinkedIn 向けの特化したルート
-app.get("/linkedin", (req, res) => {
+function serveLinkedInCard(req: Request, res: Response) {
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
+  res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
   res.sendFile(path.join(__dirname, "..", "public", "linkedin-card.html"));
-});
-app.get("/linkedin-card", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "public", "linkedin-card.html"));
-});
+}
+
+app.get("/linkedin", serveLinkedInCard);
+app.get("/linkedin-card", serveLinkedInCard);
 
 // OGP画像への直接アクセスを提供 - 複数のパスに対応
 function serveOgpImage(req: Request, res: Response) {
@@ -134,6 +139,8 @@ app.get("/facebook-debug", (req, res) => {
   const baseUrl = `${protocol}://${host}`;
   
   res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
+  res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
   res.send(`
     <!DOCTYPE html>
     <html prefix="og: https://ogp.me/ns# fb: https://ogp.me/ns/fb#">
