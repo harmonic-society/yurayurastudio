@@ -129,7 +129,10 @@ export default function Team() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/users", data);
+      const response = await apiRequest("/api/users", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
       return response;
     },
     onSuccess: () => {
@@ -152,7 +155,10 @@ export default function Team() {
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
       if (!selectedUser?.id) return null;
-      const response = await apiRequest("PATCH", `/api/users/${selectedUser.id}`, data);
+      const response = await apiRequest(`/api/users/${selectedUser.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data)
+      });
       return response;
     },
     onSuccess: () => {
@@ -176,7 +182,7 @@ export default function Team() {
   const deleteMutation = useMutation({
     mutationFn: async () => {
       if (!selectedUser?.id) return null;
-      const response = await apiRequest("DELETE", `/api/users/${selectedUser.id}`);
+      const response = await apiRequest(`/api/users/${selectedUser.id}`, { method: "DELETE" });
       return response;
     },
     onSuccess: () => {
