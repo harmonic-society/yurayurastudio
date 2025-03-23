@@ -6,6 +6,9 @@ import {
   projectAssignments,
   portfolios,
   timelinePosts,
+  skillCategories,
+  skillTags,
+  userSkills,
   type Project, 
   type InsertProject,
   type Comment,
@@ -17,7 +20,13 @@ import {
   type RegistrationRequest,
   type InsertRegistrationRequest,
   type TimelinePost,
-  type InsertTimelinePost
+  type InsertTimelinePost,
+  type SkillCategory,
+  type InsertSkillCategory,
+  type SkillTag,
+  type InsertSkillTag,
+  type UserSkill,
+  type UserSkillUpdate
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -69,6 +78,25 @@ export interface IStorage {
   getTimelinePost(id: number): Promise<TimelinePost | undefined>;
   createTimelinePost(post: InsertTimelinePost): Promise<TimelinePost>;
   deleteTimelinePost(id: number): Promise<void>;
+  
+  // Skills
+  getSkillCategories(): Promise<SkillCategory[]>;
+  getSkillCategory(id: number): Promise<SkillCategory | undefined>;
+  createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory>;
+  updateSkillCategory(id: number, category: Partial<InsertSkillCategory>): Promise<SkillCategory>;
+  deleteSkillCategory(id: number): Promise<void>;
+  
+  // Skill Tags
+  getSkillTags(): Promise<SkillTag[]>;
+  getSkillTagsByCategory(categoryId: number): Promise<SkillTag[]>;
+  getSkillTag(id: number): Promise<SkillTag | undefined>;
+  createSkillTag(tag: InsertSkillTag): Promise<SkillTag>;
+  updateSkillTag(id: number, tag: Partial<InsertSkillTag>): Promise<SkillTag>;
+  deleteSkillTag(id: number): Promise<void>;
+  
+  // User Skills
+  getUserSkills(userId: number): Promise<UserSkill[]>;
+  updateUserSkills(update: UserSkillUpdate): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -322,6 +350,119 @@ export class DatabaseStorage implements IStorage {
   
   async deleteTimelinePost(id: number): Promise<void> {
     await db.delete(timelinePosts).where(eq(timelinePosts.id, id));
+  }
+  
+  // Skills methods
+  async getSkillCategories(): Promise<SkillCategory[]> {
+    return await db
+      .select()
+      .from(skillCategories)
+      .orderBy(skillCategories.displayOrder);
+  }
+  
+  async getSkillCategory(id: number): Promise<SkillCategory | undefined> {
+    const [category] = await db
+      .select()
+      .from(skillCategories)
+      .where(eq(skillCategories.id, id));
+    return category;
+  }
+  
+  async createSkillCategory(category: InsertSkillCategory): Promise<SkillCategory> {
+    const [newCategory] = await db
+      .insert(skillCategories)
+      .values(category)
+      .returning();
+    return newCategory;
+  }
+  
+  async updateSkillCategory(id: number, category: Partial<InsertSkillCategory>): Promise<SkillCategory> {
+    const [updated] = await db
+      .update(skillCategories)
+      .set(category)
+      .where(eq(skillCategories.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteSkillCategory(id: number): Promise<void> {
+    // 先にこのカテゴリに関連するタグを削除する
+    await db.delete(skillTags).where(eq(skillTags.categoryId, id));
+    // カテゴリを削除
+    await db.delete(skillCategories).where(eq(skillCategories.id, id));
+  }
+  
+  // Skill Tags methods
+  async getSkillTags(): Promise<SkillTag[]> {
+    return await db
+      .select()
+      .from(skillTags)
+      .orderBy([skillTags.categoryId, skillTags.displayOrder]);
+  }
+  
+  async getSkillTagsByCategory(categoryId: number): Promise<SkillTag[]> {
+    return await db
+      .select()
+      .from(skillTags)
+      .where(eq(skillTags.categoryId, categoryId))
+      .orderBy(skillTags.displayOrder);
+  }
+  
+  async getSkillTag(id: number): Promise<SkillTag | undefined> {
+    const [tag] = await db
+      .select()
+      .from(skillTags)
+      .where(eq(skillTags.id, id));
+    return tag;
+  }
+  
+  async createSkillTag(tag: InsertSkillTag): Promise<SkillTag> {
+    const [newTag] = await db
+      .insert(skillTags)
+      .values(tag)
+      .returning();
+    return newTag;
+  }
+  
+  async updateSkillTag(id: number, tag: Partial<InsertSkillTag>): Promise<SkillTag> {
+    const [updated] = await db
+      .update(skillTags)
+      .set(tag)
+      .where(eq(skillTags.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteSkillTag(id: number): Promise<void> {
+    // タグを使用しているユーザースキルを削除
+    await db.delete(userSkills).where(eq(userSkills.skillTagId, id));
+    // タグを削除
+    await db.delete(skillTags).where(eq(skillTags.id, id));
+  }
+  
+  // User Skills methods
+  async getUserSkills(userId: number): Promise<UserSkill[]> {
+    return await db
+      .select()
+      .from(userSkills)
+      .where(eq(userSkills.userId, userId));
+  }
+  
+  async updateUserSkills(update: UserSkillUpdate): Promise<void> {
+    const { userId, skillTagIds } = update;
+    
+    // 既存のユーザースキルを削除
+    await db.delete(userSkills).where(eq(userSkills.userId, userId));
+    
+    // 新しいスキルを追加
+    if (skillTagIds.length > 0) {
+      await db.insert(userSkills).values(
+        skillTagIds.map(skillTagId => ({
+          userId,
+          skillTagId
+        }))
+      );
+    }
   }
 }
 

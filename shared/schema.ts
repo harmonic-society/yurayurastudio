@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean as pgBoolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean as pgBoolean, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -224,3 +224,77 @@ export const insertTimelinePostSchema = createInsertSchema(timelinePosts).omit({
 
 export type TimelinePost = typeof timelinePosts.$inferSelect;
 export type InsertTimelinePost = z.infer<typeof insertTimelinePostSchema>;
+
+// スキルカテゴリとスキルタグの定義
+export const skillCategories = pgTable("skill_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  displayOrder: integer("display_order").notNull().default(0),
+});
+
+export const skillTags = pgTable("skill_tags", {
+  id: serial("id").primaryKey(),
+  categoryId: integer("category_id").notNull().references(() => skillCategories.id),
+  name: text("name").notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+});
+
+// カテゴリとスキルタグのリレーション
+export const skillCategoriesRelations = relations(skillCategories, ({ many }) => ({
+  tags: many(skillTags),
+}));
+
+export const skillTagsRelations = relations(skillTags, ({ one }) => ({
+  category: one(skillCategories, {
+    fields: [skillTags.categoryId],
+    references: [skillCategories.id],
+  }),
+}));
+
+// ユーザーとスキルタグの関連付けテーブル
+export const userSkills = pgTable("user_skills", {
+  userId: integer("user_id").notNull().references(() => users.id),
+  skillTagId: integer("skill_tag_id").notNull().references(() => skillTags.id),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.userId, table.skillTagId] }),
+  }
+});
+
+// ユーザーとスキルタグのリレーション
+export const userSkillsRelations = relations(userSkills, ({ one }) => ({
+  user: one(users, {
+    fields: [userSkills.userId],
+    references: [users.id],
+  }),
+  skillTag: one(skillTags, {
+    fields: [userSkills.skillTagId],
+    references: [skillTags.id],
+  }),
+}));
+
+// ユーザーリレーションの更新
+export const usersRelations = relations(users, ({ many }) => ({
+  skills: many(userSkills),
+}));
+
+// スキーマ定義
+export const insertSkillCategorySchema = createInsertSchema(skillCategories).omit({
+  id: true,
+});
+
+export const insertSkillTagSchema = createInsertSchema(skillTags).omit({
+  id: true,
+});
+
+export const userSkillSchema = z.object({
+  userId: z.number().int().positive(),
+  skillTagIds: z.array(z.number().int().positive()),
+});
+
+export type SkillCategory = typeof skillCategories.$inferSelect;
+export type InsertSkillCategory = z.infer<typeof insertSkillCategorySchema>;
+export type SkillTag = typeof skillTags.$inferSelect;
+export type InsertSkillTag = z.infer<typeof insertSkillTagSchema>;
+export type UserSkill = typeof userSkills.$inferSelect;
+export type UserSkillUpdate = z.infer<typeof userSkillSchema>;
