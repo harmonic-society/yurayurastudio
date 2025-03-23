@@ -105,7 +105,7 @@ export default function Dashboard() {
     }));
     
     // 総報酬額
-    const totalReward = projects.reduce((sum, project) => sum + project.totalReward, 0);
+    const totalReward = projects.reduce((sum, project) => sum + (project.totalReward || 0), 0);
     
     return { statusCounts, upcomingDeadlines, pieData, totalReward };
   };
