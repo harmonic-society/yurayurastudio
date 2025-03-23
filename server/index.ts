@@ -42,13 +42,15 @@ function createOgpResponse(req: Request, res: Response) {
   
   res.send(`
       <!DOCTYPE html>
-      <html>
+      <html prefix="og: https://ogp.me/ns# fb: https://ogp.me/ns/fb#">
       <head>
         <meta charset="UTF-8">
         <meta property="og:title" content="Yura Yura STUDIO - プロジェクト管理ツール">
         <meta property="og:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？地域愛にあふれるクリエイターの方、ぜひ登録を。">
         <meta property="og:type" content="website">
-        <meta property="og:image" content="${baseUrl}/ogp.png">
+        <meta property="og:image" content="${baseUrl}/yurayurastudio-ogp.png">
+        <meta property="og:image:secure_url" content="${baseUrl}/yurayurastudio-ogp.png">
+        <meta property="og:image:type" content="image/png">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
         <meta property="og:locale" content="ja_JP">
@@ -57,18 +59,24 @@ function createOgpResponse(req: Request, res: Response) {
         
         <!-- Facebook固有のメタタグ -->
         <meta property="og:url" content="${baseUrl}">
+        <link rel="canonical" href="${baseUrl}">
         
         <!-- Twitter Card tags -->
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="Yura Yura STUDIO - プロジェクト管理ツール">
         <meta name="twitter:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？">
-        <meta name="twitter:image" content="${baseUrl}/ogp.png">
+        <meta name="twitter:image" content="${baseUrl}/yurayurastudio-ogp.png">
         
         <title>Yura Yura STUDIO - プロジェクト管理ツール</title>
       </head>
       <body>
+        <h1>Yura Yura STUDIO - プロジェクト管理ツール</h1>
+        <p>千葉県で地域貢献できるWeb制作・集客支援！</p>
+        <img src="${baseUrl}/yurayurastudio-ogp.png" alt="Yura Yura STUDIO プロジェクト管理ツール" width="1200" height="630">
         <script>
-          window.location.href = "/";
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 5000);
         </script>
       </body>
       </html>
@@ -85,7 +93,7 @@ app.get("/fb", createOgpResponse);
 
 // OGP画像への直接アクセスを提供
 app.get("/ogp-image", (req, res) => {
-  const ogpImagePath = path.join(__dirname, "..", "public", "ogp.png");
+  const ogpImagePath = path.join(__dirname, "..", "public", "yurayurastudio-ogp.png");
   res.setHeader('Content-Type', 'image/png');
   res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
   res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
@@ -121,7 +129,7 @@ app.get("/facebook-debug", (req, res) => {
     <body>
       <h1>Yura Yura STUDIO</h1>
       <p>千葉県で地域貢献できるWeb制作・集客支援！</p>
-      <img src="${baseUrl}/ogp.png" alt="Yura Yura STUDIO プロジェクト管理ツール" width="1200" height="630">
+      <img src="${baseUrl}/yurayurastudio-ogp.png" alt="Yura Yura STUDIO プロジェクト管理ツール" width="1200" height="630">
       <script>
         setTimeout(() => {
           window.location.href = "/";
