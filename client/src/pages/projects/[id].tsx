@@ -564,14 +564,14 @@ export default function ProjectDetails() {
                   運営費10%を除いた残りの90%の配分を決定します。
                 </DialogDescription>
               </DialogHeader>
-              <RewardDistributionMutation projectId={projectId} />
+              <RewardDistributionFormWrapper projectId={projectId} onClose={() => setIsRewardDistributionDialogOpen(false)} />
             </DialogContent>
           </Dialog>
         </>
       )}
       
-      {/* 報酬分配設定のミューテーションコンポーネント */}
-      {function RewardDistributionMutation({ projectId }: { projectId: number }) {
+      {/* 報酬分配設定のラッパーコンポーネント */}
+      {function RewardDistributionFormWrapper({ projectId, onClose }: { projectId: number; onClose: () => void }) {
         const { toast } = useToast();
         const queryClient = useQueryClient();
         
@@ -589,7 +589,8 @@ export default function ProjectDetails() {
             }),
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/reward-distribution`] });
-            setIsRewardDistributionDialogOpen(false);
+            queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
+            onClose();
             toast({
               title: "成功",
               description: "報酬分配率が更新されました",
