@@ -16,6 +16,7 @@ import ProjectForm from "@/components/project-form";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Projects() {
   const [search, setSearch] = useState("");
@@ -23,6 +24,10 @@ export default function Projects() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  // 管理者かどうかチェック
+  const isAdmin = user?.role === "ADMIN";
 
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"]
@@ -71,10 +76,14 @@ export default function Projects() {
             Web制作・集客支援プロジェクトの管理と進捗確認
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          新規プロジェクト
-        </Button>
+        
+        {/* 管理者だけが新規プロジェクトを作成できる */}
+        {isAdmin && (
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            新規プロジェクト
+          </Button>
+        )}
       </div>
 
       <ProjectFilter
@@ -84,7 +93,16 @@ export default function Projects() {
         onStatusChange={setStatus}
       />
 
-      <ProjectList projects={filteredProjects} />
+      {filteredProjects.length > 0 ? (
+        <ProjectList projects={filteredProjects} />
+      ) : (
+        <div className="text-center py-10">
+          <p className="text-muted-foreground">表示できるプロジェクトはありません</p>
+          {!isAdmin && (
+            <p className="mt-2 text-sm text-muted-foreground">プロジェクトへのアクセス権限がない、またはまだアサインされていない可能性があります</p>
+          )}
+        </div>
+      )}
 
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

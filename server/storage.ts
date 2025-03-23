@@ -184,7 +184,8 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    return project;
+    // アサイン情報を含む完全なプロジェクト情報を返す
+    return this.getProject(project.id) as Promise<Project>;
   }
 
   async updateProject(id: number, project: Partial<InsertProject> & { rewardDistributed?: boolean }): Promise<Project> {
@@ -207,7 +208,8 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    return updated;
+    // アサイン情報を含む完全なプロジェクト情報を返す
+    return this.getProject(id) as Promise<Project>;
   }
 
   async deleteProject(id: number): Promise<void> {
