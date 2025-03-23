@@ -63,7 +63,7 @@ export default function UserRewardInfo() {
   }
 
   // 報酬がない場合
-  if (rewards.length === 0) {
+  if (!rewards || rewards.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -77,13 +77,13 @@ export default function UserRewardInfo() {
   }
 
   // 総報酬額を計算
-  const totalAmount = rewards.reduce((total, reward) => total + reward.amount, 0);
+  const totalAmount = rewards?.reduce((total, reward) => total + reward.amount, 0) || 0;
   
   // プロジェクト別の報酬割合データ（円グラフ用）
-  const pieData = rewards.map((reward) => ({
+  const pieData = rewards?.map((reward) => ({
     name: reward.projectName,
     value: reward.amount
-  }));
+  })) || [];
 
   return (
     <Card>
@@ -96,7 +96,7 @@ export default function UserRewardInfo() {
           <p className="text-muted-foreground">総報酬額</p>
         </div>
         
-        {rewards.length > 0 && (
+        {rewards && rewards.length > 0 && (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -123,18 +123,22 @@ export default function UserRewardInfo() {
         
         <div className="space-y-4">
           <p className="font-semibold">プロジェクト別報酬</p>
-          {rewards.map((reward) => (
-            <div key={reward.projectId} className="space-y-2">
-              <div className="flex justify-between items-center">
-                <p>{reward.projectName}</p>
-                <p className="font-medium">¥{reward.amount.toLocaleString()}</p>
+          {rewards && rewards.length > 0 ? (
+            rewards.map((reward) => (
+              <div key={reward.projectId} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <p>{reward.projectName}</p>
+                  <p className="font-medium">¥{reward.amount.toLocaleString()}</p>
+                </div>
+                <Progress value={reward.percentage} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  報酬総額の{reward.percentage}%（プロジェクト総額 ¥{reward.totalReward.toLocaleString()}）
+                </p>
               </div>
-              <Progress value={reward.percentage} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                報酬総額の{reward.percentage}%（プロジェクト総額 ¥{reward.totalReward.toLocaleString()}）
-              </p>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-muted-foreground">報酬情報がありません</p>
+          )}
         </div>
       </CardContent>
     </Card>
