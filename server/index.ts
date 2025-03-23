@@ -86,19 +86,27 @@ function createOgpResponse(req: Request, res: Response) {
 // Facebook向けの複数のエンドポイントを設定（Facebookクローラー対応）
 // Facebookは様々なパスでコンテンツを探索するため、複数のエントリーポイントを用意
 app.get("/fb-ogp", createOgpResponse);
-app.get("/facebook", createOgpResponse);
+app.get("/facebook", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "facebook-ogp.html"));
+});
 app.get("/ogp", createOgpResponse);
 app.get("/og", createOgpResponse);
 app.get("/fb", createOgpResponse);
+app.get("/share", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "facebook-ogp.html"));
+});
 
-// OGP画像への直接アクセスを提供
-app.get("/ogp-image", (req, res) => {
+// OGP画像への直接アクセスを提供 - 複数のパスに対応
+function serveOgpImage(req: Request, res: Response) {
   const ogpImagePath = path.join(__dirname, "..", "public", "yurayurastudio-ogp.png");
   res.setHeader('Content-Type', 'image/png');
   res.setHeader('Cache-Control', 'public, max-age=86400'); // 24時間のキャッシュ
   res.setHeader('Access-Control-Allow-Origin', '*'); // CORSを許可
   fs.createReadStream(ogpImagePath).pipe(res);
-});
+}
+
+app.get("/ogp-image", serveOgpImage);
+app.get("/yurayurastudio-ogp.png", serveOgpImage);
 
 // FacebookのOGPデバッガー用の特別なエンドポイント
 app.get("/facebook-debug", (req, res) => {
