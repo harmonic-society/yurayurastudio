@@ -39,7 +39,7 @@ app.get("/fb-ogp", (req, res) => {
         <meta property="og:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？地域愛にあふれるクリエイターの方、ぜひ登録を。" />
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="ja_JP" />
-        <meta property="og:image" content="https://yurayurastudio.com/ogp.svg" />
+        <meta property="og:image" content="https://yurayurastudio.com/ogp.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:url" content="https://yurayurastudio.com" />
@@ -50,7 +50,7 @@ app.get("/fb-ogp", (req, res) => {
         <p>千葉県で地域貢献できるWeb制作・集客支援！</p>
         <p>Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？</p>
         <p>地域愛にあふれるクリエイターの方、ぜひ登録を。</p>
-        <img src="/ogp.svg" alt="Yura Yura STUDIO" width="1200" height="630" />
+        <img src="/ogp.png" alt="Yura Yura STUDIO" width="1200" height="630" />
       </body>
     </html>
   `);

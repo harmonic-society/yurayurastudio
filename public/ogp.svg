@@ -1,4 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <style>
+      @font-face {
+        font-family: 'Noto Sans JP';
+        font-style: normal;
+        font-weight: 400;
+        src: url(https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLzI2JPCgQBnw7HFow2oe2EcP5pp0erwTqsSWs9Jezazjcb4.0.woff2) format('woff2');
+      }
+      @font-face {
+        font-family: 'Noto Sans JP';
+        font-style: normal;
+        font-weight: 700;
+        src: url(https://fonts.gstatic.com/s/notosansjp/v52/-F6pfjtqLzI2JPCgQBnw7HFQei0q1H1hj-sNFQ.woff2) format('woff2');
+      }
+      .title { font-family: 'Noto Sans JP', sans-serif; font-weight: 700; }
+      .text { font-family: 'Noto Sans JP', sans-serif; font-weight: 400; }
+    </style>
+  </defs>
+
   <rect width="1200" height="630" fill="#F8FAFC"/>
   <rect x="50" y="50" width="1100" height="530" rx="20" fill="#4F46E5" fill-opacity="0.05"/>
   <rect x="75" y="75" width="1050" height="480" rx="12" fill="white"/>
@@ -10,13 +29,13 @@
   <path d="M183 172L213 172" stroke="white" stroke-width="8" stroke-linecap="round"/>
   
   <!-- Title -->
-  <text x="280" y="190" font-family="sans-serif" font-size="48" font-weight="bold" fill="#1E293B">Yura Yura STUDIO</text>
-  <text x="280" y="230" font-family="sans-serif" font-size="36" fill="#475569">プロジェクト管理ツール</text>
+  <text x="280" y="190" class="title" font-size="48" fill="#1E293B">Yura Yura STUDIO</text>
+  <text x="280" y="230" class="title" font-size="36" fill="#475569">プロジェクト管理ツール</text>
   
   <!-- Description -->
-  <text x="150" y="320" font-family="sans-serif" font-size="28" fill="#64748B">千葉県で地域貢献できるWeb制作・集客支援！</text>
-  <text x="150" y="360" font-family="sans-serif" font-size="28" fill="#64748B">地域の事業者をサポートしませんか？</text>
-  <text x="150" y="400" font-family="sans-serif" font-size="28" fill="#64748B">地域愛にあふれるクリエイターの方、ぜひ登録を。</text>
+  <text x="150" y="320" class="text" font-size="28" fill="#64748B">千葉県で地域貢献できるWeb制作・集客支援！</text>
+  <text x="150" y="360" class="text" font-size="28" fill="#64748B">地域の事業者をサポートしませんか？</text>
+  <text x="150" y="400" class="text" font-size="28" fill="#64748B">地域愛にあふれるクリエイターの方、ぜひ登録を。</text>
   
   <!-- Decorative elements -->
   <circle cx="900" cy="200" r="80" fill="#4F46E5" fill-opacity="0.1"/>
@@ -24,5 +43,5 @@
   <circle cx="1000" cy="250" r="60" fill="#4F46E5" fill-opacity="0.15"/>
   
   <!-- Footer -->
-  <text x="150" y="500" font-family="sans-serif" font-size="24" fill="#94A3B8">© 2025 Yura Yura STUDIO - ベータ版</text>
+  <text x="150" y="500" class="text" font-size="24" fill="#94A3B8">© 2025 Yura Yura STUDIO - ベータ版</text>
 </svg>
