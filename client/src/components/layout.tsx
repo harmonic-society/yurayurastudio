@@ -18,7 +18,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useRegistrationRequests } from "@/hooks/use-registration-requests";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +35,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, isAdmin, logoutMutation } = useAuth();
+  const { pendingCount } = useRegistrationRequests();
   const [mounted, setMounted] = useState(false);
 
   // コンポーネントがマウントされた後に表示を有効にする（SSRとCSRの不一致を防ぐため）
@@ -58,6 +61,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <nav className="space-y-1">
       {navigation.map((item) => {
         const isActive = location === item.href;
+        const isRegistrationRequests = item.href === "/admin/registration-requests";
+        const showBadge = isRegistrationRequests && pendingCount > 0;
+        
         return (
           <Link key={item.name} href={item.href}>
             <Button
@@ -71,7 +77,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               <item.icon className={cn("h-5 w-5 mr-3 flex-shrink-0", isActive ? "animate-pulse" : "")} />
-              {item.name}
+              <span className="flex-1">{item.name}</span>
+              {showBadge && (
+                <Badge variant="destructive" className="ml-2 px-2 py-0 h-5">
+                  {pendingCount}
+                </Badge>
+              )}
             </Button>
           </Link>
         );
@@ -201,6 +212,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {isAdmin && pendingCount > 0 && (
+                    <Link href="/admin/registration-requests">
+                      <DropdownMenuItem>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        <span>登録リクエスト</span>
+                        <Badge variant="destructive" className="ml-2 px-2 py-0 h-5">
+                          {pendingCount}
+                        </Badge>
+                      </DropdownMenuItem>
+                    </Link>
+                  )}
                   <Link href="/settings">
                     <DropdownMenuItem>
                       <Settings className="mr-2 h-4 w-4" />
