@@ -39,6 +39,58 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/use-auth";
 
+// 報酬分配設定のラッパーコンポーネント
+function RewardDistributionFormWrapper({ projectId, onClose }: { projectId: number; onClose: () => void }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // 報酬分配情報の取得
+  const { data: distribution, isLoading } = useQuery({
+    queryKey: [`/api/projects/${projectId}/reward-distribution`],
+  });
+  
+  // 報酬分配情報の更新ミューテーション
+  const updateDistributionMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiRequest(`/api/projects/${projectId}/reward-distribution`, {
+        method: "POST",
+        body: JSON.stringify(data)
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/reward-distribution`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
+      onClose();
+      toast({
+        title: "成功",
+        description: "報酬分配率が更新されました",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `報酬分配率の更新に失敗しました: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  if (isLoading) {
+    return <div>読み込み中...</div>;
+  }
+  
+  return (
+    <RewardDistributionForm
+      defaultValues={{
+        salesPercentage: distribution?.salesPercentage || 15,
+        directorPercentage: distribution?.directorPercentage || 25,
+        creatorPercentage: distribution?.creatorPercentage || 50
+      }}
+      onSubmit={(data) => updateDistributionMutation.mutate(data)}
+      isSubmitting={updateDistributionMutation.isPending}
+    />
+  );
+}
+
 const statusLabels = {
   NOT_STARTED: "未着手",
   IN_PROGRESS: "進行中",
@@ -570,57 +622,7 @@ export default function ProjectDetails() {
         </>
       )}
       
-      {/* 報酬分配設定のラッパーコンポーネント */}
-      {function RewardDistributionFormWrapper({ projectId, onClose }: { projectId: number; onClose: () => void }) {
-        const { toast } = useToast();
-        const queryClient = useQueryClient();
-        
-        // 報酬分配情報の取得
-        const { data: distribution, isLoading } = useQuery({
-          queryKey: [`/api/projects/${projectId}/reward-distribution`],
-        });
-        
-        // 報酬分配情報の更新ミューテーション
-        const updateDistributionMutation = useMutation({
-          mutationFn: (data: any) =>
-            apiRequest(`/api/projects/${projectId}/reward-distribution`, {
-              method: "POST",
-              body: JSON.stringify(data)
-            }),
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/reward-distribution`] });
-            queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
-            onClose();
-            toast({
-              title: "成功",
-              description: "報酬分配率が更新されました",
-            });
-          },
-          onError: (error) => {
-            toast({
-              title: "エラー",
-              description: `報酬分配率の更新に失敗しました: ${error.message}`,
-              variant: "destructive",
-            });
-          },
-        });
-        
-        if (isLoading) {
-          return <div>読み込み中...</div>;
-        }
-        
-        return (
-          <RewardDistributionForm
-            defaultValues={{
-              salesPercentage: distribution?.salesPercentage || 15,
-              directorPercentage: distribution?.directorPercentage || 25,
-              creatorPercentage: distribution?.creatorPercentage || 50
-            }}
-            onSubmit={(data) => updateDistributionMutation.mutate(data)}
-            isSubmitting={updateDistributionMutation.isPending}
-          />
-        );
-      }}
+      {/* 報酬分配設定ダイアログ */}
     </div>
   );
 }
