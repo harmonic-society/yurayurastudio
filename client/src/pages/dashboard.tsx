@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import UserRewardInfo from "@/components/user-reward-info";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -392,28 +393,7 @@ export default function Dashboard() {
       </div>
       
       {/* 報酬情報セクション */}
-      {(function() {
-        const { user } = useAuth();
-        
-        if (!user) return null;
-        
-        return (
-          <Card className="bg-white border-primary/10 shadow-sm transition-all duration-300 hover:shadow-md">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">報酬情報</CardTitle>
-                <div className="p-1.5 rounded-full bg-primary/10">
-                  <Wallet className="h-4 w-4 text-primary" />
-                </div>
-              </div>
-              <CardDescription>プロジェクトの報酬と分配状況</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <UserRewardInfo />
-            </CardContent>
-          </Card>
-        );
-      })()}
+      <RewardInfoSection />
       
       {/* アクションボタン */}
       <div className="flex justify-end">
