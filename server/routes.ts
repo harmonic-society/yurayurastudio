@@ -1089,7 +1089,7 @@ export async function registerRoutes(app: Express) {
       // URLパラメータがない場合はデフォルトのOGP画像を返す
       if (!url) {
         return res.json({
-          imageUrl: "/ogp.svg"
+          imageUrl: "/ogp.png"
         });
       }
       
@@ -1109,7 +1109,7 @@ export async function registerRoutes(app: Express) {
       } else {
         // その他のURLの場合はデフォルト画像を返す
         return res.json({
-          imageUrl: "/ogp.svg"
+          imageUrl: "/ogp.png"
         });
       }
     } catch (error) {

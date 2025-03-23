@@ -43,6 +43,16 @@ app.get("/fb-ogp", (req, res) => {
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:url" content="https://yurayurastudio.com" />
+        
+        <!-- Twitter Card tags -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Yura Yura STUDIO - プロジェクト管理ツール" />
+        <meta name="twitter:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？" />
+        <meta name="twitter:image" content="https://yurayurastudio.com/ogp.png" />
+        
+        <!-- LinkedIn Card tags -->
+        <meta property="og:site_name" content="Yura Yura STUDIO" />
+        <meta property="og:image:alt" content="Yura Yura STUDIO プロジェクト管理ツールの紹介画像" />
         <title>Yura Yura STUDIO - プロジェクト管理ツール</title>
       </head>
       <body>
