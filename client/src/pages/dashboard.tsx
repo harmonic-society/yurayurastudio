@@ -393,7 +393,20 @@ export default function Dashboard() {
       </div>
       
       {/* 報酬情報セクション */}
-      <RewardInfoSection />
+      <Card className="bg-white border-primary/10 shadow-sm transition-all duration-300 hover:shadow-md">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">報酬情報</CardTitle>
+            <div className="p-1.5 rounded-full bg-primary/10">
+              <Wallet className="h-4 w-4 text-primary" />
+            </div>
+          </div>
+          <CardDescription>プロジェクトの報酬と分配状況</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <UserRewardInfo />
+        </CardContent>
+      </Card>
       
       {/* アクションボタン */}
       <div className="flex justify-end">
