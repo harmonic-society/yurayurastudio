@@ -278,9 +278,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<void> {
-    await db.delete(projectAssignments).where(eq(projectAssignments.userId, id));
-    await db.delete(comments).where(eq(comments.userId, id));
-    await db.delete(users).where(eq(users.id, id));
+    try {
+      // ユーザーに関連するタイムラインポストを削除
+      await db.delete(timelinePosts).where(eq(timelinePosts.userId, id));
+      
+      // ユーザーのスキルを削除
+      await db.delete(userSkills).where(eq(userSkills.userId, id));
+      
+      // ユーザーのポートフォリオを削除
+      await db.delete(portfolios).where(eq(portfolios.userId, id));
+      
+      // プロジェクトの割り当てを削除
+      await db.delete(projectAssignments).where(eq(projectAssignments.userId, id));
+      
+      // ユーザーのコメントを削除
+      await db.delete(comments).where(eq(comments.userId, id));
+      
+      // このユーザーが担当者になっているプロジェクトを更新
+      // director または sales が削除対象ユーザーの場合、nullに設定
+      await db
+        .update(projects)
+        .set({ directorId: null })
+        .where(eq(projects.directorId, id));
+        
+      await db
+        .update(projects)
+        .set({ salesId: null })
+        .where(eq(projects.salesId, id));
+      
+      // 最後にユーザーを削除
+      await db.delete(users).where(eq(users.id, id));
+    } catch (error) {
+      console.error("ユーザー削除エラー:", error);
+      throw error;
+    }
   }
 
   async getAllPortfolios(): Promise<Portfolio[]> {
