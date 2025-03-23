@@ -26,7 +26,7 @@ app.use(fileUpload());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 // Facebookなどのクローラー向けのOGP確認用エンドポイント
-function createOgpResponse(req, res) {
+function createOgpResponse(req: Request, res: Response) {
   // ホスト名を動的に取得
   const protocol = req.headers['x-forwarded-proto'] || req.protocol;
   const host = req.headers.host;
@@ -47,6 +47,9 @@ function createOgpResponse(req, res) {
         <meta property="og:site_name" content="Yura Yura STUDIO">
         <meta property="og:image:alt" content="Yura Yura STUDIO プロジェクト管理ツールの紹介画像">
         
+        <!-- Facebook固有のメタタグ -->
+        <meta property="og:url" content="${baseUrl}">
+        
         <!-- Twitter Card tags -->
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="Yura Yura STUDIO - プロジェクト管理ツール">
@@ -64,10 +67,13 @@ function createOgpResponse(req, res) {
     `);
 }
 
-// 複数のエンドポイントを設定（Facebookクローラー対応）
+// Facebook向けの複数のエンドポイントを設定（Facebookクローラー対応）
+// Facebookは様々なパスでコンテンツを探索するため、複数のエントリーポイントを用意
 app.get("/fb-ogp", createOgpResponse);
 app.get("/facebook", createOgpResponse);
 app.get("/ogp", createOgpResponse);
+app.get("/og", createOgpResponse);
+app.get("/fb", createOgpResponse);
 
 app.use((req, res, next) => {
   const start = Date.now();
