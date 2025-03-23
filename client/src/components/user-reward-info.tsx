@@ -128,11 +128,11 @@ export default function UserRewardInfo() {
               <div key={reward.projectId} className="space-y-2">
                 <div className="flex justify-between items-center">
                   <p>{reward.projectName}</p>
-                  <p className="font-medium">¥{reward.amount.toLocaleString()}</p>
+                  <p className="font-medium">¥{(reward.amount || 0).toLocaleString()}</p>
                 </div>
-                <Progress value={reward.percentage} className="h-2" />
+                <Progress value={reward.percentage || 0} className="h-2" />
                 <p className="text-xs text-muted-foreground">
-                  報酬総額の{reward.percentage}%（プロジェクト総額 ¥{reward.totalReward.toLocaleString()}）
+                  報酬総額の{reward.percentage || 0}%（プロジェクト総額 ¥{(reward.totalReward || 0).toLocaleString()}）
                 </p>
               </div>
             ))
