@@ -48,23 +48,13 @@ export default function UserProfile() {
 
   // ユーザー情報を取得
   const { data: user, isLoading: isLoadingUser } = useQuery<User>({
-    queryKey: ["/api/users", userId],
-    queryFn: async () => {
-      if (!userId || isNaN(userId)) return null;
-      const response = await apiRequest("GET", `/api/users/${userId}`);
-      return response;
-    },
+    queryKey: [`/api/users/${userId}`],
     enabled: !!userId && !isNaN(userId)
   });
 
   // ユーザーのスキルを取得
   const { data: userSkills, isLoading: isLoadingSkills } = useQuery({
-    queryKey: ['/api/users', userId, 'skills'],
-    queryFn: async () => {
-      if (!userId || isNaN(userId)) return null;
-      const response = await apiRequest('GET', `/api/users/${userId}/skills`);
-      return response;
-    },
+    queryKey: [`/api/users/${userId}/skills`],
     enabled: !!userId && !isNaN(userId)
   });
 
