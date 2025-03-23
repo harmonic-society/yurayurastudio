@@ -39,7 +39,10 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
 
   const mutation = useMutation({
     mutationFn: (data: any) => 
-      apiRequest("POST", `/api/projects/${projectId}/comments`, data),
+      apiRequest(`/api/projects/${projectId}/comments`, {
+        method: "POST",
+        body: JSON.stringify(data)
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/comments`] });
       form.reset();
