@@ -26,45 +26,48 @@ app.use(fileUpload());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 // Facebookなどのクローラー向けのOGP確認用エンドポイント
-app.get("/fb-ogp", (req, res) => {
+function createOgpResponse(req, res) {
+  // ホスト名を動的に取得
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers.host;
+  const baseUrl = `${protocol}://${host}`;
+  
   res.send(`
-    <!DOCTYPE html>
-    <html lang="ja">
+      <!DOCTYPE html>
+      <html>
       <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-        <meta name="description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？地域愛にあふれるクリエイターの方、ぜひ登録を。" />
-        <meta name="keywords" content="Web制作, 集客支援, 千葉県, プロジェクト管理, クリエイター, 地域貢献" />
-        <meta property="og:title" content="Yura Yura STUDIO - プロジェクト管理ツール" />
-        <meta property="og:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？地域愛にあふれるクリエイターの方、ぜひ登録を。" />
-        <meta property="og:type" content="website" />
-        <meta property="og:locale" content="ja_JP" />
-        <meta property="og:image" content="https://yurayurastudio.com/ogp.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:url" content="https://yurayurastudio.com" />
+        <meta charset="UTF-8">
+        <meta property="og:title" content="Yura Yura STUDIO - プロジェクト管理ツール">
+        <meta property="og:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？地域愛にあふれるクリエイターの方、ぜひ登録を。">
+        <meta property="og:type" content="website">
+        <meta property="og:image" content="${baseUrl}/ogp.png">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:locale" content="ja_JP">
+        <meta property="og:site_name" content="Yura Yura STUDIO">
+        <meta property="og:image:alt" content="Yura Yura STUDIO プロジェクト管理ツールの紹介画像">
         
         <!-- Twitter Card tags -->
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Yura Yura STUDIO - プロジェクト管理ツール" />
-        <meta name="twitter:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？" />
-        <meta name="twitter:image" content="https://yurayurastudio.com/ogp.png" />
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="Yura Yura STUDIO - プロジェクト管理ツール">
+        <meta name="twitter:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？">
+        <meta name="twitter:image" content="${baseUrl}/ogp.png">
         
-        <!-- LinkedIn Card tags -->
-        <meta property="og:site_name" content="Yura Yura STUDIO" />
-        <meta property="og:image:alt" content="Yura Yura STUDIO プロジェクト管理ツールの紹介画像" />
         <title>Yura Yura STUDIO - プロジェクト管理ツール</title>
       </head>
       <body>
-        <h1>Yura Yura STUDIO - プロジェクト管理ツール</h1>
-        <p>千葉県で地域貢献できるWeb制作・集客支援！</p>
-        <p>Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？</p>
-        <p>地域愛にあふれるクリエイターの方、ぜひ登録を。</p>
-        <img src="/ogp.png" alt="Yura Yura STUDIO" width="1200" height="630" />
+        <script>
+          window.location.href = "/";
+        </script>
       </body>
-    </html>
-  `);
-});
+      </html>
+    `);
+}
+
+// 複数のエンドポイントを設定（Facebookクローラー対応）
+app.get("/fb-ogp", createOgpResponse);
+app.get("/facebook", createOgpResponse);
+app.get("/ogp", createOgpResponse);
 
 app.use((req, res, next) => {
   const start = Date.now();
