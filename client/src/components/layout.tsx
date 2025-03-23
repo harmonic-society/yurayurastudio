@@ -137,10 +137,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {isAdmin && pendingCount > 0 && (
+                <Link href="/admin/registration-requests">
+                  <DropdownMenuItem>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    <span className="flex-1">登録リクエスト</span>
+                    <Badge variant="destructive" className="ml-2 px-2 py-0 h-5">
+                      {pendingCount}
+                    </Badge>
+                  </DropdownMenuItem>
+                </Link>
+              )}
               <Link href="/settings">
-                <DropdownMenuItem>設定</DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-4 w-4" />
+                  設定
+                </DropdownMenuItem>
               </Link>
               <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                <LogOut className="mr-2 h-4 w-4" />
                 ログアウト
               </DropdownMenuItem>
             </DropdownMenuContent>
