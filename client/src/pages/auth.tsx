@@ -126,11 +126,11 @@ export default function AuthPage() {
           <h1 className="text-3xl font-bold tracking-tight">Yura Yura STUDIO</h1>
         </div>
         <div className="relative z-20 mt-10">
-          <div className="bg-white/10 rounded-lg p-5 mb-8 backdrop-blur-sm border border-white/20">
+          <div className="bg-white/10 rounded-lg p-3 mb-8 backdrop-blur-sm border border-white/20 w-1/2 mx-auto">
             <img 
               src="/app-icon.svg" 
-              alt="Yura Yura Studio Demo" 
-              className="w-full rounded-md shadow-xl mb-5" 
+              alt="Yura Yura Studio Icon" 
+              className="w-full rounded-md shadow-md mb-2" 
             />
           </div>
           <blockquote className="space-y-2">
