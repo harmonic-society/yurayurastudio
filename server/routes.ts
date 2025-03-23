@@ -1113,6 +1113,34 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "OGP情報の取得に失敗しました" });
     }
   });
+  
+  // Facebook OGPエンドポイント（認証不要）- Facebookボットがアクセスする専用エンドポイント
+  app.get("/facebook", (req, res) => {
+    res.set('Content-Type', 'text/html');
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta property="og:title" content="Yura Yura STUDIO - プロジェクト管理ツール">
+        <meta property="og:description" content="千葉県で地域貢献できるWeb制作・集客支援！Yura Yura STUDIOのプロジェクト管理ツール（ベータ版）で、地域の事業者をサポートしませんか？地域愛にあふれるクリエイターの方、ぜひ登録を。">
+        <meta property="og:type" content="website">
+        <meta property="og:image" content="${req.protocol}://${req.get('host')}/ogp.png">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:locale" content="ja_JP">
+        <meta property="og:site_name" content="Yura Yura STUDIO">
+        <meta property="og:image:alt" content="Yura Yura STUDIO プロジェクト管理ツールの紹介画像">
+        <title>Yura Yura STUDIO - プロジェクト管理ツール</title>
+      </head>
+      <body>
+        <script>
+          window.location.href = "/";
+        </script>
+      </body>
+      </html>
+    `);
+  });
 
   return httpServer;
 }
