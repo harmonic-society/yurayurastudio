@@ -122,7 +122,27 @@ app.get("/linkedin-card", serveLinkedInCard);
 
 // OGP画像への直接アクセスを提供 - 複数のパスに対応
 function serveOgpImage(req: Request, res: Response) {
-  const ogpImagePath = path.join(__dirname, "..", "public", "yurayurastudio-ogp.png");
+  // 複数の候補画像パスを定義（優先順位順）
+  const candidateImagePaths = [
+    path.join(__dirname, "..", "public", "yurayurastudio-ogp.png"),
+    path.join(__dirname, "..", "public", "ogp.png"),
+    path.join(__dirname, "..", "public", "ogp_original.png")
+  ];
+  
+  // 最初に存在する画像を使用
+  let ogpImagePath = null;
+  for (const imagePath of candidateImagePaths) {
+    if (fs.existsSync(imagePath)) {
+      ogpImagePath = imagePath;
+      break;
+    }
+  }
+  
+  // 画像が見つからない場合のエラーハンドリング
+  if (!ogpImagePath) {
+    console.error("Error: OGP画像ファイルが見つかりません");
+    return res.status(404).send("OGP画像が見つかりません");
+  }
   
   // 本番環境でも確実にキャッシュが機能するよう、強固なキャッシュ設定を追加
   res.setHeader('Content-Type', 'image/png');
@@ -131,11 +151,27 @@ function serveOgpImage(req: Request, res: Response) {
   res.setHeader('Vary', 'Origin'); // 正しいCORSキャッシュ
   res.setHeader('X-Content-Type-Options', 'nosniff'); // セキュリティ強化
   
-  fs.createReadStream(ogpImagePath).pipe(res);
+  // デバッグ情報をログに出力
+  console.log(`OGP画像を提供: ${ogpImagePath}`);
+  
+  // 安全性のためtryブロックで囲む
+  try {
+    const stream = fs.createReadStream(ogpImagePath);
+    stream.on('error', (error) => {
+      console.error(`OGP画像の読み込みエラー: ${error.message}`);
+      res.status(500).send('画像の読み込みに失敗しました');
+    });
+    stream.pipe(res);
+  } catch (error) {
+    console.error(`OGP画像処理エラー: ${error}`);
+    res.status(500).send('サーバーエラーが発生しました');
+  }
 }
 
+// 複数のルートで同じOGP画像を提供
 app.get("/ogp-image", serveOgpImage);
 app.get("/yurayurastudio-ogp.png", serveOgpImage);
+app.get("/ogp.png", serveOgpImage);
 
 // FacebookのOGPデバッガー用の特別なエンドポイント
 app.get("/facebook-debug", (req, res) => {
