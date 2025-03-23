@@ -123,7 +123,10 @@ export default function UserProfile() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: { bio: string | null, title: string | null }) => {
       if (!userId) return null;
-      return await apiRequest('PATCH', `/api/users/${userId}`, data);
+      return await apiRequest(`/api/users/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+      });
     },
     onSuccess: () => {
       toast({
@@ -214,6 +217,7 @@ export default function UserProfile() {
     formData.append("avatar", file);
 
     try {
+      // FormDataを使用する場合は直接APIリクエストではなくfetchを使用
       const response = await fetch("/api/users/avatar", {
         method: "POST",
         body: formData,
