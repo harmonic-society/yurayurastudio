@@ -146,7 +146,10 @@ export default function UserProfile() {
   const updateSkillsMutation = useMutation({
     mutationFn: async (skillTagIds: number[]) => {
       if (!userId) return null;
-      return await apiRequest('PUT', `/api/users/${userId}/skills`, { skillTagIds });
+      return await apiRequest(`/api/users/${userId}/skills`, {
+        method: 'PUT',
+        body: JSON.stringify({ skillTagIds })
+      });
     },
     onSuccess: () => {
       toast({
