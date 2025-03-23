@@ -5,6 +5,7 @@ import ProjectForm from "@/components/project-form";
 import CommentSection from "@/components/comment-section";
 import PortfolioForm from "@/components/portfolio-form";
 import PortfolioList from "@/components/portfolio-list";
+import RewardDistributionForm from "@/components/reward-distribution-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-import { AlertCircle, Edit2, ArrowRightLeft, Trash2, Plus } from "lucide-react";
+import { AlertCircle, Edit2, ArrowRightLeft, Trash2, Plus, DollarSign } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +53,7 @@ export default function ProjectDetails() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPortfolioDialogOpen, setIsPortfolioDialogOpen] = useState(false);
   const [isPortfolioDeleteDialogOpen, setIsPortfolioDeleteDialogOpen] = useState(false);
+  const [isRewardDistributionDialogOpen, setIsRewardDistributionDialogOpen] = useState(false);
   const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -344,7 +346,7 @@ export default function ProjectDetails() {
               {isAdmin ? (
                 <>
                   <p className="whitespace-pre-line">{project.rewardRules}</p>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     <Badge variant={project.rewardDistributed ? "default" : "secondary"}>
                       {project.rewardDistributed ? "分配済み" : "未分配"}
                     </Badge>
@@ -360,6 +362,14 @@ export default function ProjectDetails() {
                     >
                       <ArrowRightLeft className="h-4 w-4 mr-2" />
                       {updateMutation.isPending ? "更新中..." : "状態を切り替え"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsRewardDistributionDialogOpen(true)}
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      報酬分配率を設定
                     </Button>
                   </div>
                 </>
@@ -544,8 +554,72 @@ export default function ProjectDetails() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          
+          <Dialog open={isRewardDistributionDialogOpen} onOpenChange={setIsRewardDistributionDialogOpen}>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>報酬分配率設定</DialogTitle>
+                <DialogDescription>
+                  プロジェクトの報酬分配率を設定します。
+                  運営費10%を除いた残りの90%の配分を決定します。
+                </DialogDescription>
+              </DialogHeader>
+              <RewardDistributionMutation projectId={projectId} />
+            </DialogContent>
+          </Dialog>
         </>
       )}
+      
+      {/* 報酬分配設定のミューテーションコンポーネント */}
+      {function RewardDistributionMutation({ projectId }: { projectId: number }) {
+        const { toast } = useToast();
+        const queryClient = useQueryClient();
+        
+        // 報酬分配情報の取得
+        const { data: distribution, isLoading } = useQuery({
+          queryKey: [`/api/projects/${projectId}/reward-distribution`],
+        });
+        
+        // 報酬分配情報の更新ミューテーション
+        const updateDistributionMutation = useMutation({
+          mutationFn: (data: any) =>
+            apiRequest(`/api/projects/${projectId}/reward-distribution`, {
+              method: "POST",
+              body: JSON.stringify(data)
+            }),
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/reward-distribution`] });
+            setIsRewardDistributionDialogOpen(false);
+            toast({
+              title: "成功",
+              description: "報酬分配率が更新されました",
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "エラー",
+              description: `報酬分配率の更新に失敗しました: ${error.message}`,
+              variant: "destructive",
+            });
+          },
+        });
+        
+        if (isLoading) {
+          return <div>読み込み中...</div>;
+        }
+        
+        return (
+          <RewardDistributionForm
+            defaultValues={{
+              salesPercentage: distribution?.salesPercentage || 15,
+              directorPercentage: distribution?.directorPercentage || 25,
+              creatorPercentage: distribution?.creatorPercentage || 50
+            }}
+            onSubmit={(data) => updateDistributionMutation.mutate(data)}
+            isSubmitting={updateDistributionMutation.isPending}
+          />
+        );
+      }}
     </div>
   );
 }
