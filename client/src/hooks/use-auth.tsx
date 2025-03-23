@@ -47,10 +47,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      return apiRequest("/api/login", {
+      const response = await fetch("/api/login", {
         method: "POST",
-        body: JSON.stringify(credentials)
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+        credentials: "include",
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "ログインに失敗しました");
+      }
+      
+      return await response.json();
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -71,10 +82,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (userData: InsertUser) => {
-      return apiRequest("/api/register", {
+      const response = await fetch("/api/register", {
         method: "POST",
-        body: JSON.stringify(userData)
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+        credentials: "include",
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "ユーザー登録に失敗しました");
+      }
+      
+      return await response.json();
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -95,9 +117,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/logout", {
-        method: "POST"
+      const response = await fetch("/api/logout", {
+        method: "POST",
+        credentials: "include",
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "ログアウトに失敗しました");
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
