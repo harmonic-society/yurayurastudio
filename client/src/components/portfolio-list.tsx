@@ -50,33 +50,22 @@ export default function PortfolioList({
     fetchOgpImages();
   }, [portfolios]);
 
-  const ActionButton = ({ 
-    onClick, 
-    icon: Icon, 
+  // 管理権限ツールチップラッパー
+  const WithTooltip = ({ 
+    children, 
+    show, 
     label 
   }: { 
-    onClick?: () => void, 
-    icon: typeof Edit2 | typeof Trash2,
-    label: string
+    children: React.ReactNode, 
+    show: boolean, 
+    label: string 
   }) => {
-    const button = (
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onClick}
-        disabled={!onClick}
-        className="h-8 w-8"
-      >
-        <Icon className="h-4 w-4" />
-      </Button>
-    );
-
-    if (showTooltips && !onClick) {
+    if (show) {
       return (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div>{button}</div>
+              <div>{children}</div>
             </TooltipTrigger>
             <TooltipContent>
               <p>{`成果物の${label}は管理者のみが行えます`}</p>
@@ -85,67 +74,82 @@ export default function PortfolioList({
         </TooltipProvider>
       );
     }
-
-    return button;
+    
+    return <>{children}</>;
   };
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {portfolios.map((portfolio) => (
-        <Card key={portfolio.id} className="flex flex-col">
-          <div className="relative aspect-video">
+        <Card key={portfolio.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 group">
+          <div className="relative h-40">
             {previewImages[portfolio.id] ? (
               <img
                 src={previewImages[portfolio.id]}
                 alt={`成果物 ${portfolio.title}`}
-                className="object-cover w-full h-full rounded-t-lg"
+                className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                 onError={(e) => e.currentTarget.style.display = 'none'}
               />
             ) : (
-              <div className="flex items-center justify-center w-full h-full bg-muted rounded-t-lg">
+              <div className="flex items-center justify-center w-full h-full bg-muted">
                 <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
               </div>
             )}
-          </div>
-          <CardContent className="flex-1 pt-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium truncate">{portfolio.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                  {portfolio.description}
-                </p>
-              </div>
-              <div className="flex gap-1 flex-shrink-0">
-                <ActionButton
+            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <WithTooltip show={showTooltips && !onEdit} label="編集">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background"
                   onClick={onEdit ? () => onEdit(portfolio) : undefined}
-                  icon={Edit2}
-                  label="編集"
-                />
-                <ActionButton
+                  disabled={!onEdit}
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </Button>
+              </WithTooltip>
+              
+              <WithTooltip show={showTooltips && !onDelete} label="削除">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background"
                   onClick={onDelete ? () => onDelete(portfolio) : undefined}
-                  icon={Trash2}
-                  label="削除"
-                />
-              </div>
+                  disabled={!onDelete}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </WithTooltip>
             </div>
-            <div className="mt-4 space-y-1">
+          </div>
+          <CardContent className="flex-1 p-4">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium truncate text-base">{portfolio.title}</h3>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2 h-10">
+                {portfolio.description}
+              </p>
+            </div>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
               <p className="text-xs text-muted-foreground">
-                作成日: {format(new Date(portfolio.createdAt), "yyyy年M月d日")}
+                {format(new Date(portfolio.createdAt), "yyyy年M月d日")}
               </p>
               <a
                 href={portfolio.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-blue-500 hover:underline inline-block mt-2"
+                className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
               >
                 成果物を見る
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 7h10v10" />
+                  <path d="M7 17 17 7" />
+                </svg>
               </a>
             </div>
           </CardContent>
         </Card>
       ))}
       {portfolios.length === 0 && (
-        <p className="text-center text-muted-foreground col-span-full">
+        <p className="text-center text-muted-foreground col-span-full py-12">
           まだ成果物が登録されていません
         </p>
       )}
