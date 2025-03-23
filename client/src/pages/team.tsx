@@ -63,12 +63,7 @@ interface UserSkillsResponse {
 // ユーザースキル表示コンポーネント
 function UserSkills({ userId }: { userId: number }) {
   const { data: userSkills, isLoading } = useQuery({
-    queryKey: ['/api/users', userId, 'skills'],
-    queryFn: async () => {
-      if (!userId) return null;
-      const response = await apiRequest('GET', `/api/users/${userId}/skills`);
-      return response;
-    },
+    queryKey: [`/api/users/${userId}/skills`],
     enabled: !!userId
   });
 
@@ -129,10 +124,7 @@ export default function Team() {
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/users');
-      return response;
-    }
+    // 既定の queryClient からの queryFn が使用される（認証込み）
   });
 
   const createMutation = useMutation({
