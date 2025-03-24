@@ -1237,7 +1237,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "ユーザーが見つかりません" });
       }
       
-      // 送信先メールアドレスを決定
+      // 送信先メールアドレスを決定（ストレージ以外の送信でも使用）
       const targetEmail = testEmail || user.email;
       
       console.log(`🧪 テスト通知を送信します: ユーザー ${user.name} (${user.email}), 送信先: ${targetEmail}, イベント: ${eventType}`);
