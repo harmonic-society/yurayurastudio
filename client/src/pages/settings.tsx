@@ -24,7 +24,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { Bell, BellOff, Mail, Loader2, Settings as SettingsIcon } from "lucide-react";
-import { EmailJSSender } from "@/components/emailjs-sender";
 import { 
   Dialog,
   DialogContent,
@@ -178,7 +177,7 @@ function TestNotification() {
         body: JSON.stringify({
           event: "PROJECT_CREATED",
           title: "テスト通知",
-          message: "これはテスト通知です。通知設定が正しく機能していることを確認するために送信されました。",
+          message: "これはテスト通知です。メール通知機能が正しく機能していることを確認するために送信されました。お使いのメールクライアントによっては、迷惑メールフォルダに振り分けられることがありますので、確認をお願いします。",
           link: window.location.origin,
           testEmail: customEmail || undefined // カスタムメールアドレスがある場合のみ送信
         })
@@ -212,7 +211,7 @@ function TestNotification() {
     onSuccess: (data) => {
       toast({
         title: "テスト通知を送信しました",
-        description: `送信先: ${data.email || 'あなたのメールアドレス'}`,
+        description: `送信先: ${data.email || 'あなたのメールアドレス'} (迷惑メールフォルダも確認してください)`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/notification-history'] });
       setIsDialogOpen(false);
@@ -267,6 +266,7 @@ function TestNotification() {
             <DialogTitle>テスト通知設定</DialogTitle>
             <DialogDescription>
               テスト通知の送信先を指定できます。空白の場合は現在のユーザーのメールアドレスに送信されます。
+              <p className="mt-2 text-amber-500">※受信後は迷惑メールフォルダも確認してください。メールサーバーによって誤って迷惑メールと判断される場合があります。</p>
             </DialogDescription>
           </DialogHeader>
           
@@ -375,13 +375,7 @@ function NotificationHistory() {
           <div className="flex flex-wrap gap-2">
             {/* テスト通知ボタン */}
             <TestNotification />
-            
-            {/* EmailJS送信ボタン（代替送信手段） */}
-            <EmailJSSender />
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            通常の送信方法でエラーが出る場合は、EmailJSを使用した代替送信を試してください。
-          </p>
         </div>
       </CardContent>
     </Card>

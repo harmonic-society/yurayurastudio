@@ -149,20 +149,84 @@ export async function sendNotificationEmail(
     const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`;
     const settingsUrl = `${appUrl}/settings`;
 
+    // 迷惑メールフィルタ対策のための適切なHTML構造
     const htmlContent = `
-      <h1>${data.title}</h1>
-      <p>${data.message}</p>
-      ${linkHtml}
-      <hr>
-      <p>このメールはYura Yura Studioから自動送信されています。</p>
-      <p>通知設定は<a href="${settingsUrl}">設定ページ</a>から変更できます。</p>
+      <!DOCTYPE html>
+      <html lang="ja">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${data.title}</title>
+        <style>
+          body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          h1 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 24px;
+          }
+          .message {
+            margin: 20px 0;
+          }
+          .cta {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 10px 0;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>${data.title}</h1>
+          <div class="message">
+            <p>${data.message}</p>
+          </div>
+          ${linkHtml ? `<a href="${data.link}" class="cta">詳細を見る</a>` : ''}
+          <div class="footer">
+            <p>このメールは<strong>Yura Yura Studio</strong>からの自動送信メールです。</p>
+            <p>通知設定は<a href="${settingsUrl}">設定ページ</a>から変更できます。</p>
+            <p>© ${new Date().getFullYear()} Yura Yura Studio. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
     `;
 
+    // 迷惑メール対策としてヘッダーを強化
+    const appName = "Yura Yura Studio";
+    const fromName = process.env.SMTP_FROM_NAME || 'Yura Yura Studio';
+    const fromEmail = process.env.SMTP_FROM || 'noreply@yurayurastudio.com';
+    
     const mailOptions = {
-      from: process.env.SMTP_FROM || 'noreply@yurayurastudio.com',
+      from: `"${fromName}" <${fromEmail}>`,
       to: email,
       subject: subject,
       html: htmlContent,
+      // 迷惑メール対策用のヘッダー
+      headers: {
+        "X-Priority": "1",
+        "X-MSMail-Priority": "High",
+        "Importance": "High",
+        "X-Mailer": `Yura Yura Studio (Node.js ${process.version})`,
+        "List-Unsubscribe": `<${process.env.APP_URL || 'https://yurayurastudio.com'}/settings>`
+      }
     };
     
     console.log("📧 メール送信オプション:", { 
