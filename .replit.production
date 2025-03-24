@@ -1,7 +1,7 @@
-run = "NODE_ENV=production npm run build && NODE_ENV=production npm run start"
-hidden = [".git", "node_modules"]
+run = "bash production-start.sh"
+hidden = [".git", "node_modules", ".config", "generated-icon.png"]
 
-# 以下の設定は本番環境用の設定です
+# 本番環境用設定
 [env]
 NODE_ENV = "production"
 PORT = "8080"
@@ -11,5 +11,19 @@ localPort = 8080
 externalPort = 80
 
 [deployment]
-run = ["sh", "-c", "NODE_ENV=production npm run build && NODE_ENV=production npm run start"]
+run = ["bash", "production-start.sh"]
 deploymentTarget = "cloudrun"
+
+[nix]
+channel = "stable-24_05"
+
+[packager]
+language = "nodejs"
+
+[languages.javascript]
+pattern = "**/*.js"
+syntax = "javascript"
+
+[languages.typescript]
+pattern = "**/*.ts"
+syntax = "typescript"

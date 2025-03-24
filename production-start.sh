@@ -1,20 +1,27 @@
 #!/bin/bash
 
-# 本番環境変数を設定
+# 本番環境向けビルドスクリプト
+
+# 実行環境を表示
+echo "=========================================="
+echo "Replit Production Deployment Script"
+echo "=========================================="
+echo "NODE_ENV: production"
+echo "=========================================="
+
+# 常に本番環境に設定
 export NODE_ENV=production
-export PORT=8080
 
-echo "=========================="
-echo "本番環境デプロイスクリプト"
-echo "=========================="
-echo "NODE_ENV=$NODE_ENV"
-echo "PORT=$PORT"
-echo "=========================="
+# ビルドプロセスを実行
+echo "アプリケーションをビルドします..."
+npm run build
 
-# フロントエンドをビルド
-echo "フロントエンドのビルドを開始します..."
-NODE_ENV=production npm run build
+# ビルド結果を確認
+if [ $? -ne 0 ]; then
+  echo "ビルドに失敗しました。"
+  exit 1
+fi
 
-# 本番サーバーを起動
-echo "本番モードでサーバーを起動します..."
-NODE_ENV=production npm run start
+echo "ビルド完了、アプリケーションを起動します..."
+# node index.js でエントリポイントを実行
+node --experimental-modules index.js
