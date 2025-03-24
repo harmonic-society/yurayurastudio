@@ -149,7 +149,14 @@ export async function sendNotificationEmail(
     const subject = getNotificationSubject(event);
     const linkHtml = data.link ? `<p><a href="${data.link}">詳細を見る</a></p>` : "";
 
-    const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`;
+    // 環境変数からアプリのURLを決定（本番環境かどうかを判断）
+    const isProduction = process.env.NODE_ENV === 'production';
+    const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (isProduction ? 8080 : 5000);
+    // REPL_SLUG と REPL_OWNER が存在する場合は Replit のドメインを使用
+    const replitDomain = process.env.REPL_SLUG && process.env.REPL_OWNER 
+      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+      : null;
+    const appUrl = process.env.APP_URL || replitDomain || `http://localhost:${port}`;
     const settingsUrl = `${appUrl}/settings`;
 
     // 迷惑メールフィルタ対策のための適切なHTML構造

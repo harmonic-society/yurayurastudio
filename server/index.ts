@@ -290,15 +290,18 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // サーバーポートと環境設定
+  // 本番環境では環境変数PORT、またはデフォルトの8080を使用
+  // 開発環境ではデフォルトの5000を使用
+  const isProduction = process.env.NODE_ENV === 'production';
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (isProduction ? 8080 : 5000);
+  const host = "0.0.0.0"; // すべてのネットワークインターフェースでリッスン
+  
   server.listen({
     port,
-    host: "0.0.0.0",
+    host,
     reusePort: true,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`サーバー起動: ${host}:${port} (${isProduction ? '本番環境' : '開発環境'})`);
   });
 })();
