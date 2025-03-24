@@ -10,6 +10,8 @@ import {
   skillTags,
   userSkills,
   rewardDistributions,
+  notificationSettings,
+  notificationHistory,
   type Project, 
   type InsertProject,
   type Comment,
@@ -29,7 +31,12 @@ import {
   type UserSkill,
   type UserSkillUpdate,
   type RewardDistribution,
-  type InsertRewardDistribution
+  type InsertRewardDistribution,
+  type NotificationSetting,
+  type InsertNotificationSetting,
+  type NotificationHistory,
+  type InsertNotificationHistory,
+  type NotificationEvent
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -106,6 +113,17 @@ export interface IStorage {
   createRewardDistribution(distribution: InsertRewardDistribution): Promise<RewardDistribution>;
   updateRewardDistribution(projectId: number, distribution: Partial<InsertRewardDistribution>): Promise<RewardDistribution>;
   calculateUserReward(projectId: number, userId: number): Promise<{ totalReward: number; percentage: number; amount: number } | undefined>;
+  
+  // Notification Settings
+  getUserNotificationSettings(userId: number): Promise<NotificationSetting | undefined>;
+  createOrUpdateNotificationSettings(settings: InsertNotificationSetting): Promise<NotificationSetting>;
+  
+  // Notification History
+  getNotificationHistory(userId: number): Promise<NotificationHistory[]>;
+  createNotificationHistory(notification: InsertNotificationHistory): Promise<NotificationHistory>;
+  
+  // Email Notifications
+  sendNotificationEmail(userId: number, event: NotificationEvent, data: { title: string; message: string; link?: string }): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {

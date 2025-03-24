@@ -431,7 +431,7 @@ export const insertNotificationHistorySchema = createInsertSchema(notificationHi
   message: z.string().min(1, "メッセージは必須です"),
 });
 
-// ユーザーリレーションに通知設定を追加
+// ユーザーリレーションの定義（スキルとメール通知を含む）
 export const usersRelations = relations(users, ({ many }) => ({
   skills: many(userSkills),
   notificationSettings: many(notificationSettings),
