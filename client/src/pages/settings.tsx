@@ -158,10 +158,13 @@ function TestNotification() {
     mutationFn: async () => {
       return await apiRequest('/api/test-notification', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          event: 'PROJECT_CREATED',
-          title: 'テスト通知',
-          message: 'これはテスト通知です。通知設定が正しく機能していることを確認するために送信されました。',
+          event: "PROJECT_CREATED",
+          title: "テスト通知",
+          message: "これはテスト通知です。通知設定が正しく機能していることを確認するために送信されました。",
           link: window.location.origin
         })
       });

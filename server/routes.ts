@@ -17,7 +17,9 @@ import {
   insertSkillCategorySchema,
   insertSkillTagSchema,
   userSkillSchema,
-  updateProfileSchema
+  updateProfileSchema,
+  notificationEvents,
+  type NotificationEvent
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
@@ -1224,10 +1226,15 @@ export async function registerRoutes(app: Express) {
           return res.status(401).json({ message: "認証が必要です" });
         }
         
+        // イベントが正しい形式かどうか確認
+        if (!notificationEvents.includes(event as NotificationEvent)) {
+          return res.status(400).json({ message: "不正なイベント型です" });
+        }
+        
         // 通知履歴にも記録
         await storage.createNotificationHistory({
           userId: req.user.id,
-          event,
+          event: event as NotificationEvent,
           title,
           message,
           link

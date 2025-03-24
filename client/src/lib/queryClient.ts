@@ -8,28 +8,36 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  urlOrOptions: string | { url: string; method?: string; body?: string },
-  options?: { method?: string; body?: string },
+  urlOrOptions: string | { url: string; method?: string; body?: string; headers?: Record<string, string> },
+  options?: { method?: string; body?: string; headers?: Record<string, string> },
 ): Promise<any> {
   let url: string;
   let method = 'GET';
   let body: string | undefined;
+  let headers: Record<string, string> = {};
   
   if (typeof urlOrOptions === 'string') {
     url = urlOrOptions;
     if (options) {
       method = options.method || 'GET';
       body = options.body;
+      headers = options.headers || {};
     }
   } else {
     url = urlOrOptions.url;
     method = urlOrOptions.method || 'GET';
     body = urlOrOptions.body;
+    headers = urlOrOptions.headers || {};
+  }
+  
+  // デフォルトでJSONヘッダーを設定
+  if (body && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
   }
 
   const res = await fetch(url, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : {},
+    headers,
     body,
     credentials: "include",
   });
