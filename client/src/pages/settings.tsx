@@ -36,9 +36,9 @@ function NotificationSettings() {
   const queryClient = useQueryClient();
   
   // 通知設定を取得
-  const { data: settings, isLoading } = useQuery({
+  const { data: settings, isLoading } = useQuery<NotificationSetting>({
     queryKey: ['/api/notification-settings'],
-    queryFn: getQueryFn<NotificationSetting>({ on401: 'throw' }),
+    queryFn: getQueryFn({ on401: 'throw' }),
   });
   
   // 通知タイプのラベルマッピング
@@ -149,6 +149,64 @@ interface NotificationHistoryItem {
   createdAt: string;
 }
 
+// テスト通知コンポーネント
+function TestNotification() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const testNotificationMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/test-notification', {
+        method: 'POST',
+        body: JSON.stringify({
+          event: 'PROJECT_CREATED',
+          title: 'テスト通知',
+          message: 'これはテスト通知です。通知設定が正しく機能していることを確認するために送信されました。',
+          link: window.location.origin
+        })
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "テスト通知を送信しました",
+        description: "メールボックスを確認してください",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/notification-history'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `通知の送信に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  return (
+    <div className="mt-4 flex justify-end">
+      <Button 
+        variant="outline" 
+        size="sm"
+        disabled={testNotificationMutation.isPending}
+        onClick={() => testNotificationMutation.mutate()}
+        className="flex items-center gap-2"
+      >
+        {testNotificationMutation.isPending ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            送信中...
+          </>
+        ) : (
+          <>
+            <Mail className="h-4 w-4" />
+            テスト通知を送信
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+
 // 通知履歴コンポーネント
 function NotificationHistory() {
   const { data: history, isLoading } = useQuery<NotificationHistoryItem[]>({
@@ -157,46 +215,61 @@ function NotificationHistory() {
   });
   
   return (
-    <Accordion type="single" collapsible>
-      <AccordionItem value="notifications">
-        <AccordionTrigger className="flex items-center gap-2">
-          <Mail className="h-4 w-4" />
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <Bell className="h-5 w-5" />
           通知履歴
-        </AccordionTrigger>
-        <AccordionContent>
-          {isLoading ? (
-            <div className="flex justify-center p-4">
-              <Loader2 className="animate-spin h-4 w-4 text-primary" />
-            </div>
-          ) : history && history.length > 0 ? (
-            <div className="space-y-2">
-              {history.map((notification) => (
-                <Card key={notification.id} className="p-3">
-                  <div className="font-medium">{notification.title}</div>
-                  <div className="text-sm text-muted-foreground">{notification.message}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {new Date(notification.createdAt).toLocaleString()}
-                  </div>
-                  {notification.link && (
-                    <a 
-                      href={notification.link} 
-                      className="text-xs text-primary hover:underline mt-1 block"
-                    >
-                      詳細を見る
-                    </a>
-                  )}
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center justify-center p-4 text-muted-foreground">
-              <BellOff className="h-4 w-4 mr-2" />
-              通知履歴がありません
-            </div>
-          )}
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+        </CardTitle>
+        <CardDescription>
+          過去に受け取った通知の履歴を確認します
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="notifications">
+            <AccordionTrigger className="px-0">
+              通知履歴を表示
+            </AccordionTrigger>
+            <AccordionContent>
+              {isLoading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="animate-spin h-4 w-4 text-primary" />
+                </div>
+              ) : history && history.length > 0 ? (
+                <div className="space-y-2 mt-2">
+                  {history.map((notification) => (
+                    <Card key={notification.id} className="p-3">
+                      <div className="font-medium">{notification.title}</div>
+                      <div className="text-sm text-muted-foreground">{notification.message}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {new Date(notification.createdAt).toLocaleString()}
+                      </div>
+                      {notification.link && (
+                        <a 
+                          href={notification.link} 
+                          className="text-xs text-primary hover:underline mt-1 block"
+                        >
+                          詳細を見る
+                        </a>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center p-4 text-muted-foreground">
+                  <BellOff className="h-4 w-4 mr-2" />
+                  通知履歴がありません
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        
+        {/* テスト通知ボタン */}
+        <TestNotification />
+      </CardContent>
+    </Card>
   );
 }
 
