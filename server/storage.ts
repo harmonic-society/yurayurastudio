@@ -39,9 +39,10 @@ import {
   type NotificationEvent
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
+import { sendNotificationEmail } from "./mail";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -381,7 +382,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(timelinePosts)
-      .orderBy(timelinePosts.createdAt, "desc");
+      .orderBy(timelinePosts.createdAt);
   }
   
   async getTimelinePostsByUser(userId: number): Promise<TimelinePost[]> {
@@ -389,7 +390,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(timelinePosts)
       .where(eq(timelinePosts.userId, userId))
-      .orderBy(timelinePosts.createdAt, "desc");
+      .orderBy(timelinePosts.createdAt);
   }
   
   async getTimelinePost(id: number): Promise<TimelinePost | undefined> {
@@ -454,10 +455,15 @@ export class DatabaseStorage implements IStorage {
   
   // Skill Tags methods
   async getSkillTags(): Promise<SkillTag[]> {
-    return await db
-      .select()
-      .from(skillTags)
-      .orderBy([skillTags.categoryId, skillTags.displayOrder]);
+    const tags = await db.select().from(skillTags);
+    return tags.sort((a, b) => {
+      // カテゴリIDで1次ソート
+      if (a.categoryId !== b.categoryId) {
+        return a.categoryId - b.categoryId;
+      }
+      // 表示順序で2次ソート
+      return a.displayOrder - b.displayOrder;
+    });
   }
   
   async getSkillTagsByCategory(categoryId: number): Promise<SkillTag[]> {
