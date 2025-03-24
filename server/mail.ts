@@ -47,7 +47,8 @@ if (hasSmtpConfig()) {
         // Gmailは正しい証明書を持っているので、ここはtrueのままにします
         rejectUnauthorized: true,
       },
-      debug: true,
+      // 本番環境ではデバッグを無効化
+      debug: process.env.NODE_ENV !== 'production',
       logger: true
     });
   } else {
@@ -70,8 +71,9 @@ if (hasSmtpConfig()) {
         minVersion: 'TLSv1', // TLSの最小バージョンを下げる
         ciphers: 'DEFAULT:!DH' // DHキーを使用しない
       },
-      debug: true, // デバッグログを有効化
-      logger: true // コンソールに詳細ログを出力
+      // 本番環境ではデバッグを無効化
+      debug: process.env.NODE_ENV !== 'production', // デバッグログ
+      logger: process.env.NODE_ENV !== 'production' // コンソールに詳細ログを出力
     });
   }
 } else {
@@ -152,11 +154,34 @@ export async function sendNotificationEmail(
     // 環境変数からアプリのURLを決定（本番環境かどうかを判断）
     const isProduction = process.env.NODE_ENV === 'production';
     const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (isProduction ? 8080 : 5000);
+    
+    // Replit環境の検出を強化
+    let replitDomain = null;
     // REPL_SLUG と REPL_OWNER が存在する場合は Replit のドメインを使用
-    const replitDomain = process.env.REPL_SLUG && process.env.REPL_OWNER 
-      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-      : null;
+    if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+      replitDomain = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      console.log(`📧 Replitドメインを検出: ${replitDomain}`);
+    }
+    // REPL_ID と REPL_OWNER がある場合の別パターン
+    else if (process.env.REPL_ID && process.env.REPL_OWNER) {
+      replitDomain = `https://${process.env.REPL_ID}.${process.env.REPL_OWNER}.repl.co`;
+      console.log(`📧 Replitドメイン(ID)を検出: ${replitDomain}`);
+    }
+    // REPLIT_DOMAINS を直接使用
+    else if (process.env.REPLIT_DOMAINS) {
+      replitDomain = `https://${process.env.REPLIT_DOMAINS}`;
+      console.log(`📧 REPLIT_DOMAINSを検出: ${replitDomain}`);
+    }
+    
+    // 優先順位: APP_URL > Replitドメイン > localhost
     const appUrl = process.env.APP_URL || replitDomain || `http://localhost:${port}`;
+    if (process.env.APP_URL) {
+      console.log(`📧 APP_URLを使用: ${process.env.APP_URL}`);
+    } else if (replitDomain) {
+      console.log(`📧 Replitドメインを使用: ${replitDomain}`);
+    } else {
+      console.log(`📧 localhostを使用: http://localhost:${port}`);
+    }
     const settingsUrl = `${appUrl}/settings`;
 
     // 迷惑メールフィルタ対策のための適切なHTML構造
