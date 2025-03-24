@@ -291,11 +291,32 @@ app.use((req, res, next) => {
   }
 
   // サーバーポートと環境設定
-  // 本番環境では環境変数PORT、またはデフォルトの8080を使用
-  // 開発環境ではデフォルトの5000を使用
+  // 本番環境の設定を強化
   const isProduction = process.env.NODE_ENV === 'production';
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : (isProduction ? 8080 : 5000);
-  const host = "0.0.0.0"; // すべてのネットワークインターフェースでリッスン
+  console.log(`実行環境: ${isProduction ? '本番環境' : '開発環境'} (NODE_ENV=${process.env.NODE_ENV})`);
+  
+  // 明示的に本番環境のデフォルトポートを設定
+  let port = 5000; // 開発環境のデフォルト
+  
+  if (isProduction) {
+    // 本番環境ではPORTが必須
+    if (process.env.PORT) {
+      port = parseInt(process.env.PORT, 10);
+    } else {
+      port = 8080; // Cloud Runのデフォルト
+      console.log('警告: 本番環境でPORT環境変数が設定されていません。デフォルトの8080を使用します。');
+    }
+    console.log(`本番環境ポート: ${port}`);
+  } else if (process.env.PORT) {
+    // 開発環境でPORTが指定されている場合
+    port = parseInt(process.env.PORT, 10);
+    console.log(`開発環境カスタムポート: ${port}`);
+  } else {
+    console.log(`開発環境デフォルトポート: ${port}`);
+  }
+  
+  // すべてのネットワークインターフェースでリッスン
+  const host = "0.0.0.0";
   
   server.listen({
     port,

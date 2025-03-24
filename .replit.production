@@ -1,0 +1,15 @@
+run = "NODE_ENV=production npm run build && NODE_ENV=production npm run start"
+hidden = [".git", "node_modules"]
+
+# 以下の設定は本番環境用の設定です
+[env]
+NODE_ENV = "production"
+PORT = "8080"
+
+[[ports]]
+localPort = 8080
+externalPort = 80
+
+[deployment]
+run = ["sh", "-c", "NODE_ENV=production npm run build && NODE_ENV=production npm run start"]
+deploymentTarget = "cloudrun"
