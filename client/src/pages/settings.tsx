@@ -24,6 +24,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { Bell, BellOff, Mail, Loader2, Settings as SettingsIcon } from "lucide-react";
+import { EmailJSSender } from "@/components/emailjs-sender";
 import { 
   Dialog,
   DialogContent,
@@ -369,8 +370,19 @@ function NotificationHistory() {
           </AccordionItem>
         </Accordion>
         
-        {/* テスト通知ボタン */}
-        <TestNotification />
+        <div className="mt-4 space-y-4">
+          <h3 className="text-sm font-medium">テスト通知</h3>
+          <div className="flex flex-wrap gap-2">
+            {/* テスト通知ボタン */}
+            <TestNotification />
+            
+            {/* EmailJS送信ボタン（代替送信手段） */}
+            <EmailJSSender />
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            通常の送信方法でエラーが出る場合は、EmailJSを使用した代替送信を試してください。
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
