@@ -374,8 +374,11 @@ export type NotificationEvent = (typeof notificationEvents)[number];
 export const notificationSettings = pgTable("notification_settings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  event: text("event", { enum: notificationEvents }).notNull(),
-  email: pgBoolean("email").notNull().default(true),
+  notifyProjectCreated: pgBoolean("notify_project_created").notNull().default(true),
+  notifyProjectUpdated: pgBoolean("notify_project_updated").notNull().default(true),
+  notifyProjectCommented: pgBoolean("notify_project_commented").notNull().default(true),
+  notifyProjectCompleted: pgBoolean("notify_project_completed").notNull().default(true),
+  notifyRewardDistributed: pgBoolean("notify_reward_distributed").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -395,8 +398,8 @@ export const notificationHistory = pgTable("notification_history", {
   event: text("event", { enum: notificationEvents }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  metadata: json("metadata").$type<Record<string, any>>(),
-  sentAt: timestamp("sent_at").notNull().defaultNow(),
+  link: text("link"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   read: pgBoolean("read").notNull().default(false),
 });
 
@@ -413,15 +416,11 @@ export const insertNotificationSettingSchema = createInsertSchema(notificationSe
   id: true,
   createdAt: true,
   updatedAt: true,
-}).extend({
-  event: z.enum(notificationEvents, {
-    errorMap: () => ({ message: "有効な通知イベントを選択してください" })
-  }),
 });
 
 export const insertNotificationHistorySchema = createInsertSchema(notificationHistory).omit({
   id: true,
-  sentAt: true,
+  createdAt: true,
   read: true,
 }).extend({
   event: z.enum(notificationEvents, {
@@ -429,6 +428,7 @@ export const insertNotificationHistorySchema = createInsertSchema(notificationHi
   }),
   title: z.string().min(1, "タイトルは必須です"),
   message: z.string().min(1, "メッセージは必須です"),
+  link: z.string().nullable().optional(),
 });
 
 // ユーザーリレーションの定義（スキルとメール通知を含む）
