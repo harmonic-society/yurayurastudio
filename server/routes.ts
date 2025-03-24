@@ -1212,59 +1212,82 @@ export async function registerRoutes(app: Express) {
     }
   });
   
-  // テスト用の通知送信エンドポイント（開発環境でのみ有効）
-  if (process.env.NODE_ENV === "development") {
-    app.post("/api/test-notification", async (req, res) => {
-      if (!req.isAuthenticated()) {
+  // テスト用の通知送信エンドポイント
+  app.post("/api/test-notification", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      console.log("🧪 テスト通知リクエスト受信:", req.body);
+      const eventType = req.body.event || "PROJECT_CREATED";
+      const title = req.body.title || "テスト通知";
+      const message = req.body.message || "これはテスト通知です。";
+      const link = req.body.link || null;
+      
+      if (!req.user) {
         return res.status(401).json({ message: "認証が必要です" });
       }
       
+      // イベントが正しい形式かどうか確認
+      if (!notificationEvents.includes(eventType as NotificationEvent)) {
+        console.error("不正なイベント型:", eventType);
+        return res.status(400).json({ message: "不正なイベント型です" });
+      }
+      
+      console.log(`🧪 テスト通知を送信します: ユーザーID ${req.user.id}, イベント: ${eventType}`);
+      
       try {
-        const { event, title, message, link } = req.body;
-        
-        if (!req.user) {
-          return res.status(401).json({ message: "認証が必要です" });
-        }
-        
-        // イベントが正しい形式かどうか確認
-        if (!notificationEvents.includes(event as NotificationEvent)) {
-          return res.status(400).json({ message: "不正なイベント型です" });
-        }
-        
-        // 通知履歴にも記録
+        // 通知履歴を記録
         await storage.createNotificationHistory({
           userId: req.user.id,
-          event: event as NotificationEvent,
+          event: eventType as NotificationEvent,
           title,
           message,
           link
         });
-        
+        console.log("✅ 通知履歴を記録しました");
+      } catch (historyError) {
+        console.error("通知履歴記録エラー:", historyError);
+        // 履歴エラーは無視して続行
+      }
+      
+      try {
         // メール送信
-        await storage.sendNotificationEmail(req.user.id, event as NotificationEvent, {
+        await storage.sendNotificationEmail(req.user.id, eventType as NotificationEvent, {
           title,
           message,
           link
         });
-        
-        // 最もシンプルな形式で応答する
-        res.json({ 
-          success: true, 
-          message: "テスト通知を送信しました", 
-          timestamp: new Date().toISOString() 
-        });
-      } catch (error) {
-        console.error("テスト通知エラー:", error);
-        // エラー時も最もシンプルな形式で応答する
-        res.status(500).json({ 
+        console.log("✅ テスト通知メールを送信しました");
+      } catch (emailError) {
+        console.error("メール送信エラー:", emailError);
+        return res.status(500).json({ 
           success: false, 
-          message: "テスト通知の送信に失敗しました", 
-          error: error instanceof Error ? error.message : String(error),
+          message: "テスト通知メールの送信に失敗しました", 
+          error: emailError instanceof Error ? emailError.message : String(emailError),
           timestamp: new Date().toISOString() 
         });
       }
-    });
-  }
+      
+      // 最もシンプルな形式で応答する
+      res.json({ 
+        success: true, 
+        message: "テスト通知を送信しました", 
+        timestamp: new Date().toISOString(),
+        email: req.user.email
+      });
+    } catch (error) {
+      console.error("テスト通知エラー:", error);
+      // エラー時も最もシンプルな形式で応答する
+      res.status(500).json({ 
+        success: false, 
+        message: "テスト通知の送信に失敗しました", 
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString() 
+      });
+    }
+  });
 
   return httpServer;
 }

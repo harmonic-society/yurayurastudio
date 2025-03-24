@@ -646,35 +646,75 @@ export class DatabaseStorage implements IStorage {
   // メール通知送信メソッド
   async sendNotificationEmail(userId: number, event: NotificationEvent, data: { title: string; message: string; link?: string }): Promise<void> {
     try {
+      console.log(`📣 通知処理を開始します: ユーザーID ${userId}, イベント: ${event}`);
+      
       // ユーザー情報を取得
       const user = await this.getUser(userId);
-      if (!user) return;
+      if (!user) {
+        console.log(`ユーザーID ${userId} が見つかりません`);
+        return;
+      }
       
       // 通知設定を取得
       const settings = await this.getUserNotificationSettings(userId);
-      if (!settings) return; // 設定がなければ何もしない
-      
-      // 通知が有効かチェック
-      switch (event) {
-        case 'PROJECT_CREATED':
-          if (!settings.notifyProjectCreated) return;
-          break;
-        case 'PROJECT_UPDATED':
-          if (!settings.notifyProjectUpdated) return;
-          break;
-        case 'PROJECT_COMMENTED':
-          if (!settings.notifyProjectCommented) return;
-          break;
-        case 'PROJECT_COMPLETED':
-          if (!settings.notifyProjectCompleted) return;
-          break;
-        case 'REWARD_DISTRIBUTED':
-          if (!settings.notifyRewardDistributed) return;
-          break;
+      if (!settings) {
+        console.log(`ユーザーID ${userId} の通知設定が見つかりません。テスト通知の場合は通知設定を作成します。`);
+        
+        // テスト通知の場合は通知設定を自動作成
+        if (data.title === "テスト通知") {
+          await this.createOrUpdateNotificationSettings({
+            userId: userId,
+            notifyProjectCreated: true,
+            notifyProjectUpdated: true,
+            notifyProjectCommented: true,
+            notifyProjectCompleted: true,
+            notifyRewardDistributed: true
+          });
+        } else {
+          return; // テスト通知でない場合は処理を終了
+        }
       }
       
+      // 通知が有効かチェック（テスト通知の場合はスキップ）
+      if (data.title !== "テスト通知") {
+        switch (event) {
+          case 'PROJECT_CREATED':
+            if (!settings?.notifyProjectCreated) {
+              console.log(`ユーザーID ${userId} はプロジェクト作成通知を無効にしています`);
+              return;
+            }
+            break;
+          case 'PROJECT_UPDATED':
+            if (!settings?.notifyProjectUpdated) {
+              console.log(`ユーザーID ${userId} はプロジェクト更新通知を無効にしています`);
+              return;
+            }
+            break;
+          case 'PROJECT_COMMENTED':
+            if (!settings?.notifyProjectCommented) {
+              console.log(`ユーザーID ${userId} はコメント通知を無効にしています`);
+              return;
+            }
+            break;
+          case 'PROJECT_COMPLETED':
+            if (!settings?.notifyProjectCompleted) {
+              console.log(`ユーザーID ${userId} はプロジェクト完了通知を無効にしています`);
+              return;
+            }
+            break;
+          case 'REWARD_DISTRIBUTED':
+            if (!settings?.notifyRewardDistributed) {
+              console.log(`ユーザーID ${userId} は報酬分配通知を無効にしています`);
+              return;
+            }
+            break;
+        }
+      }
+      
+      console.log(`📧 メール送信を実行します: ${user.email}`);
       // メール送信
       await sendNotificationEmail(user.email, event, data);
+      console.log(`📧 メール送信完了しました: ${user.email}`);
       
       // 通知履歴を保存
       await this.createNotificationHistory({

@@ -22,6 +22,15 @@ let transporter: nodemailer.Transporter;
 
 if (hasSmtpConfig()) {
   // 実際のSMTPサーバーを使用
+  console.log("📧 SMTP設定を使用します:", {
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER ? "設定済み" : "未設定",
+    pass: process.env.SMTP_PASS ? "設定済み" : "未設定",
+    from: process.env.SMTP_FROM || "未設定"
+  });
+  
   transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
@@ -30,6 +39,8 @@ if (hasSmtpConfig()) {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    debug: true, // デバッグログを有効化
+    logger: true // コンソールに詳細ログを出力
   });
 } else {
   // テスト用のトランスポーター（コンソールにログ出力するだけ）
@@ -97,23 +108,41 @@ export async function sendNotificationEmail(
     link?: string; 
   }
 ): Promise<void> {
-  const subject = getNotificationSubject(event);
-  const linkHtml = data.link ? `<p><a href="${data.link}">詳細を見る</a></p>` : "";
+  try {
+    console.log(`📧 メール送信を開始します: ${email}, イベント: ${event}`);
+    
+    const subject = getNotificationSubject(event);
+    const linkHtml = data.link ? `<p><a href="${data.link}">詳細を見る</a></p>` : "";
 
-  const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`;
-  const settingsUrl = `${appUrl}/settings`;
+    const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const settingsUrl = `${appUrl}/settings`;
 
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || 'noreply@yurayurastudio.com',
-    to: email,
-    subject: subject,
-    html: `
-      <h1>${data.title}</h1>
-      <p>${data.message}</p>
-      ${linkHtml}
-      <hr>
-      <p>このメールはYura Yura Studioから自動送信されています。</p>
-      <p>通知設定は<a href="${settingsUrl}">設定ページ</a>から変更できます。</p>
-    `,
-  });
+    const mailOptions = {
+      from: process.env.SMTP_FROM || 'noreply@yurayurastudio.com',
+      to: email,
+      subject: subject,
+      html: `
+        <h1>${data.title}</h1>
+        <p>${data.message}</p>
+        ${linkHtml}
+        <hr>
+        <p>このメールはYura Yura Studioから自動送信されています。</p>
+        <p>通知設定は<a href="${settingsUrl}">設定ページ</a>から変更できます。</p>
+      `,
+    };
+    
+    console.log("📧 メール送信オプション:", { 
+      from: mailOptions.from, 
+      to: mailOptions.to, 
+      subject: mailOptions.subject 
+    });
+    
+    const info = await transporter.sendMail(mailOptions);
+    console.log("📧 メール送信成功:", info.messageId);
+    
+    return info;
+  } catch (error) {
+    console.error("📧 メール送信エラー:", error);
+    throw error;
+  }
 }
