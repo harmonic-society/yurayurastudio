@@ -36,9 +36,16 @@ if (hasSmtpConfig()) {
     console.log("📧 Gmail設定を使用します");
     transporter = nodemailer.createTransport({
       service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true', // 465ポートの場合はtrue
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS, // App Password を使用
+        pass: process.env.SMTP_PASS, // アプリパスワードを使用
+      },
+      tls: {
+        // Gmailは正しい証明書を持っているので、ここはtrueのままにします
+        rejectUnauthorized: true,
       },
       debug: true,
       logger: true
@@ -169,8 +176,19 @@ export async function sendNotificationEmail(
       const info = await transporter.sendMail(mailOptions);
       console.log("📧 メール送信成功:", info.messageId);
       return info;
-    } catch (error) {
-      console.error("📧 主要SMTP送信エラー:", error);
+    } catch (error: any) {
+      console.error("📧 SMTP送信エラー:", error);
+      
+      // Gmailの特殊なエラーのハンドリング
+      if (process.env.SMTP_HOST?.includes('gmail.com')) {
+        if (error.message?.includes('Invalid login')) {
+          console.error("📧 Gmail認証エラー: ユーザー名またはパスワードが無効です。アプリパスワードを使用していることを確認してください。");
+        } else if (error.message?.includes('Server busy')) {
+          console.error("📧 Gmailサーバービジー: しばらく待ってから再試行してください。");
+        } else if (error.message?.includes('rate limit')) {
+          console.error("📧 Gmail送信レート制限: 送信制限に達しました。しばらく待ってから再試行してください。");
+        }
+      }
       
       // テスト用にコンソールには常に表示
       console.log("\n📧 メール送信失敗時のコンテンツ表示:");
@@ -180,7 +198,13 @@ export async function sendNotificationEmail(
       console.log("\n");
       
       // エラーをスローして呼び出し元で処理できるようにする
-      throw error;
+      throw {
+        message: error.message || 'メール送信エラー',
+        code: error.code,
+        response: error.response,
+        responseCode: error.responseCode,
+        smtpProvider: process.env.SMTP_HOST?.includes('gmail.com') ? 'Gmail' : 'カスタムSMTP'
+      };
     }
   } catch (error) {
     console.error("📧 メール送信エラー:", error);
