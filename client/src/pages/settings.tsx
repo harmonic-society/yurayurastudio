@@ -1,12 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { changePasswordSchema, type ChangePassword } from "@shared/schema";
+import { 
+  changePasswordSchema, 
+  type ChangePassword,
+  type NotificationSetting
+} from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import {
   Form,
   FormControl,
@@ -14,8 +18,187 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
+import { Bell, BellOff, Mail, Loader2 } from "lucide-react";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+// 通知設定のコンポーネント
+function NotificationSettings() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // 通知設定を取得
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['/api/notification-settings'],
+    queryFn: getQueryFn<NotificationSetting>({ on401: 'throw' }),
+  });
+  
+  // 通知タイプのラベルマッピング
+  const notificationTypes = {
+    notifyProjectCreated: {
+      label: "プロジェクト作成通知",
+      description: "新しいプロジェクトが作成された時に通知を受け取ります"
+    },
+    notifyProjectUpdated: {
+      label: "プロジェクト更新通知",
+      description: "プロジェクトが更新された時に通知を受け取ります"
+    },
+    notifyProjectCommented: {
+      label: "コメント通知",
+      description: "プロジェクトに新しいコメントがあった時に通知を受け取ります"
+    },
+    notifyProjectCompleted: {
+      label: "プロジェクト完了通知",
+      description: "プロジェクトが完了した時に通知を受け取ります"
+    },
+    notifyRewardDistributed: {
+      label: "報酬分配通知",
+      description: "報酬が分配された時に通知を受け取ります"
+    }
+  };
+  
+  // 通知設定更新のミューテーション
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: Partial<NotificationSetting>) => {
+      const response = await apiRequest('/api/notification-settings', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "設定を保存しました",
+        description: "通知設定が更新されました",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/notification-settings'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `設定の保存に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // 通知設定の切り替え処理
+  const handleToggle = (key: keyof typeof notificationTypes, value: boolean) => {
+    updateSettingsMutation.mutate({ [key]: value } as Partial<NotificationSetting>);
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="animate-spin h-8 w-8 text-primary" />
+      </div>
+    );
+  }
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Bell className="h-5 w-5" />
+          通知設定
+        </CardTitle>
+        <CardDescription>
+          メール通知の受信設定を管理します
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {Object.entries(notificationTypes).map(([key, { label, description }]) => {
+          const typedKey = key as keyof typeof notificationTypes;
+          const enabled = settings ? (settings as any)[typedKey] : false;
+          
+          return (
+            <div key={key} className="flex items-start justify-between space-y-0">
+              <div>
+                <div className="font-medium">{label}</div>
+                <div className="text-sm text-muted-foreground">{description}</div>
+              </div>
+              <Switch
+                checked={enabled}
+                onCheckedChange={(checked) => handleToggle(typedKey, checked)}
+                disabled={updateSettingsMutation.isPending}
+              />
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
+// 通知履歴の型定義
+interface NotificationHistoryItem {
+  id: number;
+  userId: number;
+  event: string;
+  title: string;
+  message: string;
+  link?: string;
+  createdAt: string;
+}
+
+// 通知履歴コンポーネント
+function NotificationHistory() {
+  const { data: history, isLoading } = useQuery<NotificationHistoryItem[]>({
+    queryKey: ['/api/notification-history'],
+    queryFn: getQueryFn({ on401: 'throw' }),
+  });
+  
+  return (
+    <Accordion type="single" collapsible>
+      <AccordionItem value="notifications">
+        <AccordionTrigger className="flex items-center gap-2">
+          <Mail className="h-4 w-4" />
+          通知履歴
+        </AccordionTrigger>
+        <AccordionContent>
+          {isLoading ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="animate-spin h-4 w-4 text-primary" />
+            </div>
+          ) : history && history.length > 0 ? (
+            <div className="space-y-2">
+              {history.map((notification) => (
+                <Card key={notification.id} className="p-3">
+                  <div className="font-medium">{notification.title}</div>
+                  <div className="text-sm text-muted-foreground">{notification.message}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {new Date(notification.createdAt).toLocaleString()}
+                  </div>
+                  {notification.link && (
+                    <a 
+                      href={notification.link} 
+                      className="text-xs text-primary hover:underline mt-1 block"
+                    >
+                      詳細を見る
+                    </a>
+                  )}
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center p-4 text-muted-foreground">
+              <BellOff className="h-4 w-4 mr-2" />
+              通知履歴がありません
+            </div>
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
 
 export default function Settings() {
   const { toast } = useToast();
@@ -68,7 +251,14 @@ export default function Settings() {
         </p>
       </div>
 
-      <div className="grid gap-6 max-w-lg">
+      <div className="grid gap-6 max-w-2xl">
+        {/* 通知設定セクション */}
+        <NotificationSettings />
+        
+        {/* 通知履歴セクション */}
+        <NotificationHistory />
+        
+        {/* パスワード変更セクション */}
         <Card>
           <CardHeader>
             <CardTitle>パスワード変更</CardTitle>
