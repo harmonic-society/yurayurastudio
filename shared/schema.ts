@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean as pgBoolean, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean as pgBoolean, primaryKey, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -321,11 +321,6 @@ export const userSkillsRelations = relations(userSkills, ({ one }) => ({
   }),
 }));
 
-// ユーザーリレーションの更新
-export const usersRelations = relations(users, ({ many }) => ({
-  skills: many(userSkills),
-}));
-
 // スキーマ定義
 export const insertSkillCategorySchema = createInsertSchema(skillCategories).omit({
   id: true,
@@ -370,3 +365,80 @@ export const insertRewardDistributionSchema = createInsertSchema(rewardDistribut
 
 export type RewardDistribution = typeof rewardDistributions.$inferSelect;
 export type InsertRewardDistribution = z.infer<typeof insertRewardDistributionSchema>;
+
+// 通知設定のEnum
+export const notificationEvents = ["PROJECT_CREATED", "PROJECT_UPDATED", "PROJECT_COMMENTED", "PROJECT_COMPLETED", "REWARD_DISTRIBUTED"] as const;
+export type NotificationEvent = (typeof notificationEvents)[number];
+
+// 通知設定テーブル
+export const notificationSettings = pgTable("notification_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  event: text("event", { enum: notificationEvents }).notNull(),
+  email: pgBoolean("email").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// 通知設定とユーザーのリレーション
+export const notificationSettingsRelations = relations(notificationSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [notificationSettings.userId],
+    references: [users.id],
+  }),
+}));
+
+// 通知履歴テーブル
+export const notificationHistory = pgTable("notification_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  event: text("event", { enum: notificationEvents }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  metadata: json("metadata").$type<Record<string, any>>(),
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+  read: pgBoolean("read").notNull().default(false),
+});
+
+// 通知履歴とユーザーのリレーション
+export const notificationHistoryRelations = relations(notificationHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [notificationHistory.userId],
+    references: [users.id],
+  }),
+}));
+
+// 挿入スキーマの定義
+export const insertNotificationSettingSchema = createInsertSchema(notificationSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  event: z.enum(notificationEvents, {
+    errorMap: () => ({ message: "有効な通知イベントを選択してください" })
+  }),
+});
+
+export const insertNotificationHistorySchema = createInsertSchema(notificationHistory).omit({
+  id: true,
+  sentAt: true,
+  read: true,
+}).extend({
+  event: z.enum(notificationEvents, {
+    errorMap: () => ({ message: "有効な通知イベントを選択してください" })
+  }),
+  title: z.string().min(1, "タイトルは必須です"),
+  message: z.string().min(1, "メッセージは必須です"),
+});
+
+// ユーザーリレーションに通知設定を追加
+export const usersRelations = relations(users, ({ many }) => ({
+  skills: many(userSkills),
+  notificationSettings: many(notificationSettings),
+  notificationHistory: many(notificationHistory),
+}));
+
+export type NotificationSetting = typeof notificationSettings.$inferSelect;
+export type InsertNotificationSetting = z.infer<typeof insertNotificationSettingSchema>;
+export type NotificationHistory = typeof notificationHistory.$inferSelect;
+export type InsertNotificationHistory = z.infer<typeof insertNotificationHistorySchema>;
