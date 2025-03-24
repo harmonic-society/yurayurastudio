@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,16 @@ import {
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
-import { Bell, BellOff, Mail, Loader2 } from "lucide-react";
+import { Bell, BellOff, Mail, Loader2, Settings as SettingsIcon } from "lucide-react";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { 
   Accordion,
   AccordionContent,
@@ -153,9 +163,12 @@ interface NotificationHistoryItem {
 function TestNotification() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [testEmail, setTestEmail] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<any>(null);
   
   const testNotificationMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (customEmail?: string) => {
       // できるだけシンプルな形式でリクエストを送信
       return fetch('/api/test-notification', {
         method: 'POST',
@@ -165,32 +178,43 @@ function TestNotification() {
           event: "PROJECT_CREATED",
           title: "テスト通知",
           message: "これはテスト通知です。通知設定が正しく機能していることを確認するために送信されました。",
-          link: window.location.origin
+          link: window.location.origin,
+          testEmail: customEmail || undefined // カスタムメールアドレスがある場合のみ送信
         })
       }).then(async response => {
-        if (!response.ok) {
-          throw new Error(`${response.status}: ${response.statusText}`);
-        }
-        
         // responseのボディは一度しか読めないため、先に内容を取得
         const responseText = await response.text();
+        let responseData: any = { success: true };
         
         try {
           // テキストが空でない場合のみJSONとして解析
-          return responseText ? JSON.parse(responseText) : { success: true };
+          if (responseText) {
+            responseData = JSON.parse(responseText);
+          }
         } catch (e) {
           console.error('JSONパースエラー:', e);
-          // すでにテキストを読み取っているのでここで再度読むことはできない
-          return { success: true };
         }
+        
+        // レスポンスが成功しなかった場合、エラー情報を保持してエラーをスロー
+        if (!response.ok) {
+          if (responseData.error) {
+            setErrorDetails(responseData.error);
+            throw new Error(responseData.message || `${response.status}: ${response.statusText}`);
+          } else {
+            throw new Error(`${response.status}: ${response.statusText}`);
+          }
+        }
+        
+        return responseData;
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "テスト通知を送信しました",
-        description: "メールボックスを確認してください",
+        description: `送信先: ${data.email || 'あなたのメールアドレス'}`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/notification-history'] });
+      setIsDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -202,26 +226,86 @@ function TestNotification() {
   });
   
   return (
-    <div className="mt-4 flex justify-end">
-      <Button 
-        variant="outline" 
-        size="sm"
-        disabled={testNotificationMutation.isPending}
-        onClick={() => testNotificationMutation.mutate()}
-        className="flex items-center gap-2"
-      >
-        {testNotificationMutation.isPending ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            送信中...
-          </>
-        ) : (
-          <>
-            <Mail className="h-4 w-4" />
-            テスト通知を送信
-          </>
-        )}
-      </Button>
+    <div className="mt-4">
+      <div className="flex justify-between items-center">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setIsDialogOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <SettingsIcon className="h-4 w-4" />
+          詳細設定
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          size="sm"
+          disabled={testNotificationMutation.isPending}
+          onClick={() => testNotificationMutation.mutate(undefined)}
+          className="flex items-center gap-2"
+        >
+          {testNotificationMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              送信中...
+            </>
+          ) : (
+            <>
+              <Mail className="h-4 w-4" />
+              テスト通知を送信
+            </>
+          )}
+        </Button>
+      </div>
+      
+      {/* テスト送信設定ダイアログ */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>テスト通知設定</DialogTitle>
+            <DialogDescription>
+              テスト通知の送信先を指定できます。空白の場合は現在のユーザーのメールアドレスに送信されます。
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="testEmail">テスト送信先メールアドレス</Label>
+              <Input
+                id="testEmail"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                placeholder="example@example.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                デフォルトではあなたのアカウントに設定されているメールアドレスに送信されます
+              </p>
+            </div>
+            
+            {errorDetails && (
+              <div className="mt-4 p-4 bg-destructive/10 rounded border border-destructive/20">
+                <h4 className="text-sm font-medium mb-2">最後のエラー詳細</h4>
+                <pre className="text-xs overflow-auto p-2 bg-muted rounded">
+                  {JSON.stringify(errorDetails, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              キャンセル
+            </Button>
+            <Button 
+              disabled={testNotificationMutation.isPending}
+              onClick={() => testNotificationMutation.mutate(testEmail)}
+            >
+              {testNotificationMutation.isPending ? "送信中..." : "送信"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

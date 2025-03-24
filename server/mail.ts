@@ -44,6 +44,11 @@ if (hasSmtpConfig()) {
       logger: true
     });
   } else {
+    console.log("📧 カスタムSMTP設定を使用します");
+    
+    // Node.js環境変数で強制的にTLSセキュリティレベルを下げる（重要：これはセキュリティリスクがあります）
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    
     // 通常のSMTP設定
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -55,7 +60,8 @@ if (hasSmtpConfig()) {
       },
       tls: {
         rejectUnauthorized: false, // 自己署名証明書を許可
-        ciphers: 'SSLv3' // 古い暗号化方式をサポート
+        minVersion: 'TLSv1', // TLSの最小バージョンを下げる
+        ciphers: 'DEFAULT:!DH' // DHキーを使用しない
       },
       debug: true, // デバッグログを有効化
       logger: true // コンソールに詳細ログを出力

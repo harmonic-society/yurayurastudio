@@ -26,6 +26,7 @@ import { setupAuth } from "./auth";
 import { isAdmin, canUpdateProjectStatus, canChangePassword, canAccessProject } from "./middleware/permissions";
 import { comparePasswords, hashPassword } from "./auth";
 import { db } from './db';
+import { sendNotificationEmail } from "./mail";
 import { eq } from 'drizzle-orm';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -1224,6 +1225,7 @@ export async function registerRoutes(app: Express) {
       const title = req.body.title || "テスト通知";
       const message = req.body.message || "これはテスト通知です。";
       const link = req.body.link || null;
+      const testEmail = req.body.testEmail; // テスト用の送信先メールアドレス（オプション）
       
       if (!req.user) {
         return res.status(401).json({ message: "認証が必要です" });
@@ -1235,7 +1237,10 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "ユーザーが見つかりません" });
       }
       
-      console.log(`🧪 テスト通知を送信します: ユーザー ${user.name} (${user.email}), イベント: ${eventType}`);
+      // 送信先メールアドレスを決定
+      const targetEmail = testEmail || user.email;
+      
+      console.log(`🧪 テスト通知を送信します: ユーザー ${user.name} (${user.email}), 送信先: ${targetEmail}, イベント: ${eventType}`);
       
       // イベントが正しい形式かどうか確認
       if (!notificationEvents.includes(eventType as NotificationEvent)) {
@@ -1270,20 +1275,30 @@ export async function registerRoutes(app: Express) {
       }
       
       try {
-        // メール送信
-        await storage.sendNotificationEmail(req.user.id, eventType as NotificationEvent, {
-          title,
-          message,
-          link
-        });
-        console.log("✅ テスト通知メールを送信しました");
+        // カスタムメールアドレスが指定されている場合、直接メール送信メソッドを呼び出す
+        if (testEmail) {
+          await sendNotificationEmail(testEmail, eventType as NotificationEvent, {
+            title,
+            message,
+            link
+          });
+          console.log(`✅ カスタムアドレス ${testEmail} へテスト通知メールを送信しました`);
+        } else {
+          // 通常のフロー（ユーザーIDを使用してストレージから送信）
+          await storage.sendNotificationEmail(req.user.id, eventType as NotificationEvent, {
+            title,
+            message,
+            link
+          });
+          console.log("✅ テスト通知メールを送信しました");
+        }
         
         // 成功したら通常通り応答
         return res.json({ 
           success: true, 
           message: "テスト通知を送信しました", 
           timestamp: new Date().toISOString(),
-          email: user.email
+          email: testEmail || user.email
         });
       } catch (emailError) {
         console.error("📧 メール送信エラー詳細:", emailError);
