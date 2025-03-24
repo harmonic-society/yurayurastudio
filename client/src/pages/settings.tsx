@@ -80,6 +80,10 @@ function NotificationSettings() {
     notifyProjectAssigned: {
       label: "プロジェクトアサイン通知",
       description: "プロジェクトにアサインされた時に通知を受け取ります"
+    },
+    notifyRegistrationRequest: {
+      label: "登録リクエスト通知",
+      description: "新しい登録リクエストがあった時に通知を受け取ります (管理者のみ)"
     }
   };
   

@@ -377,6 +377,37 @@ export async function registerRoutes(app: Express) {
         ...requestData,
         password: hashedPassword
       });
+      
+      // 管理者ユーザーに通知メールを送信
+      try {
+        // 管理者ユーザー一覧を取得
+        const adminUsers = await storage.getUsers();
+        const admins = adminUsers.filter(user => user.role === "ADMIN");
+        
+        if (admins.length > 0) {
+          for (const admin of admins) {
+            // 管理者の通知設定を確認
+            const adminSettings = await storage.getUserNotificationSettings(admin.id);
+            
+            // 管理者が登録リクエスト通知を有効にしている場合に通知
+            if (adminSettings?.notifyRegistrationRequest) {
+              await storage.sendNotificationEmail(
+                admin.id,
+                "REGISTRATION_REQUEST",
+                {
+                  title: "新しい登録リクエストがあります",
+                  message: `「${request.name}」さんから新しい登録リクエストがありました。管理画面で確認してください。`,
+                  link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/admin/registration-requests`
+                }
+              );
+              console.log(`✅ 登録リクエスト通知メールを送信しました: 管理者ID ${admin.id}`);
+            }
+          }
+        }
+      } catch (emailError) {
+        console.error("登録リクエスト通知メールの送信に失敗しました:", emailError);
+        // メール送信エラーはリクエスト登録自体の失敗とはしない
+      }
 
       res.json({
         message: "登録リクエストを受け付けました。管理者の承認をお待ちください。",

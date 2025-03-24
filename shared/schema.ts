@@ -374,7 +374,8 @@ export const notificationEvents = [
   "PROJECT_COMPLETED", 
   "REWARD_DISTRIBUTED",
   "REGISTRATION_APPROVED",
-  "PROJECT_ASSIGNED"
+  "PROJECT_ASSIGNED",
+  "REGISTRATION_REQUEST"
 ] as const;
 export type NotificationEvent = (typeof notificationEvents)[number];
 
@@ -389,6 +390,7 @@ export const notificationSettings = pgTable("notification_settings", {
   notifyRewardDistributed: pgBoolean("notify_reward_distributed").notNull().default(true),
   notifyRegistrationApproved: pgBoolean("notify_registration_approved").notNull().default(true),
   notifyProjectAssigned: pgBoolean("notify_project_assigned").notNull().default(true),
+  notifyRegistrationRequest: pgBoolean("notify_registration_request").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
