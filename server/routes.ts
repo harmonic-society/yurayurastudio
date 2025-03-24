@@ -116,12 +116,46 @@ export async function registerRoutes(app: Express) {
   // Update a project (ステータス変更は全員可能、その他は管理者のみ)
   app.patch("/api/projects/:id", canUpdateProjectStatus, async (req, res) => {
     try {
+      const projectId = Number(req.params.id);
+      const oldProject = await storage.getProject(projectId);
+      
       const projectData = {
         ...insertProjectSchema.partial().parse(req.body),
         ...(typeof req.body.rewardDistributed === 'boolean' ? { rewardDistributed: req.body.rewardDistributed } : {})
       };
 
-      const project = await storage.updateProject(Number(req.params.id), projectData);
+      const project = await storage.updateProject(projectId, projectData);
+      
+      // プロジェクトにアサインされたユーザーに通知を送信
+      if (projectData.assignedUsers && Array.isArray(projectData.assignedUsers)) {
+        // 前のアサインユーザーとの差分を取得して新しくアサインされたユーザーを特定
+        const oldAssignedUsers = oldProject?.assignedUsers || [];
+        const newlyAssignedUsers = projectData.assignedUsers.filter(userId => 
+          !oldAssignedUsers.includes(userId)
+        );
+        
+        // 新しくアサインされたユーザーにメール通知
+        if (newlyAssignedUsers.length > 0) {
+          try {
+            for (const userId of newlyAssignedUsers) {
+              await storage.sendNotificationEmail(
+                userId,
+                "PROJECT_ASSIGNED",
+                {
+                  title: "プロジェクトにアサインされました",
+                  message: `新しいプロジェクト「${project.name}」にあなたがアサインされました。詳細を確認してください。`,
+                  link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/projects/${project.id}`
+                }
+              );
+              console.log(`✅ プロジェクトアサイン通知メールを送信しました: ユーザーID ${userId}、プロジェクト「${project.name}」`);
+            }
+          } catch (emailError) {
+            console.error("プロジェクトアサイン通知メールの送信に失敗しました:", emailError);
+            // メール送信エラーはプロジェクト更新自体の失敗とはしない
+          }
+        }
+      }
+      
       res.json(project);
     } catch (error) {
       console.error('Project update error:', error);
