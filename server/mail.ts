@@ -126,6 +126,8 @@ export function getNotificationSubject(event: NotificationEvent): string {
     PROJECT_COMMENTED: "プロジェクトに新しいコメントがあります",
     PROJECT_COMPLETED: "プロジェクトが完了しました",
     REWARD_DISTRIBUTED: "報酬が分配されました",
+    REGISTRATION_APPROVED: "登録リクエストが承認されました",
+    PROJECT_ASSIGNED: "プロジェクトにアサインされました",
   };
   return subjects[event];
 }

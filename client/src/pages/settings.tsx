@@ -72,6 +72,14 @@ function NotificationSettings() {
     notifyRewardDistributed: {
       label: "報酬分配通知",
       description: "報酬が分配された時に通知を受け取ります"
+    },
+    notifyRegistrationApproved: {
+      label: "登録承認通知",
+      description: "登録リクエストが承認された時に通知を受け取ります"
+    },
+    notifyProjectAssigned: {
+      label: "プロジェクトアサイン通知",
+      description: "プロジェクトにアサインされた時に通知を受け取ります"
     }
   };
   

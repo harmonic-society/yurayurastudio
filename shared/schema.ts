@@ -367,7 +367,15 @@ export type RewardDistribution = typeof rewardDistributions.$inferSelect;
 export type InsertRewardDistribution = z.infer<typeof insertRewardDistributionSchema>;
 
 // 通知設定のEnum
-export const notificationEvents = ["PROJECT_CREATED", "PROJECT_UPDATED", "PROJECT_COMMENTED", "PROJECT_COMPLETED", "REWARD_DISTRIBUTED"] as const;
+export const notificationEvents = [
+  "PROJECT_CREATED", 
+  "PROJECT_UPDATED", 
+  "PROJECT_COMMENTED", 
+  "PROJECT_COMPLETED", 
+  "REWARD_DISTRIBUTED",
+  "REGISTRATION_APPROVED",
+  "PROJECT_ASSIGNED"
+] as const;
 export type NotificationEvent = (typeof notificationEvents)[number];
 
 // 通知設定テーブル
@@ -379,6 +387,8 @@ export const notificationSettings = pgTable("notification_settings", {
   notifyProjectCommented: pgBoolean("notify_project_commented").notNull().default(true),
   notifyProjectCompleted: pgBoolean("notify_project_completed").notNull().default(true),
   notifyRewardDistributed: pgBoolean("notify_reward_distributed").notNull().default(true),
+  notifyRegistrationApproved: pgBoolean("notify_registration_approved").notNull().default(true),
+  notifyProjectAssigned: pgBoolean("notify_project_assigned").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

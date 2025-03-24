@@ -398,16 +398,38 @@ export async function registerRoutes(app: Express) {
         }
 
         // ユーザーを作成（createdAtは自動設定）
-        await storage.createUser({
+        const newUser = await storage.createUser({
           name: request.name,
           role: request.role,
           email: request.email,
           username: request.username,
           password: request.password,
-          approved: true
+          approved: true,
+          createdAt: new Date(),
+          avatarUrl: null,
+          bio: null,
+          title: null
         });
 
         await storage.updateRegistrationRequestStatus(Number(id), "APPROVED");
+        
+        // 登録承認通知メールを送信
+        try {
+          await storage.sendNotificationEmail(
+            newUser.id,
+            "REGISTRATION_APPROVED",
+            {
+              title: "登録リクエストが承認されました",
+              message: `${newUser.name}さん、Yura Yura Studioへのアカウント登録が承認されました。ログインして利用を開始できます。`,
+              link: `${process.env.APP_URL || 'https://yurayurastudio.com'}`
+            }
+          );
+          console.log(`✅ 登録承認通知メールを送信しました: ${newUser.email}`);
+        } catch (emailError) {
+          console.error("登録承認通知メールの送信に失敗しました:", emailError);
+          // メール送信エラーはユーザー作成自体の失敗とはしない
+        }
+        
         res.json({ message: "ユーザー登録を承認しました" });
       } else if (action === "reject") {
         await storage.updateRegistrationRequestStatus(Number(id), "REJECTED");
