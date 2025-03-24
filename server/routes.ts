@@ -1220,6 +1220,20 @@ export async function registerRoutes(app: Express) {
       try {
         const { event, title, message, link } = req.body;
         
+        if (!req.user) {
+          return res.status(401).json({ message: "認証が必要です" });
+        }
+        
+        // 通知履歴にも記録
+        await storage.createNotificationHistory({
+          userId: req.user.id,
+          event,
+          title,
+          message,
+          link
+        });
+        
+        // メール送信
         await storage.sendNotificationEmail(req.user.id, event, {
           title,
           message,
