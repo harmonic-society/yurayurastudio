@@ -49,7 +49,16 @@ export async function apiRequest(
     return null;
   }
   
-  return await res.json();
+  try {
+    // エラー処理を追加
+    const text = await res.text();
+    // 空のレスポンスがJSONとして解析されないようにする
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("JSON解析エラー:", error);
+    throw new Error("レスポンスの解析に失敗しました");
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -67,7 +76,15 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    
+    try {
+      const text = await res.text();
+      if (!text) return null;
+      return JSON.parse(text);
+    } catch (error) {
+      console.error("JSON解析エラー:", error);
+      throw new Error("レスポンスの解析に失敗しました");
+    }
   };
 
 export const queryClient = new QueryClient({

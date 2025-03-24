@@ -1247,7 +1247,7 @@ export async function registerRoutes(app: Express) {
           link
         });
         
-        res.json({ message: "テスト通知を送信しました" });
+        return res.json({ success: true, message: "テスト通知を送信しました" });
       } catch (error) {
         console.error("テスト通知エラー:", error);
         res.status(500).json({ message: "テスト通知の送信に失敗しました" });
