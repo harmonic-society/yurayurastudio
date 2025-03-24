@@ -39,7 +39,7 @@ import {
   type NotificationEvent
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, desc, inArray, sql, isNull } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { sendNotificationEmail } from "./mail";
