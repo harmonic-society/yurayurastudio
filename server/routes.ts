@@ -1249,13 +1249,13 @@ export async function registerRoutes(app: Express) {
         
         return res
           .status(200)
-          .header('Content-Type', 'application/json')
+          .set('Content-Type', 'application/json')
           .send(JSON.stringify({ success: true, message: "テスト通知を送信しました", timestamp: new Date().toISOString() }));
       } catch (error) {
         console.error("テスト通知エラー:", error);
         return res
           .status(500)
-          .header('Content-Type', 'application/json')
+          .set('Content-Type', 'application/json')
           .send(JSON.stringify({ 
             success: false, 
             message: "テスト通知の送信に失敗しました", 
