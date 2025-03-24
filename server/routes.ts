@@ -1241,7 +1241,7 @@ export async function registerRoutes(app: Express) {
         });
         
         // メール送信
-        await storage.sendNotificationEmail(req.user.id, event, {
+        await storage.sendNotificationEmail(req.user.id, event as NotificationEvent, {
           title,
           message,
           link
