@@ -156,7 +156,8 @@ function TestNotification() {
   
   const testNotificationMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/test-notification', {
+      return await apiRequest({
+        url: '/api/test-notification',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

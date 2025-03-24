@@ -123,7 +123,8 @@ export default function UserProfile() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: { bio: string | null, title: string | null }) => {
       if (!userId) return null;
-      return await apiRequest(`/api/users/${userId}`, {
+      return await apiRequest({
+        url: `/api/users/${userId}`,
         method: 'PATCH',
         body: JSON.stringify(data)
       });
@@ -149,7 +150,8 @@ export default function UserProfile() {
   const updateSkillsMutation = useMutation({
     mutationFn: async (skillTagIds: number[]) => {
       if (!userId) return null;
-      return await apiRequest(`/api/users/${userId}/skills`, {
+      return await apiRequest({
+        url: `/api/users/${userId}/skills`,
         method: 'PUT',
         body: JSON.stringify({ 
           userId: Number(userId),
