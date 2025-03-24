@@ -594,6 +594,100 @@ export class DatabaseStorage implements IStorage {
       amount
     };
   }
+
+  // 通知設定メソッド
+  async getUserNotificationSettings(userId: number): Promise<NotificationSetting | undefined> {
+    const [settings] = await db
+      .select()
+      .from(notificationSettings)
+      .where(eq(notificationSettings.userId, userId));
+    return settings;
+  }
+  
+  async createOrUpdateNotificationSettings(settings: InsertNotificationSetting): Promise<NotificationSetting> {
+    // 既存の設定を確認
+    const existing = await this.getUserNotificationSettings(settings.userId);
+    
+    if (existing) {
+      // 既存の設定を更新
+      const [updated] = await db
+        .update(notificationSettings)
+        .set(settings)
+        .where(eq(notificationSettings.userId, settings.userId))
+        .returning();
+      return updated;
+    } else {
+      // 新しい設定を作成
+      const [newSettings] = await db
+        .insert(notificationSettings)
+        .values(settings)
+        .returning();
+      return newSettings;
+    }
+  }
+  
+  // 通知履歴メソッド
+  async getNotificationHistory(userId: number): Promise<NotificationHistory[]> {
+    return await db
+      .select()
+      .from(notificationHistory)
+      .where(eq(notificationHistory.userId, userId))
+      .orderBy(notificationHistory.createdAt);
+  }
+  
+  async createNotificationHistory(notification: InsertNotificationHistory): Promise<NotificationHistory> {
+    const [newNotification] = await db
+      .insert(notificationHistory)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+  
+  // メール通知送信メソッド
+  async sendNotificationEmail(userId: number, event: NotificationEvent, data: { title: string; message: string; link?: string }): Promise<void> {
+    try {
+      // ユーザー情報を取得
+      const user = await this.getUser(userId);
+      if (!user) return;
+      
+      // 通知設定を取得
+      const settings = await this.getUserNotificationSettings(userId);
+      if (!settings) return; // 設定がなければ何もしない
+      
+      // 通知が有効かチェック
+      switch (event) {
+        case 'PROJECT_CREATED':
+          if (!settings.notifyProjectCreated) return;
+          break;
+        case 'PROJECT_UPDATED':
+          if (!settings.notifyProjectUpdated) return;
+          break;
+        case 'PROJECT_COMMENTED':
+          if (!settings.notifyProjectCommented) return;
+          break;
+        case 'PROJECT_COMPLETED':
+          if (!settings.notifyProjectCompleted) return;
+          break;
+        case 'REWARD_DISTRIBUTED':
+          if (!settings.notifyRewardDistributed) return;
+          break;
+      }
+      
+      // メール送信
+      await sendNotificationEmail(user.email, event, data);
+      
+      // 通知履歴を保存
+      await this.createNotificationHistory({
+        userId,
+        event,
+        title: data.title,
+        message: data.message,
+        link: data.link || null,
+      });
+    } catch (error) {
+      console.error("通知メール送信エラー:", error);
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

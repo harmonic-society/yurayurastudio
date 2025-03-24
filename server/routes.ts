@@ -1142,5 +1142,97 @@ export async function registerRoutes(app: Express) {
     `);
   });
 
+  // 通知設定関連のエンドポイント
+  // 通知設定の取得
+  app.get("/api/notification-settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const settings = await storage.getUserNotificationSettings(req.user.id);
+      if (!settings) {
+        // デフォルトですべての通知が有効
+        const defaultSettings = {
+          userId: req.user.id,
+          notifyProjectCreated: true,
+          notifyProjectUpdated: true,
+          notifyProjectCommented: true,
+          notifyProjectCompleted: true,
+          notifyRewardDistributed: true
+        };
+        const newSettings = await storage.createOrUpdateNotificationSettings(defaultSettings);
+        return res.json(newSettings);
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error("通知設定取得エラー:", error);
+      res.status(500).json({ message: "通知設定の取得に失敗しました" });
+    }
+  });
+  
+  // 通知設定の更新
+  app.post("/api/notification-settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const settings = {
+        userId: req.user.id,
+        notifyProjectCreated: !!req.body.notifyProjectCreated,
+        notifyProjectUpdated: !!req.body.notifyProjectUpdated,
+        notifyProjectCommented: !!req.body.notifyProjectCommented, 
+        notifyProjectCompleted: !!req.body.notifyProjectCompleted,
+        notifyRewardDistributed: !!req.body.notifyRewardDistributed
+      };
+      
+      const updatedSettings = await storage.createOrUpdateNotificationSettings(settings);
+      res.json(updatedSettings);
+    } catch (error) {
+      console.error("通知設定更新エラー:", error);
+      res.status(500).json({ message: "通知設定の更新に失敗しました" });
+    }
+  });
+  
+  // 通知履歴の取得
+  app.get("/api/notification-history", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const history = await storage.getNotificationHistory(req.user.id);
+      res.json(history);
+    } catch (error) {
+      console.error("通知履歴取得エラー:", error);
+      res.status(500).json({ message: "通知履歴の取得に失敗しました" });
+    }
+  });
+  
+  // テスト用の通知送信エンドポイント（開発環境でのみ有効）
+  if (process.env.NODE_ENV === "development") {
+    app.post("/api/test-notification", async (req, res) => {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "認証が必要です" });
+      }
+      
+      try {
+        const { event, title, message, link } = req.body;
+        
+        await storage.sendNotificationEmail(req.user.id, event, {
+          title,
+          message,
+          link
+        });
+        
+        res.json({ message: "テスト通知を送信しました" });
+      } catch (error) {
+        console.error("テスト通知エラー:", error);
+        res.status(500).json({ message: "テスト通知の送信に失敗しました" });
+      }
+    });
+  }
+
   return httpServer;
 }
