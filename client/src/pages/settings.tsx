@@ -172,11 +172,15 @@ function TestNotification() {
           throw new Error(`${response.status}: ${response.statusText}`);
         }
         
+        // responseのボディは一度しか読めないため、先に内容を取得
+        const responseText = await response.text();
+        
         try {
-          const text = await response.text();
-          return text ? JSON.parse(text) : { success: true };
+          // テキストが空でない場合のみJSONとして解析
+          return responseText ? JSON.parse(responseText) : { success: true };
         } catch (e) {
-          console.log('レスポンステキスト:', await response.text());
+          console.error('JSONパースエラー:', e);
+          // すでにテキストを読み取っているのでここで再度読むことはできない
           return { success: true };
         }
       });
