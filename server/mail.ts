@@ -31,17 +31,36 @@ if (hasSmtpConfig()) {
     from: process.env.SMTP_FROM || "未設定"
   });
   
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    debug: true, // デバッグログを有効化
-    logger: true // コンソールに詳細ログを出力
-  });
+  // Gmail向け特別設定
+  if (process.env.SMTP_HOST?.includes('gmail.com')) {
+    console.log("📧 Gmail設定を使用します");
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS, // App Password を使用
+      },
+      debug: true,
+      logger: true
+    });
+  } else {
+    // 通常のSMTP設定
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false, // 自己署名証明書を許可
+        ciphers: 'SSLv3' // 古い暗号化方式をサポート
+      },
+      debug: true, // デバッグログを有効化
+      logger: true // コンソールに詳細ログを出力
+    });
+  }
 } else {
   // テスト用のトランスポーター（コンソールにログ出力するだけ）
   console.log("⚠️ SMTP設定が見つかりません。メールはコンソールに出力されます。");
@@ -98,7 +117,7 @@ export function getNotificationSubject(event: NotificationEvent): string {
   return subjects[event];
 }
 
-// 通知メール送信
+// メール送信、3つの方法を試行
 export async function sendNotificationEmail(
   email: string, 
   event: NotificationEvent, 
@@ -117,18 +136,20 @@ export async function sendNotificationEmail(
     const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 5000}`;
     const settingsUrl = `${appUrl}/settings`;
 
+    const htmlContent = `
+      <h1>${data.title}</h1>
+      <p>${data.message}</p>
+      ${linkHtml}
+      <hr>
+      <p>このメールはYura Yura Studioから自動送信されています。</p>
+      <p>通知設定は<a href="${settingsUrl}">設定ページ</a>から変更できます。</p>
+    `;
+
     const mailOptions = {
       from: process.env.SMTP_FROM || 'noreply@yurayurastudio.com',
       to: email,
       subject: subject,
-      html: `
-        <h1>${data.title}</h1>
-        <p>${data.message}</p>
-        ${linkHtml}
-        <hr>
-        <p>このメールはYura Yura Studioから自動送信されています。</p>
-        <p>通知設定は<a href="${settingsUrl}">設定ページ</a>から変更できます。</p>
-      `,
+      html: htmlContent,
     };
     
     console.log("📧 メール送信オプション:", { 
@@ -137,10 +158,24 @@ export async function sendNotificationEmail(
       subject: mailOptions.subject 
     });
     
-    const info = await transporter.sendMail(mailOptions);
-    console.log("📧 メール送信成功:", info.messageId);
-    
-    return info;
+    // 送信を試みます
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log("📧 メール送信成功:", info.messageId);
+      return info;
+    } catch (error) {
+      console.error("📧 主要SMTP送信エラー:", error);
+      
+      // テスト用にコンソールには常に表示
+      console.log("\n📧 メール送信失敗時のコンテンツ表示:");
+      console.log("To:", email);
+      console.log("Subject:", subject);
+      console.log("HTML Content:", htmlContent);
+      console.log("\n");
+      
+      // エラーをスローして呼び出し元で処理できるようにする
+      throw error;
+    }
   } catch (error) {
     console.error("📧 メール送信エラー:", error);
     throw error;

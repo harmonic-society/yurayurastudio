@@ -1229,13 +1229,30 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "認証が必要です" });
       }
       
+      // ユーザー情報を取得
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "ユーザーが見つかりません" });
+      }
+      
+      console.log(`🧪 テスト通知を送信します: ユーザー ${user.name} (${user.email}), イベント: ${eventType}`);
+      
       // イベントが正しい形式かどうか確認
       if (!notificationEvents.includes(eventType as NotificationEvent)) {
         console.error("不正なイベント型:", eventType);
         return res.status(400).json({ message: "不正なイベント型です" });
       }
       
-      console.log(`🧪 テスト通知を送信します: ユーザーID ${req.user.id}, イベント: ${eventType}`);
+      // SMTP設定が有効かどうか確認するためのデバッグ情報
+      console.log("🔍 メール送信前確認:", {
+        "SMTP_HOST": process.env.SMTP_HOST ? "設定済み" : "未設定",
+        "SMTP_PORT": process.env.SMTP_PORT ? "設定済み" : "未設定",
+        "SMTP_USER": process.env.SMTP_USER ? "設定済み" : "未設定",
+        "SMTP_PASS": process.env.SMTP_PASS ? "設定済み" : "未設定",
+        "SMTP_FROM": process.env.SMTP_FROM || "未設定",
+        "SMTP_SECURE": process.env.SMTP_SECURE || "未設定",
+        "送信先メール": user.email
+      });
       
       try {
         // 通知履歴を記録
@@ -1260,31 +1277,59 @@ export async function registerRoutes(app: Express) {
           link
         });
         console.log("✅ テスト通知メールを送信しました");
+        
+        // 成功したら通常通り応答
+        return res.json({ 
+          success: true, 
+          message: "テスト通知を送信しました", 
+          timestamp: new Date().toISOString(),
+          email: user.email
+        });
       } catch (emailError) {
-        console.error("メール送信エラー:", emailError);
+        console.error("📧 メール送信エラー詳細:", emailError);
+        
+        // エラーの詳細情報を抽出
+        let errorDetails = {
+          message: emailError instanceof Error ? emailError.message : String(emailError),
+          code: (emailError as any)?.code || "不明なエラーコード",
+          response: (emailError as any)?.response || null,
+          responseCode: (emailError as any)?.responseCode || null,
+        };
+        
+        // RejectedError がある場合はそれも表示
+        if ((emailError as any)?.rejected) {
+          errorDetails = {
+            ...errorDetails,
+            rejected: (emailError as any).rejected,
+            rejectedErrors: (emailError as any).rejectedErrors?.map((e: any) => e.message) || []
+          };
+        }
+        
+        // 構造化されたエラー情報をレスポンスに含める
         return res.status(500).json({ 
           success: false, 
           message: "テスト通知メールの送信に失敗しました", 
-          error: emailError instanceof Error ? emailError.message : String(emailError),
-          timestamp: new Date().toISOString() 
+          error: errorDetails,
+          timestamp: new Date().toISOString(),
+          ipAddress: req.ip, // クライアントのIP（参考情報）
+          debug: {
+            smtpHost: process.env.SMTP_HOST ? process.env.SMTP_HOST : null,
+            smtpPort: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : null,
+            smtpSecure: process.env.SMTP_SECURE === 'true',
+            smtpHasAuth: Boolean(process.env.SMTP_USER && process.env.SMTP_PASS),
+            targetEmail: user.email
+          }
         });
       }
-      
-      // 最もシンプルな形式で応答する
-      res.json({ 
-        success: true, 
-        message: "テスト通知を送信しました", 
-        timestamp: new Date().toISOString(),
-        email: req.user.email
-      });
     } catch (error) {
       console.error("テスト通知エラー:", error);
-      // エラー時も最もシンプルな形式で応答する
+      // エラー時も詳細な情報を返す
       res.status(500).json({ 
         success: false, 
         message: "テスト通知の送信に失敗しました", 
         error: error instanceof Error ? error.message : String(error),
-        timestamp: new Date().toISOString() 
+        timestamp: new Date().toISOString(),
+        stack: process.env.NODE_ENV === 'production' ? undefined : (error instanceof Error ? error.stack : undefined)
       });
     }
   });
