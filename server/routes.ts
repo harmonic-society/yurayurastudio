@@ -1247,21 +1247,21 @@ export async function registerRoutes(app: Express) {
           link
         });
         
-        return res
-          .status(200)
-          .set('Content-Type', 'application/json')
-          .send(JSON.stringify({ success: true, message: "テスト通知を送信しました", timestamp: new Date().toISOString() }));
+        // 最もシンプルな形式で応答する
+        res.json({ 
+          success: true, 
+          message: "テスト通知を送信しました", 
+          timestamp: new Date().toISOString() 
+        });
       } catch (error) {
         console.error("テスト通知エラー:", error);
-        return res
-          .status(500)
-          .set('Content-Type', 'application/json')
-          .send(JSON.stringify({ 
-            success: false, 
-            message: "テスト通知の送信に失敗しました", 
-            error: error instanceof Error ? error.message : String(error),
-            timestamp: new Date().toISOString() 
-          }));
+        // エラー時も最もシンプルな形式で応答する
+        res.status(500).json({ 
+          success: false, 
+          message: "テスト通知の送信に失敗しました", 
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString() 
+        });
       }
     });
   }

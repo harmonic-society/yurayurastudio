@@ -156,14 +156,29 @@ function TestNotification() {
   
   const testNotificationMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/test-notification', {
-        method: 'POST', 
+      // できるだけシンプルな形式でリクエストを送信
+      return fetch('/api/test-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           event: "PROJECT_CREATED",
           title: "テスト通知",
           message: "これはテスト通知です。通知設定が正しく機能していることを確認するために送信されました。",
           link: window.location.origin
         })
+      }).then(async response => {
+        if (!response.ok) {
+          throw new Error(`${response.status}: ${response.statusText}`);
+        }
+        
+        try {
+          const text = await response.text();
+          return text ? JSON.parse(text) : { success: true };
+        } catch (e) {
+          console.log('レスポンステキスト:', await response.text());
+          return { success: true };
+        }
       });
     },
     onSuccess: () => {
