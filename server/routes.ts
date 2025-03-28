@@ -188,17 +188,95 @@ export async function registerRoutes(app: Express) {
       return res.status(401).json({ message: "認証が必要です" });
     }
     try {
+      const projectId = Number(req.params.id);
+      const userId = req.user.id;
+      
       const commentData = insertCommentSchema.parse({
         ...req.body,
-        projectId: Number(req.params.id),
-        userId: req.user.id // ログインユーザーのIDを使用
+        projectId,
+        userId // ログインユーザーのIDを使用
       });
+      
       const comment = await storage.createComment(commentData);
+      
+      // Get the project details for notifications
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        console.error(`プロジェクト情報が見つかりません: ID=${projectId}`);
+        return res.status(201).json(comment);
+      }
+      
+      // メンションの処理
+      try {
+        // コメント内容から@ユーザー名のパターンを検出
+        const users = await storage.getUsers();
+        const mentionedUsers = new Set<number>();
+        
+        // @ユーザー名 のパターンを検出
+        const mentionRegex = /@([^\s]+)/g;
+        let match;
+        while ((match = mentionRegex.exec(commentData.content)) !== null) {
+          const userName = match[1];
+          const mentionedUser = users.find(u => u.name === userName);
+          
+          if (mentionedUser && mentionedUser.id !== userId) {
+            mentionedUsers.add(mentionedUser.id);
+          }
+        }
+        
+        if (mentionedUsers.size > 0) {
+          console.log(`メンションされたユーザー: ${[...mentionedUsers].join(', ')}`);
+          
+          // メンションされたユーザーそれぞれに通知を送信
+          for (const mentionedUserId of mentionedUsers) {
+            // ユーザーの通知設定を確認
+            const notificationSettings = await storage.getUserNotificationSettings(mentionedUserId);
+            
+            if (notificationSettings?.notifyCommentMention !== false) {
+              const commenterName = req.user.name || 'ユーザー';
+              
+              // 通知履歴を追加
+              await storage.createNotificationHistory({
+                userId: mentionedUserId,
+                event: "COMMENT_MENTION",
+                title: `${commenterName}さんがあなたをメンションしました`,
+                message: `プロジェクト「${project.name}」のコメントであなたがメンションされました`,
+                link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/projects/${projectId}`
+              });
+              
+              // メール通知
+              try {
+                const mentionedUser = users.find(u => u.id === mentionedUserId);
+                if (mentionedUser?.email) {
+                  await sendNotificationEmail(
+                    mentionedUser.email,
+                    "COMMENT_MENTION",
+                    {
+                      title: `${commenterName}さんがあなたをメンションしました`,
+                      message: `プロジェクト「${project.name}」のコメントで${commenterName}さんがあなたをメンションしました。\n\n「${commentData.content.substring(0, 100)}${commentData.content.length > 100 ? '...' : ''}」`,
+                      link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/projects/${projectId}`
+                    }
+                  );
+                  console.log(`✅ メンション通知メールを送信しました: ユーザーID ${mentionedUserId}`);
+                }
+              } catch (emailError) {
+                console.error(`メンション通知メールの送信に失敗しました: ユーザーID ${mentionedUserId}`, emailError);
+                // メール送信エラーはコメント作成自体の失敗とはしない
+              }
+            }
+          }
+        }
+      } catch (notificationError) {
+        console.error("メンション通知の処理中にエラーが発生しました:", notificationError);
+        // 通知エラーはコメント作成自体の失敗とはしない
+      }
+      
       res.status(201).json(comment);
     } catch (error) {
       if (error instanceof ZodError) {
         res.status(400).json({ message: "無効なコメントデータです", errors: error.errors });
       } else {
+        console.error("Comment creation error:", error);
         res.status(500).json({ message: "コメントの作成に失敗しました" });
       }
     }

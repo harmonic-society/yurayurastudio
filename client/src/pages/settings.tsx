@@ -84,6 +84,10 @@ function NotificationSettings() {
     notifyRegistrationRequest: {
       label: "登録リクエスト通知",
       description: "新しい登録リクエストがあった時に通知を受け取ります (管理者のみ)"
+    },
+    notifyCommentMention: {
+      label: "メンション通知",
+      description: "コメントで@メンションされた時に通知を受け取ります"
     }
   };
   

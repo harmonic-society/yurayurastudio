@@ -130,7 +130,8 @@ export function getNotificationSubject(event: NotificationEvent): string {
     REWARD_DISTRIBUTED: "報酬が分配されました",
     REGISTRATION_APPROVED: "登録リクエストが承認されました",
     PROJECT_ASSIGNED: "プロジェクトにアサインされました",
-    REGISTRATION_REQUEST: "新しい登録リクエストがあります"
+    REGISTRATION_REQUEST: "新しい登録リクエストがあります",
+    COMMENT_MENTION: "コメントであなたがメンションされました"
   };
   return subjects[event];
 }
