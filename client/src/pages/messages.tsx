@@ -319,7 +319,7 @@ export default function MessagesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex h-[70vh] md:h-[60vh] overflow-hidden">
+            <div className="flex h-[calc(100vh-14rem)] overflow-hidden">
               {/* ユーザーリスト（モバイルでは選択時に非表示） */}
               {(!isMobile || !selectedUser) && (
                 <div className={`${isMobile ? 'w-full' : 'w-1/3 border-r'} pr-4`}>
@@ -567,9 +567,9 @@ export default function MessagesPage() {
                       </div>
 
                       {/* メッセージ表示エリア */}
-                      <div className="relative flex-1 mb-4 flex flex-col">
+                      <div className="relative flex-1 mb-4 flex flex-col border rounded-md overflow-hidden">
                         {/* 上部にある「過去のメッセージを表示」ボタン */}
-                        <div className="sticky top-0 z-10 flex justify-center py-2 bg-background">
+                        <div className="sticky top-0 z-10 flex justify-center py-2 bg-background border-b">
                           <Button 
                             variant="outline" 
                             size="sm"
@@ -589,9 +589,9 @@ export default function MessagesPage() {
                           </Button>
                         </div>
                         
-                        <ScrollArea className="h-[calc(60vh-10.5rem)] pr-4 flex-1">
+                        <div className="overflow-y-auto h-[400px] pr-4 pl-4 py-2">
                           {selectedConversation && Array.isArray(selectedConversation) && selectedConversation.length > 0 ? (
-                            <div className="space-y-4 pt-8">
+                            <div className="space-y-4 pt-4">
                               {/* 日付ごとにメッセージをグループ化 */}
                               {Object.entries(groupMessagesByDate(filteredMessages)).map(([date, messages]: [string, DirectMessage[]]) => (
                                 <div key={date} className="mb-6">
@@ -679,7 +679,7 @@ export default function MessagesPage() {
                               </div>
                             </div>
                           )}
-                        </ScrollArea>
+                        </div>
                       </div>
                       
                       {/* メッセージ入力エリア（LINE風） */}
