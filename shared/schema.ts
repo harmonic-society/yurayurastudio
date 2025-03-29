@@ -384,6 +384,7 @@ export type NotificationEvent = (typeof notificationEvents)[number];
 export const notificationSettings = pgTable("notification_settings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  // アプリ内通知設定
   notifyProjectCreated: pgBoolean("notify_project_created").notNull().default(true),
   notifyProjectUpdated: pgBoolean("notify_project_updated").notNull().default(true),
   notifyProjectCommented: pgBoolean("notify_project_commented").notNull().default(true),
@@ -393,6 +394,16 @@ export const notificationSettings = pgTable("notification_settings", {
   notifyProjectAssigned: pgBoolean("notify_project_assigned").notNull().default(true),
   notifyRegistrationRequest: pgBoolean("notify_registration_request").notNull().default(true),
   notifyCommentMention: pgBoolean("notify_comment_mention").notNull().default(true),
+  // メール通知設定
+  emailNotifyProjectCreated: pgBoolean("email_notify_project_created").notNull().default(true),
+  emailNotifyProjectUpdated: pgBoolean("email_notify_project_updated").notNull().default(true),
+  emailNotifyProjectCommented: pgBoolean("email_notify_project_commented").notNull().default(true),
+  emailNotifyProjectCompleted: pgBoolean("email_notify_project_completed").notNull().default(true),
+  emailNotifyRewardDistributed: pgBoolean("email_notify_reward_distributed").notNull().default(true),
+  emailNotifyRegistrationApproved: pgBoolean("email_notify_registration_approved").notNull().default(true),
+  emailNotifyProjectAssigned: pgBoolean("email_notify_project_assigned").notNull().default(true),
+  emailNotifyRegistrationRequest: pgBoolean("email_notify_registration_request").notNull().default(true),
+  emailNotifyCommentMention: pgBoolean("email_notify_comment_mention").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

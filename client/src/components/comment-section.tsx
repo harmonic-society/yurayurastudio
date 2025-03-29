@@ -133,12 +133,12 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
     // @名前 のパターンを検出して、ハイライト表示
     const parts = [];
     let lastIndex = 0;
-    const regex = /@([^\s]+)/g;
+    const regex = /@([^\s@]+(?:\s+[^\s@]+)*)/g;
     let match;
     
     while ((match = regex.exec(content)) !== null) {
       const userName = match[1];
-      const mentionedUser = users.find(u => u.name === userName);
+      const mentionedUser = users.find(u => u.name === userName || u.username === userName);
       
       if (mentionedUser) {
         // マッチ前のテキスト

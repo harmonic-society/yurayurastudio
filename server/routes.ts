@@ -227,11 +227,11 @@ export async function registerRoutes(app: Express) {
         console.log(`ユーザー一覧:`, users.map(u => ({ id: u.id, name: u.name, username: u.username })));
         
         // @ユーザー名 のパターンを検出（スペースを含む名前に対応）
-        const mentionRegex = /@([^\s]+(?:\s+[^\s]+)*)/g;
+        const mentionRegex = /@([^\s@]+(?:\s+[^\s@]+)*)/g;
         let match;
         while ((match = mentionRegex.exec(commentData.content)) !== null) {
           const mentionText = match[1];
-          console.log(`検出されたメンション: @${mentionText}`);
+          console.log(`検出されたメンション: ${mentionText}`);
           
           // ユーザー名とユーザーネームの両方で検索
           const mentionedUser = users.find(
@@ -248,7 +248,7 @@ export async function registerRoutes(app: Express) {
               console.log(`自分自身のメンションは無視: ${mentionedUser.id}`);
             }
           } else {
-            console.log(`メンションされたユーザーが見つかりません: @${mentionText}`);
+            console.log(`メンションされたユーザーが見つかりません: ${mentionText}`);
           }
         }
         
@@ -267,9 +267,11 @@ export async function registerRoutes(app: Express) {
             const notificationSettings = await storage.getUserNotificationSettings(mentionedUserId);
             console.log(`メンションユーザーの通知設定:`, notificationSettings);
             
+            const commenterName = req.user.name || 'ユーザー';
+            
+            // アプリ内通知の処理
             if (notificationSettings?.notifyCommentMention !== false) {
-              console.log(`通知設定OK: ${mentionedUserId} に通知を送信します`);
-              const commenterName = req.user.name || 'ユーザー';
+              console.log(`アプリ内通知設定OK: ${mentionedUserId} に通知を送信します`);
               
               try {
                 // 通知履歴を追加
@@ -282,31 +284,37 @@ export async function registerRoutes(app: Express) {
                 });
                 
                 console.log(`✅ 通知履歴の追加に成功: ID=${notification.id}`);
-                
-                // メール通知
-                try {
-                  const mentionedUser = users.find(u => u.id === mentionedUserId);
-                  if (mentionedUser?.email) {
-                    await sendNotificationEmail(
-                      mentionedUser.email,
-                      "COMMENT_MENTION",
-                      {
-                        title: `${commenterName}さんがあなたをメンションしました`,
-                        message: `プロジェクト「${project.name}」のコメントで${commenterName}さんがあなたをメンションしました。\n\n「${commentData.content.substring(0, 100)}${commentData.content.length > 100 ? '...' : ''}」`,
-                        link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/projects/${projectId}`
-                      }
-                    );
-                    console.log(`✅ メンション通知メールを送信しました: ユーザーID ${mentionedUserId}`);
-                  }
-                } catch (emailError) {
-                  console.error(`メンション通知メールの送信に失敗しました: ユーザーID ${mentionedUserId}`, emailError);
-                  // メール送信エラーはコメント作成自体の失敗とはしない
-                }
               } catch (notificationError) {
                 console.error(`通知の作成に失敗しました: ユーザーID ${mentionedUserId}`, notificationError);
               }
             } else {
-              console.log(`通知設定により通知はスキップされました: ユーザーID ${mentionedUserId}`);
+              console.log(`アプリ内通知設定により通知はスキップされました: ユーザーID ${mentionedUserId}`);
+            }
+            
+            // メール通知の処理
+            if (notificationSettings?.emailNotifyCommentMention !== false) {
+              console.log(`メール通知設定OK: ${mentionedUserId} にメールを送信します`);
+              
+              try {
+                const mentionedUser = users.find(u => u.id === mentionedUserId);
+                if (mentionedUser?.email) {
+                  await sendNotificationEmail(
+                    mentionedUser.email,
+                    "COMMENT_MENTION",
+                    {
+                      title: `${commenterName}さんがあなたをメンションしました`,
+                      message: `プロジェクト「${project.name}」のコメントで${commenterName}さんがあなたをメンションしました。\n\n「${commentData.content.substring(0, 100)}${commentData.content.length > 100 ? '...' : ''}」`,
+                      link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/projects/${projectId}`
+                    }
+                  );
+                  console.log(`✅ メンション通知メールを送信しました: ユーザーID ${mentionedUserId}`);
+                }
+              } catch (emailError) {
+                console.error(`メンション通知メールの送信に失敗しました: ユーザーID ${mentionedUserId}`, emailError);
+                // メール送信エラーはコメント作成自体の失敗とはしない
+              }
+            } else {
+              console.log(`メール通知設定により通知はスキップされました: ユーザーID ${mentionedUserId}`);
             }
           }
         }
@@ -511,8 +519,21 @@ export async function registerRoutes(app: Express) {
             // 管理者の通知設定を確認
             const adminSettings = await storage.getUserNotificationSettings(admin.id);
             
-            // 管理者が登録リクエスト通知を有効にしている場合に通知
+            // アプリ内通知を処理
             if (adminSettings?.notifyRegistrationRequest) {
+              // 通知履歴を追加
+              await storage.createNotificationHistory({
+                userId: admin.id,
+                event: "REGISTRATION_REQUEST",
+                title: "新しい登録リクエストがあります",
+                message: `「${request.name}」さんから新しい登録リクエストがありました。管理画面で確認してください。`,
+                link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/admin/registration-requests`
+              });
+              console.log(`✅ 登録リクエスト通知を作成しました: 管理者ID ${admin.id}`);
+            }
+            
+            // メール通知を処理
+            if (adminSettings?.emailNotifyRegistrationRequest) {
               await storage.sendNotificationEmail(
                 admin.id,
                 "REGISTRATION_REQUEST",
@@ -1367,11 +1388,27 @@ export async function registerRoutes(app: Express) {
         // デフォルトですべての通知が有効
         const defaultSettings = {
           userId: req.user.id,
+          // アプリ内通知はデフォルトですべて有効
           notifyProjectCreated: true,
           notifyProjectUpdated: true,
           notifyProjectCommented: true,
           notifyProjectCompleted: true,
-          notifyRewardDistributed: true
+          notifyRewardDistributed: true,
+          notifyRegistrationApproved: true,
+          notifyProjectAssigned: true,
+          notifyRegistrationRequest: true,
+          notifyCommentMention: true,
+          
+          // メール通知もデフォルトですべて有効
+          emailNotifyProjectCreated: true,
+          emailNotifyProjectUpdated: true,
+          emailNotifyProjectCommented: true,
+          emailNotifyProjectCompleted: true,
+          emailNotifyRewardDistributed: true,
+          emailNotifyRegistrationApproved: true,
+          emailNotifyProjectAssigned: true,
+          emailNotifyRegistrationRequest: true,
+          emailNotifyCommentMention: true
         };
         const newSettings = await storage.createOrUpdateNotificationSettings(defaultSettings);
         return res.json(newSettings);
@@ -1390,14 +1427,64 @@ export async function registerRoutes(app: Express) {
     }
     
     try {
+      // リクエストボディの内容をログとして出力
+      console.log("通知設定更新リクエスト:", req.body);
+      
+      // 既存の設定を取得
+      const existingSettings = await storage.getUserNotificationSettings(req.user.id) || {
+        // デフォルト値を設定
+        userId: req.user.id,
+        // アプリ内通知
+        notifyProjectCreated: true,
+        notifyProjectUpdated: true,
+        notifyProjectCommented: true, 
+        notifyProjectCompleted: true,
+        notifyRewardDistributed: true,
+        notifyRegistrationApproved: true,
+        notifyProjectAssigned: true,
+        notifyRegistrationRequest: true,
+        notifyCommentMention: true,
+        
+        // メール通知
+        emailNotifyProjectCreated: true,
+        emailNotifyProjectUpdated: true,
+        emailNotifyProjectCommented: true, 
+        emailNotifyProjectCompleted: true,
+        emailNotifyRewardDistributed: true,
+        emailNotifyRegistrationApproved: true,
+        emailNotifyProjectAssigned: true,
+        emailNotifyRegistrationRequest: true,
+        emailNotifyCommentMention: true
+      };
+      
+      // リクエストボディから設定を更新
       const settings = {
         userId: req.user.id,
-        notifyProjectCreated: !!req.body.notifyProjectCreated,
-        notifyProjectUpdated: !!req.body.notifyProjectUpdated,
-        notifyProjectCommented: !!req.body.notifyProjectCommented, 
-        notifyProjectCompleted: !!req.body.notifyProjectCompleted,
-        notifyRewardDistributed: !!req.body.notifyRewardDistributed
+        
+        // アプリ内通知設定
+        notifyProjectCreated: req.body.notifyProjectCreated !== undefined ? !!req.body.notifyProjectCreated : existingSettings.notifyProjectCreated,
+        notifyProjectUpdated: req.body.notifyProjectUpdated !== undefined ? !!req.body.notifyProjectUpdated : existingSettings.notifyProjectUpdated,
+        notifyProjectCommented: req.body.notifyProjectCommented !== undefined ? !!req.body.notifyProjectCommented : existingSettings.notifyProjectCommented,
+        notifyProjectCompleted: req.body.notifyProjectCompleted !== undefined ? !!req.body.notifyProjectCompleted : existingSettings.notifyProjectCompleted,
+        notifyRewardDistributed: req.body.notifyRewardDistributed !== undefined ? !!req.body.notifyRewardDistributed : existingSettings.notifyRewardDistributed,
+        notifyRegistrationApproved: req.body.notifyRegistrationApproved !== undefined ? !!req.body.notifyRegistrationApproved : existingSettings.notifyRegistrationApproved,
+        notifyProjectAssigned: req.body.notifyProjectAssigned !== undefined ? !!req.body.notifyProjectAssigned : existingSettings.notifyProjectAssigned,
+        notifyRegistrationRequest: req.body.notifyRegistrationRequest !== undefined ? !!req.body.notifyRegistrationRequest : existingSettings.notifyRegistrationRequest,
+        notifyCommentMention: req.body.notifyCommentMention !== undefined ? !!req.body.notifyCommentMention : existingSettings.notifyCommentMention,
+        
+        // メール通知設定
+        emailNotifyProjectCreated: req.body.emailNotifyProjectCreated !== undefined ? !!req.body.emailNotifyProjectCreated : existingSettings.emailNotifyProjectCreated,
+        emailNotifyProjectUpdated: req.body.emailNotifyProjectUpdated !== undefined ? !!req.body.emailNotifyProjectUpdated : existingSettings.emailNotifyProjectUpdated,
+        emailNotifyProjectCommented: req.body.emailNotifyProjectCommented !== undefined ? !!req.body.emailNotifyProjectCommented : existingSettings.emailNotifyProjectCommented,
+        emailNotifyProjectCompleted: req.body.emailNotifyProjectCompleted !== undefined ? !!req.body.emailNotifyProjectCompleted : existingSettings.emailNotifyProjectCompleted,
+        emailNotifyRewardDistributed: req.body.emailNotifyRewardDistributed !== undefined ? !!req.body.emailNotifyRewardDistributed : existingSettings.emailNotifyRewardDistributed,
+        emailNotifyRegistrationApproved: req.body.emailNotifyRegistrationApproved !== undefined ? !!req.body.emailNotifyRegistrationApproved : existingSettings.emailNotifyRegistrationApproved,
+        emailNotifyProjectAssigned: req.body.emailNotifyProjectAssigned !== undefined ? !!req.body.emailNotifyProjectAssigned : existingSettings.emailNotifyProjectAssigned,
+        emailNotifyRegistrationRequest: req.body.emailNotifyRegistrationRequest !== undefined ? !!req.body.emailNotifyRegistrationRequest : existingSettings.emailNotifyRegistrationRequest,
+        emailNotifyCommentMention: req.body.emailNotifyCommentMention !== undefined ? !!req.body.emailNotifyCommentMention : existingSettings.emailNotifyCommentMention
       };
+      
+      console.log("更新する設定:", settings);
       
       const updatedSettings = await storage.createOrUpdateNotificationSettings(settings);
       res.json(updatedSettings);

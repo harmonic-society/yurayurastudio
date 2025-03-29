@@ -53,41 +53,98 @@ function NotificationSettings() {
   
   // 通知タイプのラベルマッピング
   const notificationTypes = {
+    // アプリ内通知設定
     notifyProjectCreated: {
       label: "プロジェクト作成通知",
-      description: "新しいプロジェクトが作成された時に通知を受け取ります"
+      description: "新しいプロジェクトが作成された時に通知を受け取ります",
+      group: "app"
     },
     notifyProjectUpdated: {
       label: "プロジェクト更新通知",
-      description: "プロジェクトが更新された時に通知を受け取ります"
+      description: "プロジェクトが更新された時に通知を受け取ります",
+      group: "app"
     },
     notifyProjectCommented: {
       label: "コメント通知",
-      description: "プロジェクトに新しいコメントがあった時に通知を受け取ります"
+      description: "プロジェクトに新しいコメントがあった時に通知を受け取ります",
+      group: "app"
     },
     notifyProjectCompleted: {
       label: "プロジェクト完了通知",
-      description: "プロジェクトが完了した時に通知を受け取ります"
+      description: "プロジェクトが完了した時に通知を受け取ります",
+      group: "app"
     },
     notifyRewardDistributed: {
       label: "報酬分配通知",
-      description: "報酬が分配された時に通知を受け取ります"
+      description: "報酬が分配された時に通知を受け取ります",
+      group: "app"
     },
     notifyRegistrationApproved: {
       label: "登録承認通知",
-      description: "登録リクエストが承認された時に通知を受け取ります"
+      description: "登録リクエストが承認された時に通知を受け取ります",
+      group: "app"
     },
     notifyProjectAssigned: {
       label: "プロジェクトアサイン通知",
-      description: "プロジェクトにアサインされた時に通知を受け取ります"
+      description: "プロジェクトにアサインされた時に通知を受け取ります",
+      group: "app"
     },
     notifyRegistrationRequest: {
       label: "登録リクエスト通知",
-      description: "新しい登録リクエストがあった時に通知を受け取ります (管理者のみ)"
+      description: "新しい登録リクエストがあった時に通知を受け取ります (管理者のみ)",
+      group: "app"
     },
     notifyCommentMention: {
       label: "メンション通知",
-      description: "コメントで@メンションされた時に通知を受け取ります"
+      description: "コメントで@メンションされた時に通知を受け取ります",
+      group: "app"
+    },
+    
+    // メール通知設定
+    emailNotifyProjectCreated: {
+      label: "プロジェクト作成メール",
+      description: "新しいプロジェクトが作成された時にメールを受け取ります",
+      group: "email"
+    },
+    emailNotifyProjectUpdated: {
+      label: "プロジェクト更新メール",
+      description: "プロジェクトが更新された時にメールを受け取ります",
+      group: "email"
+    },
+    emailNotifyProjectCommented: {
+      label: "コメントメール",
+      description: "プロジェクトに新しいコメントがあった時にメールを受け取ります",
+      group: "email"
+    },
+    emailNotifyProjectCompleted: {
+      label: "プロジェクト完了メール",
+      description: "プロジェクトが完了した時にメールを受け取ります",
+      group: "email"
+    },
+    emailNotifyRewardDistributed: {
+      label: "報酬分配メール",
+      description: "報酬が分配された時にメールを受け取ります",
+      group: "email"
+    },
+    emailNotifyRegistrationApproved: {
+      label: "登録承認メール",
+      description: "登録リクエストが承認された時にメールを受け取ります",
+      group: "email"
+    },
+    emailNotifyProjectAssigned: {
+      label: "プロジェクトアサインメール",
+      description: "プロジェクトにアサインされた時にメールを受け取ります",
+      group: "email"
+    },
+    emailNotifyRegistrationRequest: {
+      label: "登録リクエストメール",
+      description: "新しい登録リクエストがあった時にメールを受け取ります (管理者のみ)",
+      group: "email"
+    },
+    emailNotifyCommentMention: {
+      label: "メンションメール",
+      description: "コメントで@メンションされた時にメールを受け取ります",
+      group: "email"
     }
   };
   
@@ -129,6 +186,10 @@ function NotificationSettings() {
     );
   }
   
+  // グループごとに通知設定をフィルタリング
+  const appNotifications = Object.entries(notificationTypes).filter(([_, config]) => config.group === "app");
+  const emailNotifications = Object.entries(notificationTypes).filter(([_, config]) => config.group === "email");
+
   return (
     <Card>
       <CardHeader>
@@ -137,28 +198,65 @@ function NotificationSettings() {
           通知設定
         </CardTitle>
         <CardDescription>
-          メール通知の受信設定を管理します
+          アプリ内通知とメール通知の受信設定を管理します
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {Object.entries(notificationTypes).map(([key, { label, description }]) => {
-          const typedKey = key as keyof typeof notificationTypes;
-          const enabled = settings ? (settings as any)[typedKey] : false;
-          
-          return (
-            <div key={key} className="flex items-start justify-between space-y-0">
-              <div>
-                <div className="font-medium">{label}</div>
-                <div className="text-sm text-muted-foreground">{description}</div>
-              </div>
-              <Switch
-                checked={enabled}
-                onCheckedChange={(checked) => handleToggle(typedKey, checked)}
-                disabled={updateSettingsMutation.isPending}
-              />
-            </div>
-          );
-        })}
+      <CardContent className="space-y-8">
+        {/* アプリ内通知設定 */}
+        <div className="space-y-4">
+          <h3 className="font-medium text-md flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            アプリ内通知
+          </h3>
+          <div className="space-y-6 pl-2">
+            {appNotifications.map(([key, { label, description }]) => {
+              const typedKey = key as keyof typeof notificationTypes;
+              const enabled = settings ? (settings as any)[typedKey] : false;
+              
+              return (
+                <div key={key} className="flex items-start justify-between space-y-0">
+                  <div>
+                    <div className="font-medium">{label}</div>
+                    <div className="text-sm text-muted-foreground">{description}</div>
+                  </div>
+                  <Switch
+                    checked={enabled}
+                    onCheckedChange={(checked) => handleToggle(typedKey, checked)}
+                    disabled={updateSettingsMutation.isPending}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* メール通知設定 */}
+        <div className="space-y-4">
+          <h3 className="font-medium text-md flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            メール通知
+          </h3>
+          <div className="space-y-6 pl-2">
+            {emailNotifications.map(([key, { label, description }]) => {
+              const typedKey = key as keyof typeof notificationTypes;
+              const enabled = settings ? (settings as any)[typedKey] : false;
+              
+              return (
+                <div key={key} className="flex items-start justify-between space-y-0">
+                  <div>
+                    <div className="font-medium">{label}</div>
+                    <div className="text-sm text-muted-foreground">{description}</div>
+                  </div>
+                  <Switch
+                    checked={enabled}
+                    onCheckedChange={(checked) => handleToggle(typedKey, checked)}
+                    disabled={updateSettingsMutation.isPending}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
