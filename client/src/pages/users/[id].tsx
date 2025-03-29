@@ -257,15 +257,32 @@ export default function UserProfile() {
 
   // プロフィール保存の処理
   const handleSaveProfile = () => {
+    // websiteが入力されていて、httpまたはhttpsで始まらない場合は先頭にhttps://を追加
+    let formattedWebsite = websiteValue;
+    if (formattedWebsite && formattedWebsite.trim() !== '' && !formattedWebsite.match(/^https?:\/\//)) {
+      formattedWebsite = `https://${formattedWebsite}`;
+    }
+    
+    // socialLinksの各フィールドも同様に処理
+    const formattedSocialLinks = { ...socialLinks };
+    if (formattedSocialLinks) {
+      Object.keys(formattedSocialLinks).forEach(key => {
+        const value = formattedSocialLinks[key as keyof typeof formattedSocialLinks];
+        if (value && value.trim() !== '' && !value.match(/^https?:\/\//)) {
+          formattedSocialLinks[key as keyof typeof formattedSocialLinks] = `https://${value}`;
+        }
+      });
+    }
+    
     updateProfileMutation.mutate({
       bio: bioValue || null,
       title: titleValue || null,
       location: locationValue || null,
-      website: websiteValue || null,
+      website: formattedWebsite || null,
       expertise: expertiseValue || null,
       languages: languagesValue || null,
-      socialLinks: Object.values(socialLinks || {}).some(v => v && v.trim() !== '') 
-        ? socialLinks 
+      socialLinks: Object.values(formattedSocialLinks || {}).some(v => v && v.trim() !== '') 
+        ? formattedSocialLinks
         : null
     });
   };

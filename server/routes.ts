@@ -792,19 +792,27 @@ export async function registerRoutes(app: Express) {
             }
           };
         } catch (e) {
+          console.error('socialLinksのパースエラー:', e);
           // JSONパースに失敗した場合はnullにする
           userData.socialLinks = null;
         }
       }
       
-      const profileData = updateProfileSchema.parse(userData);
-      console.log('バリデーション後のデータ:', profileData);
+      console.log('パース後のデータ:', userData);
+      
+      try {
+        const profileData = updateProfileSchema.parse(userData);
+        console.log('バリデーション後のデータ:', profileData);
 
-      await storage.updateUser(req.user.id, profileData);
-      const updatedUser = await storage.getUser(req.user.id);
+        await storage.updateUser(req.user.id, profileData);
+        const updatedUser = await storage.getUser(req.user.id);
 
-      console.log('更新後のユーザー:', updatedUser);
-      res.json(updatedUser);
+        console.log('更新後のユーザー:', updatedUser);
+        res.json(updatedUser);
+      } catch (validationError) {
+        console.error('バリデーションエラー:', validationError);
+        throw validationError;
+      }
     } catch (error) {
       console.error("プロフィール更新エラー:", error);
       if (error instanceof ZodError) {
