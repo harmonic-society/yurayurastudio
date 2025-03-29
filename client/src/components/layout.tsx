@@ -14,7 +14,8 @@ import {
   UserPlus,
   MessageSquare,
   Sun,
-  Moon
+  Moon,
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { NotificationMenu } from "@/components/notification-menu";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -132,41 +134,45 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
         
         {user && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatarUrl || undefined} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {isAdmin && pendingCount > 0 && (
-                <Link href="/admin/registration-requests">
+          <div className="flex items-center gap-2">
+            <NotificationMenu />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.avatarUrl || undefined} alt={user.name} />
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {isAdmin && pendingCount > 0 && (
+                  <Link href="/admin/registration-requests">
+                    <DropdownMenuItem>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      <span className="flex-1">登録リクエスト</span>
+                      <Badge variant="destructive" className="ml-2 px-2 py-0 h-5">
+                        {pendingCount}
+                      </Badge>
+                    </DropdownMenuItem>
+                  </Link>
+                )}
+                <Link href="/settings">
                   <DropdownMenuItem>
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    <span className="flex-1">登録リクエスト</span>
-                    <Badge variant="destructive" className="ml-2 px-2 py-0 h-5">
-                      {pendingCount}
-                    </Badge>
+                    <Settings className="mr-2 h-4 w-4" />
+                    設定
                   </DropdownMenuItem>
                 </Link>
-              )}
-              <Link href="/settings">
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  設定
+                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  ログアウト
                 </DropdownMenuItem>
-              </Link>
-              <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
-                <LogOut className="mr-2 h-4 w-4" />
-                ログアウト
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
 
@@ -221,42 +227,46 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           {/* デスクトップ用ヘッダー */}
           <div className="h-16 border-b border-border hidden lg:flex items-center justify-end px-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
             {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={user.avatarUrl || undefined} alt={user.name} />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span>{user.name}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {isAdmin && pendingCount > 0 && (
-                    <Link href="/admin/registration-requests">
+              <div className="flex items-center gap-3">
+                <NotificationMenu />
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={user.avatarUrl || undefined} alt={user.name} />
+                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <span>{user.name}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {isAdmin && pendingCount > 0 && (
+                      <Link href="/admin/registration-requests">
+                        <DropdownMenuItem>
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          <span>登録リクエスト</span>
+                          <Badge variant="destructive" className="ml-2 px-2 py-0 h-5">
+                            {pendingCount}
+                          </Badge>
+                        </DropdownMenuItem>
+                      </Link>
+                    )}
+                    <Link href="/settings">
                       <DropdownMenuItem>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        <span>登録リクエスト</span>
-                        <Badge variant="destructive" className="ml-2 px-2 py-0 h-5">
-                          {pendingCount}
-                        </Badge>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>設定</span>
                       </DropdownMenuItem>
                     </Link>
-                  )}
-                  <Link href="/settings">
-                    <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>設定</span>
+                    <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>ログアウト</span>
                     </DropdownMenuItem>
-                  </Link>
-                  <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>ログアウト</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )}
           </div>
           

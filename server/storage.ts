@@ -39,7 +39,7 @@ import {
   type NotificationEvent
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, desc, inArray, sql, isNull } from "drizzle-orm";
+import { eq, and, or, desc, inArray, sql, isNull, count } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { sendNotificationEmail } from "./mail";
@@ -122,6 +122,11 @@ export interface IStorage {
   // Notification History
   getNotificationHistory(userId: number): Promise<NotificationHistory[]>;
   createNotificationHistory(notification: InsertNotificationHistory): Promise<NotificationHistory>;
+  getUserNotifications(userId: number): Promise<NotificationHistory[]>;
+  getUnreadNotificationCount(userId: number): Promise<number>;
+  getNotification(id: number): Promise<NotificationHistory | undefined>;
+  markNotificationAsRead(id: number): Promise<void>;
+  markAllNotificationsAsRead(userId: number): Promise<void>;
   
   // Email Notifications
   sendNotificationEmail(userId: number, event: NotificationEvent, data: { title: string; message: string; link?: string }): Promise<void>;
@@ -641,6 +646,52 @@ export class DatabaseStorage implements IStorage {
       .values(notification)
       .returning();
     return newNotification;
+  }
+  
+  // アプリ内通知関連メソッド
+  async getUserNotifications(userId: number): Promise<NotificationHistory[]> {
+    return await db
+      .select()
+      .from(notificationHistory)
+      .where(eq(notificationHistory.userId, userId))
+      .orderBy(desc(notificationHistory.createdAt));
+  }
+  
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(notificationHistory)
+      .where(
+        and(
+          eq(notificationHistory.userId, userId),
+          eq(notificationHistory.read, false)
+        )
+      );
+    
+    return result[0]?.count || 0;
+  }
+  
+  async getNotification(id: number): Promise<NotificationHistory | undefined> {
+    const [notification] = await db
+      .select()
+      .from(notificationHistory)
+      .where(eq(notificationHistory.id, id));
+    
+    return notification;
+  }
+  
+  async markNotificationAsRead(id: number): Promise<void> {
+    await db
+      .update(notificationHistory)
+      .set({ read: true })
+      .where(eq(notificationHistory.id, id));
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    await db
+      .update(notificationHistory)
+      .set({ read: true })
+      .where(eq(notificationHistory.userId, userId));
   }
   
   // メール通知送信メソッド

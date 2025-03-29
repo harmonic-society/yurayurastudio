@@ -83,7 +83,7 @@ export async function registerRoutes(app: Express) {
     }
     
     // 一般ユーザーの場合、報酬と顧客連絡先を非表示にする
-    if (req.user.role !== "ADMIN") {
+    if (!req.user || req.user.role !== "ADMIN") {
       const { totalReward, rewardRules, clientContact, ...visibleData } = project;
       return res.json({
         ...visibleData,
@@ -225,10 +225,10 @@ export async function registerRoutes(app: Express) {
         }
         
         if (mentionedUsers.size > 0) {
-          console.log(`メンションされたユーザー: ${[...mentionedUsers].join(', ')}`);
+          console.log(`メンションされたユーザー: ${Array.from(mentionedUsers).join(', ')}`);
           
           // メンションされたユーザーそれぞれに通知を送信
-          for (const mentionedUserId of mentionedUsers) {
+          for (const mentionedUserId of Array.from(mentionedUsers)) {
             // ユーザーの通知設定を確認
             const notificationSettings = await storage.getUserNotificationSettings(mentionedUserId);
             
@@ -752,15 +752,15 @@ export async function registerRoutes(app: Express) {
       const post = await storage.createTimelinePost(postData);
       
       // Include user info in the response
-      const user = await storage.getUser(req.user.id);
+      const user = req.user ? await storage.getUser(req.user.id) : null;
       const postWithUser = {
         ...post,
-        user: {
+        user: user ? {
           id: user.id,
           name: user.name,
           username: user.username,
           avatarUrl: user.avatarUrl
-        }
+        } : null
       };
       
       res.status(201).json(postWithUser);
@@ -1469,7 +1469,7 @@ export async function registerRoutes(app: Express) {
         console.error("📧 メール送信エラー詳細:", emailError);
         
         // エラーの詳細情報を抽出
-        let errorDetails = {
+        let errorDetails: Record<string, any> = {
           message: emailError instanceof Error ? emailError.message : String(emailError),
           code: (emailError as any)?.code || "不明なエラーコード",
           response: (emailError as any)?.response || null,
@@ -1478,11 +1478,8 @@ export async function registerRoutes(app: Express) {
         
         // RejectedError がある場合はそれも表示
         if ((emailError as any)?.rejected) {
-          errorDetails = {
-            ...errorDetails,
-            rejected: (emailError as any).rejected,
-            rejectedErrors: (emailError as any).rejectedErrors?.map((e: any) => e.message) || []
-          };
+          errorDetails.rejected = (emailError as any).rejected;
+          errorDetails.rejectedErrors = (emailError as any).rejectedErrors?.map((e: any) => e.message) || [];
         }
         
         // 構造化されたエラー情報をレスポンスに含める
@@ -1511,6 +1508,80 @@ export async function registerRoutes(app: Express) {
         timestamp: new Date().toISOString(),
         stack: process.env.NODE_ENV === 'production' ? undefined : (error instanceof Error ? error.stack : undefined)
       });
+    }
+  });
+
+  // 通知関連のAPI
+
+  // ユーザーの通知履歴を取得
+  app.get("/api/notifications", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const notifications = await storage.getUserNotifications(req.user.id);
+      res.json(notifications);
+    } catch (error) {
+      console.error("通知履歴の取得に失敗しました:", error);
+      res.status(500).json({ message: "通知履歴の取得に失敗しました" });
+    }
+  });
+
+  // 未読の通知数を取得
+  app.get("/api/notifications/unread-count", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const count = await storage.getUnreadNotificationCount(req.user.id);
+      res.json({ count });
+    } catch (error) {
+      console.error("未読通知数の取得に失敗しました:", error);
+      res.status(500).json({ message: "未読通知数の取得に失敗しました" });
+    }
+  });
+
+  // 通知を既読にする
+  app.post("/api/notifications/:id/read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const notificationId = Number(req.params.id);
+      const notification = await storage.getNotification(notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "通知が見つかりません" });
+      }
+      
+      // 自分の通知のみ既読にできる
+      if (notification.userId !== req.user.id) {
+        return res.status(403).json({ message: "この操作は許可されていません" });
+      }
+      
+      await storage.markNotificationAsRead(notificationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("通知の既読処理に失敗しました:", error);
+      res.status(500).json({ message: "通知の既読処理に失敗しました" });
+    }
+  });
+
+  // すべての通知を既読にする
+  app.post("/api/notifications/mark-all-read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      await storage.markAllNotificationsAsRead(req.user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("すべての通知の既読処理に失敗しました:", error);
+      res.status(500).json({ message: "すべての通知の既読処理に失敗しました" });
     }
   });
 
