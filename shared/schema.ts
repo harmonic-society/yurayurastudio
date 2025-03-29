@@ -167,7 +167,7 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   workType: z.enum(workTypes, {
     errorMap: () => ({ message: "作業種別を選択してください" })
   }),
-  imageUrl: z.string().url("有効な画像URLを入力してください").optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
   filePath: z.string().optional().nullable(),
   fileType: z.string().optional().nullable(),
   isPublic: z.boolean().default(true)

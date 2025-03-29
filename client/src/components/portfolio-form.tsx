@@ -322,6 +322,8 @@ export default function PortfolioForm({
           url: null
         };
         
+        console.log('送信データ:', JSON.stringify(submitData, null, 2));
+        
         await onSubmit(submitData);
       }
     } catch (error) {
