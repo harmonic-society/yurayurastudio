@@ -309,17 +309,16 @@ export default function MessagesPage() {
     : [];
 
   return (
-    <Layout>
-      <div className="container py-6 max-w-6xl">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl">メッセージ</CardTitle>
-            <CardDescription>
-              チームメンバーとのダイレクトメッセージ
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex h-[calc(100vh-14rem)] overflow-hidden">
+    <div className="container py-6 max-w-6xl">
+      <Card className="shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-2xl">メッセージ</CardTitle>
+          <CardDescription>
+            チームメンバーとのダイレクトメッセージ
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex h-[calc(100vh-14rem)] overflow-hidden">
               {/* ユーザーリスト（モバイルでは選択時に非表示） */}
               {(!isMobile || !selectedUser) && (
                 <div className={`${isMobile ? 'w-full' : 'w-1/3 border-r'} pr-4`}>
@@ -723,10 +722,9 @@ export default function MessagesPage() {
                   )}
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </Layout>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
