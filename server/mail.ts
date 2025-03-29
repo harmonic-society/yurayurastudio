@@ -150,7 +150,13 @@ export async function sendNotificationEmail(
     console.log(`📧 メール送信を開始します: ${email}, イベント: ${event}`);
     
     const subject = getNotificationSubject(event);
-    const linkHtml = data.link ? `<p><a href="${data.link}">詳細を見る</a></p>` : "";
+    // コメントへのリンクの場合、#commentsを追加
+    let linkUrl = data.link;
+    if (linkUrl && event === "COMMENT_MENTION" && !linkUrl.includes("#comments")) {
+      linkUrl = `${linkUrl}#comments`;
+    }
+    
+    const linkHtml = linkUrl ? `<p><a href="${linkUrl}">詳細を見る</a></p>` : "";
 
     // 環境変数からアプリのURLを決定（本番環境かどうかを判断）
     const isProduction = process.env.NODE_ENV === 'production';
@@ -234,7 +240,7 @@ export async function sendNotificationEmail(
           <div class="message">
             <p>${data.message}</p>
           </div>
-          ${linkHtml ? `<a href="${data.link}" class="cta">詳細を見る</a>` : ''}
+          ${linkHtml ? `<a href="${linkUrl}" class="cta">詳細を見る</a>` : ''}
           <div class="footer">
             <p>このメールは<strong>Yura Yura Studio</strong>からの自動送信メールです。</p>
             <p>通知設定は<a href="${settingsUrl}">設定ページ</a>から変更できます。</p>

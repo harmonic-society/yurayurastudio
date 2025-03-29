@@ -31,15 +31,11 @@ export function NotificationMenu() {
     
     // リンクがある場合は遷移
     if (link) {
-      // コメントメンションの場合は、ハッシュ（#comment-section）をつける
-      if (link.includes('/projects/') && (notifications.find(n => n.id === id)?.event === 'COMMENT_MENTION')) {
-        // セッションを維持するため、Locationフックを使用
-        const newPath = link.replace(/^https?:\/\/[^\/]+/, '') + '#comment-section';
-        window.location.href = newPath; // 相対パスを使用してセッションを維持
+      // コメントセクションに移動 (リンクに #comments が含まれているかチェック)
+      if (link.includes('#comments') && (notifications.find(n => n.id === id)?.event === 'COMMENT_MENTION')) {
+        window.location.href = link;
       } else {
-        // 他の通知も相対パスを使用
-        const newPath = link.replace(/^https?:\/\/[^\/]+/, '');
-        window.location.href = newPath;
+        window.location.href = link;
       }
     }
   };

@@ -32,6 +32,14 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
   const [mentionListOpen, setMentionListOpen] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const commentSectionRef = useRef<HTMLDivElement>(null);
+  
+  // ハッシュの変更を検知して、コメントセクションに自動スクロール
+  useEffect(() => {
+    if (window.location.hash === '#comments' && commentSectionRef.current) {
+      commentSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
 
   const { data: comments } = useQuery<Comment[]>({
     queryKey: [`/api/projects/${projectId}/comments`]
@@ -184,7 +192,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
   }) || [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" id="comments" ref={commentSectionRef}>
       <Form {...form}>
         <form 
           onSubmit={form.handleSubmit((data) => mutation.mutate(data))}

@@ -514,7 +514,7 @@ export default function ProjectDetails() {
         </Card>
 
         <Card className="md:col-span-2" id="comment-section">
-          <CardHeader>
+          <CardHeader id="comments">
             <CardTitle>コメント</CardTitle>
           </CardHeader>
           <CardContent>

@@ -31,6 +31,7 @@ import { eq } from 'drizzle-orm';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import type { Request } from 'express';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +40,13 @@ const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, "..", "public", "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// ベースURLを取得する関数
+function getBaseUrl(req: Request): string {
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers.host;
+  return `${protocol}://${host}`;
 }
 
 export async function registerRoutes(app: Express) {
