@@ -67,13 +67,26 @@ export default function HelpPage() {
 
   // normalize text (子要素オブジェクトから実際のテキストを抽出)
   const normalizeHeadingText = (children: any): string => {
+    // 文字列の場合はそのまま返す
     if (typeof children === 'string') return children;
+    
+    // 配列の場合は各要素に対して再帰的に処理
     if (Array.isArray(children)) {
       return children.map(normalizeHeadingText).join('');
     }
-    if (children && children.props && children.props.children) {
-      return normalizeHeadingText(children.props.children);
+    
+    // ReactElementの場合はpropsのchildrenを再帰的に処理
+    if (children && typeof children === 'object') {
+      if (children.props && children.props.children) {
+        return normalizeHeadingText(children.props.children);
+      }
+      // その他の場合はchildrenがあれば処理
+      if ('children' in children) {
+        return normalizeHeadingText(children.children);
+      }
     }
+    
+    // それ以外の場合は空文字列を返す
     return '';
   };
 
@@ -140,16 +153,30 @@ export default function HelpPage() {
     },
     // コードブロックのスタイリング
     code: ({ node, inline, className, children, ...props }: any) => {
+      const match = /language-(\w+)/.exec(className || '');
       return !inline ? (
         <div className="bg-muted p-4 rounded-md overflow-x-auto my-4">
-          <code className={className} {...props}>
-            {children}
-          </code>
+          <pre className="whitespace-pre-wrap break-all">
+            <code 
+              className={match ? `language-${match[1]}` : ''} 
+              {...props}
+            >
+              {children}
+            </code>
+          </pre>
         </div>
       ) : (
         <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
           {children}
         </code>
+      );
+    },
+    // preタグのカスタマイズ
+    pre: ({ children, ...props }: any) => {
+      return (
+        <pre className="bg-muted p-4 rounded-md overflow-x-auto my-4 whitespace-pre-wrap break-all" {...props}>
+          {children}
+        </pre>
       );
     }
   };
@@ -273,13 +300,19 @@ export default function HelpPage() {
               ) : (
                 <div className="markdown-content markdown-custom">
                   {readmeData?.content ? (
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
-                      components={components}
-                    >
-                      {readmeData.content}
-                    </ReactMarkdown>
+                    <>
+                      <div className="mb-8 p-4 bg-muted/30 rounded-lg">
+                        <h2 className="text-lg font-medium mb-2">このヘルプページについて</h2>
+                        <p>このページでは、Yura Yura STUDIOの使い方と開発者向け情報を提供しています。目次から必要な情報にジャンプできます。</p>
+                      </div>
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                        components={components}
+                      >
+                        {readmeData.content}
+                      </ReactMarkdown>
+                    </>
                   ) : null}
                 </div>
               )}

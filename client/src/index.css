@@ -46,4 +46,36 @@
   background-color: rgba(0, 0, 0, 0.05);
   border-radius: 3px;
   padding: 0.2em 0.4em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9em;
+}
+
+/* コードブロック内のコード */
+.markdown-custom pre code {
+  background-color: transparent;
+  padding: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
+}
+
+/* バッククォートのエスケープ */
+.markdown-custom code:before,
+.markdown-custom code:after {
+  content: none;
+}
+
+/* 言語タイプに合わせたハイライト */
+.markdown-custom code.language-bash {
+  color: #7ec699;
+}
+
+.markdown-custom pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  margin: 1rem 0;
 }
