@@ -136,6 +136,10 @@ export default function MessagesPage() {
   // 選択されたユーザーとの会話の取得
   const { data: selectedConversation, isLoading: isLoadingSelectedConversation, refetch: refetchSelectedConversation } = useQuery({
     queryKey: ["/api/messages/conversation", selectedUserId],
+    queryFn: () => {
+      if (!selectedUserId) return null;
+      return apiRequest(`/api/messages/conversation/${selectedUserId}`);
+    },
     enabled: !!user && !!selectedUserId,
   });
 
@@ -570,10 +574,18 @@ export default function MessagesPage() {
                             variant="outline" 
                             size="sm"
                             className="text-xs rounded-full px-4 shadow-sm flex items-center gap-1"
-                            onClick={() => refetchSelectedConversation()}
+                            onClick={() => {
+                              if (selectedUserId) {
+                                toast({
+                                  title: "メッセージを取得中",
+                                  description: "過去のメッセージを更新しています...",
+                                });
+                                refetchSelectedConversation();
+                              }
+                            }}
                           >
                             <RefreshCw className="h-3 w-3" />
-                            過去のメッセージを表示
+                            過去のメッセージを更新
                           </Button>
                         </div>
                         
