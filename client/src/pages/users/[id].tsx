@@ -128,6 +128,9 @@ export default function UserProfile() {
     queryKey: [`/api/users/${userId}/portfolios`],
     enabled: !!userId && !isNaN(userId)
   });
+  
+  // OGP画像のキャッシュ
+  const [previewImages, setPreviewImages] = useState<Record<number, string>>({});
 
   // プロフィール情報の初期化
   useEffect(() => {
@@ -143,6 +146,47 @@ export default function UserProfile() {
       setSelectedSkills(userSkills.skillTagIds);
     }
   }, [userSkills]);
+  
+  // ポートフォリオのOGP画像を取得
+  useEffect(() => {
+    const fetchOgpImages = async () => {
+      if (!portfolios || portfolios.length === 0) return;
+
+      const images: Record<number, string> = {};
+      for (const portfolio of portfolios) {
+        if (portfolio.imageUrl) {
+          // すでに画像URLがある場合はそれを使用
+          images[portfolio.id] = portfolio.imageUrl;
+          continue;
+        }
+        
+        try {
+          // OGP情報を取得
+          const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.imageUrl) {
+              images[portfolio.id] = data.imageUrl;
+              
+              // イメージURLをDBに保存
+              if (isOwnProfile) {
+                await apiRequest({
+                  url: `/api/portfolios/${portfolio.id}`,
+                  method: "PATCH", 
+                  body: JSON.stringify({ imageUrl: data.imageUrl })
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch OGP image for portfolio ${portfolio.id}:`, error);
+        }
+      }
+      setPreviewImages(images);
+    };
+
+    fetchOgpImages();
+  }, [portfolios, isOwnProfile]);
 
   // プロフィール更新のミューテーション
   const updateProfileMutation = useMutation({
@@ -675,16 +719,16 @@ export default function UserProfile() {
                       {portfolios.map((portfolio) => (
                         <Card key={portfolio.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                           <div className="relative h-40">
-                            {portfolio.imageUrl ? (
+                            {previewImages[portfolio.id] || portfolio.imageUrl ? (
                               <img
-                                src={portfolio.imageUrl}
+                                src={previewImages[portfolio.id] || portfolio.imageUrl}
                                 alt={`成果物 ${portfolio.title}`}
                                 className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                                 onError={(e) => e.currentTarget.style.display = 'none'}
                               />
                             ) : (
                               <div className="flex items-center justify-center w-full h-full bg-muted">
-                                <p className="text-sm text-muted-foreground">画像なし</p>
+                                <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
                               </div>
                             )}
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
