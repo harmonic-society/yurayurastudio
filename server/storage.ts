@@ -389,17 +389,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio> {
+    // url フィールドが null の場合は空文字列に変換する
+    const portfolioData = {
+      ...portfolio,
+      url: portfolio.url ?? "", // null の場合は空文字列を設定
+    };
+    
     const [newPortfolio] = await db
       .insert(portfolios)
-      .values(portfolio)
+      .values(portfolioData)
       .returning();
     return newPortfolio;
   }
 
   async updatePortfolio(id: number, portfolio: Partial<InsertPortfolio>): Promise<Portfolio> {
+    // url フィールドが null の場合は空文字列に変換する
+    const portfolioData = {
+      ...portfolio,
+      url: portfolio.url ?? undefined, // null の場合は undefined（更新しない）
+    };
+    
     const [updated] = await db
       .update(portfolios)
-      .set(portfolio)
+      .set(portfolioData)
       .where(eq(portfolios.id, id))
       .returning();
     return updated;

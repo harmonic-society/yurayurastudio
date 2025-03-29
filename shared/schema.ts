@@ -121,7 +121,7 @@ export const portfolios = pgTable("portfolios", {
   userId: integer("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  url: text("url"), // URLはオプションに変更
+  url: text("url").notNull().default(""), // デフォルト値を空文字に設定（ファイルアップロード時用）
   workType: text("work_type", { enum: workTypes }).notNull(),
   imageUrl: text("image_url"), // プレビュー画像のURL（OGP画像をキャッシュする場合に使用）
   filePath: text("file_path"), // アップロードしたファイルのパス
@@ -144,15 +144,16 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   userId: z.number().int().positive(),
   title: z.string().min(1, "タイトルは必須です"),
   description: z.string().min(1, "説明は必須です").max(500, "説明は500文字以内で入力してください"),
-  url: z.string().optional().nullable()
+  url: z.string().default("")
+    .transform(val => val === null ? "" : val) // null値を空文字列に変換
     .refine(
       (url) => {
-        // urlが空の場合は検証をスキップ（ファイルアップロードモードの場合はURLが不要）
+        // 空文字列の場合は有効（ファイルアップロードモードの場合）
         if (!url || url.trim().length === 0) {
           return true;
         }
         
-        // urlが入力されている場合は有効なURLであることを確認
+        // 値が入力されている場合は有効なURLかチェック
         try {
           new URL(url);
           return true;

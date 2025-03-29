@@ -619,7 +619,27 @@ export async function registerRoutes(app: Express) {
       const updatePortfolioSchema = z.object({
         title: z.string().min(1, "タイトルは必須です").optional(),
         description: z.string().min(1, "説明は必須です").max(500, "説明は500文字以内で入力してください").optional(),
-        url: z.string().url("有効なURLを入力してください").optional().nullable(),
+        url: z.string().optional().default("")
+          .transform(val => val === null ? "" : val) // null値を空文字列に変換
+          .refine(
+            (url) => {
+              // 空文字列の場合は有効（ファイルアップロードモードの場合）
+              if (!url || url.trim().length === 0) {
+                return true;
+              }
+              
+              // 値が入力されている場合は有効なURLかチェック
+              try {
+                new URL(url);
+                return true;
+              } catch {
+                return false;
+              }
+            },
+            {
+              message: "有効なURLを入力してください"
+            }
+          ),
         workType: z.enum(workTypes, {
           errorMap: () => ({ message: "作業種別を選択してください" })
         }).optional(),
@@ -635,6 +655,11 @@ export async function registerRoutes(app: Express) {
       // アップデートデータからuserIdを削除（変更不可）
       if ('userId' in portfolioData && portfolioData.userId !== portfolio.userId) {
         delete portfolioData.userId;
+      }
+      
+      // URLがnullの場合は空文字に変換
+      if ('url' in portfolioData && portfolioData.url === null) {
+        portfolioData.url = "";
       }
       
       const updatedPortfolio = await storage.updatePortfolio(portfolioId, portfolioData);

@@ -64,6 +64,8 @@ interface Portfolio {
   url: string;
   workType: string;
   imageUrl?: string;
+  filePath?: string;
+  fileType?: string;
   isPublic: boolean;
   createdAt: string;
 }
@@ -154,32 +156,39 @@ export default function UserProfile() {
 
       const images: Record<number, string> = {};
       for (const portfolio of portfolios) {
+        // イメージURL（ファイルアップロード時のプレビュー）が既にある場合
         if (portfolio.imageUrl) {
-          // すでに画像URLがある場合はそれを使用
           images[portfolio.id] = portfolio.imageUrl;
           continue;
         }
-        
-        try {
-          // OGP情報を取得
-          const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.imageUrl) {
-              images[portfolio.id] = data.imageUrl;
-              
-              // イメージURLをDBに保存
-              if (isOwnProfile) {
-                await apiRequest({
-                  url: `/api/portfolios/${portfolio.id}`,
-                  method: "PATCH", 
-                  body: JSON.stringify({ imageUrl: data.imageUrl })
-                });
+        // ファイルタイプが画像で、ファイルパスがある場合
+        else if (portfolio.fileType?.startsWith('image/') && portfolio.filePath) {
+          images[portfolio.id] = portfolio.filePath;
+          continue;
+        }
+        // URL形式のポートフォリオの場合はOGP情報を取得
+        else if (portfolio.url && portfolio.url.trim() !== '') {
+          try {
+            // OGP情報を取得
+            const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.imageUrl) {
+                images[portfolio.id] = data.imageUrl;
+                
+                // イメージURLをDBに保存
+                if (isOwnProfile) {
+                  await apiRequest({
+                    url: `/api/portfolios/${portfolio.id}`,
+                    method: "PATCH", 
+                    body: JSON.stringify({ imageUrl: data.imageUrl })
+                  });
+                }
               }
             }
+          } catch (error) {
+            console.error(`Failed to fetch OGP image for portfolio ${portfolio.id}:`, error);
           }
-        } catch (error) {
-          console.error(`Failed to fetch OGP image for portfolio ${portfolio.id}:`, error);
         }
       }
       setPreviewImages(images);
@@ -720,12 +729,25 @@ export default function UserProfile() {
                         <Card key={portfolio.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                           <div className="relative h-40">
                             {previewImages[portfolio.id] || portfolio.imageUrl ? (
-                              <img
-                                src={previewImages[portfolio.id] || portfolio.imageUrl}
-                                alt={`成果物 ${portfolio.title}`}
-                                className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                                onError={(e) => e.currentTarget.style.display = 'none'}
-                              />
+                              <a 
+                                href={portfolio.filePath || portfolio.url || '#'} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="block w-full h-full cursor-pointer"
+                              >
+                                <img
+                                  src={previewImages[portfolio.id] || portfolio.imageUrl}
+                                  alt={`成果物 ${portfolio.title}`}
+                                  className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                                  onError={(e) => e.currentTarget.style.display = 'none'}
+                                />
+                                {/* プレビュー表示ボタン（画像の上に重ねて表示） */}
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-200">
+                                  <button className="bg-white/90 text-primary px-4 py-2 rounded-md text-xs font-medium">
+                                    {portfolio.filePath ? 'ファイルを表示' : '成果物を見る'}
+                                  </button>
+                                </div>
+                              </a>
                             ) : (
                               <div className="flex items-center justify-center w-full h-full bg-muted">
                                 <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
@@ -797,18 +819,42 @@ export default function UserProfile() {
                             <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
                               {portfolio.description}
                             </p>
-                            <a 
-                              href={portfolio.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:underline flex items-center gap-1"
-                            >
-                              成果物を見る
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M7 7h10v10" />
-                                <path d="M7 17 17 7" />
-                              </svg>
-                            </a>
+                            {portfolio.url ? (
+                              <a 
+                                href={portfolio.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                              >
+                                成果物を見る
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M7 7h10v10" />
+                                  <path d="M7 17 17 7" />
+                                </svg>
+                              </a>
+                            ) : portfolio.filePath ? (
+                              <a 
+                                href={portfolio.filePath} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                                download={portfolio.title}
+                              >
+                                {portfolio.fileType?.startsWith('image/') ? 'ファイルを表示' : 'ファイルをダウンロード'}
+                                {portfolio.fileType?.startsWith('image/') ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M7 7h10v10" />
+                                    <path d="M7 17 17 7" />
+                                  </svg>
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                  </svg>
+                                )}
+                              </a>
+                            ) : null}
                           </CardContent>
                         </Card>
                       ))}
