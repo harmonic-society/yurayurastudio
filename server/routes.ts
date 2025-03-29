@@ -44,8 +44,22 @@ if (!fs.existsSync(uploadsDir)) {
 
 // ベースURLを取得する関数
 function getBaseUrl(req: Request): string {
+  // アプリケーションのベースURL生成（環境に応じた適切なURLを生成）
   const protocol = req.headers['x-forwarded-proto'] || req.protocol;
   const host = req.headers.host;
+  
+  // 環境変数からの設定を優先
+  if (process.env.APP_URL) {
+    return process.env.APP_URL;
+  }
+  
+  // Replit環境の検出
+  if (process.env.REPLIT_DOMAINS) {
+    const domain = process.env.REPLIT_DOMAINS.split(',')[0];
+    return `https://${domain}`;
+  }
+  
+  // それ以外の場合はリクエストベースで組み立て
   return `${protocol}://${host}`;
 }
 
@@ -152,7 +166,7 @@ export async function registerRoutes(app: Express) {
                 {
                   title: "プロジェクトにアサインされました",
                   message: `新しいプロジェクト「${project.name}」にあなたがアサインされました。詳細を確認してください。`,
-                  link: `/projects/${project.id}`
+                  link: `${getBaseUrl(req)}/projects/${project.id}`
                 }
               );
               console.log(`✅ プロジェクトアサイン通知メールを送信しました: ユーザーID ${userId}、プロジェクト「${project.name}」`);
@@ -288,7 +302,7 @@ export async function registerRoutes(app: Express) {
                   event: "COMMENT_MENTION",
                   title: `${commenterName}さんがあなたをメンションしました`,
                   message: `プロジェクト「${project.name}」のコメントであなたがメンションされました`,
-                  link: `/projects/${projectId}#comments`
+                  link: `${getBaseUrl(req)}/projects/${projectId}#comments`
                 });
                 
                 console.log(`✅ 通知履歴の追加に成功: ID=${notification.id}`);
@@ -312,7 +326,7 @@ export async function registerRoutes(app: Express) {
                     {
                       title: `${commenterName}さんがあなたをメンションしました`,
                       message: `プロジェクト「${project.name}」のコメントで${commenterName}さんがあなたをメンションしました。\n\n「${commentData.content.substring(0, 100)}${commentData.content.length > 100 ? '...' : ''}」`,
-                      link: `/projects/${projectId}#comments`
+                      link: `${getBaseUrl(req)}/projects/${projectId}#comments`
                     }
                   );
                   console.log(`✅ メンション通知メールを送信しました: ユーザーID ${mentionedUserId}`);
@@ -535,7 +549,7 @@ export async function registerRoutes(app: Express) {
                 event: "REGISTRATION_REQUEST",
                 title: "新しい登録リクエストがあります",
                 message: `「${request.name}」さんから新しい登録リクエストがありました。管理画面で確認してください。`,
-                link: `/admin/registration-requests`
+                link: `${getBaseUrl(req)}/admin/registration-requests`
               });
               console.log(`✅ 登録リクエスト通知を作成しました: 管理者ID ${admin.id}`);
             }
@@ -548,7 +562,7 @@ export async function registerRoutes(app: Express) {
                 {
                   title: "新しい登録リクエストがあります",
                   message: `「${request.name}」さんから新しい登録リクエストがありました。管理画面で確認してください。`,
-                  link: `/admin/registration-requests`
+                  link: `${getBaseUrl(req)}/admin/registration-requests`
                 }
               );
               console.log(`✅ 登録リクエスト通知メールを送信しました: 管理者ID ${admin.id}`);
@@ -637,7 +651,7 @@ export async function registerRoutes(app: Express) {
             {
               title: "登録リクエストが承認されました",
               message: `${newUser.name}さん、Yura Yura Studioへのアカウント登録が承認されました。ログインして利用を開始できます。`,
-              link: `/`
+              link: `${getBaseUrl(req)}/`
             }
           );
           console.log(`✅ 登録承認通知メールを送信しました: ${newUser.email}`);

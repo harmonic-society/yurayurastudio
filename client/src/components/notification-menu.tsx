@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,12 +17,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useNotifications, Notification } from "@/hooks/use-notifications";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export function NotificationMenu() {
   const [open, setOpen] = useState(false);
   const { notifications = [], unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { toast } = useToast();
+  const [_, setLocation] = useLocation();
 
   // 通知をクリックしたときの処理
   const handleNotificationClick = (id: number, link: string | null) => {
@@ -31,11 +32,55 @@ export function NotificationMenu() {
     
     // リンクがある場合は遷移
     if (link) {
-      // コメントセクションに移動 (リンクに #comments が含まれているかチェック)
-      if (link.includes('#comments') && (notifications.find(n => n.id === id)?.event === 'COMMENT_MENTION')) {
-        window.location.href = link;
-      } else {
-        window.location.href = link;
+      try {
+        // 外部リンクかどうかチェック
+        const url = new URL(link, window.location.origin);
+        const isSameOrigin = url.origin === window.location.origin;
+        
+        if (isSameOrigin) {
+          // 内部リンクの場合はwouterのナビゲーションを使用してセッションを維持
+          let path = url.pathname;
+          
+          // クエリパラメータがあれば追加
+          if (url.search) {
+            path += url.search;
+          }
+          
+          // ハッシュがあれば、別途処理（wouterはハッシュを扱えないため）
+          if (url.hash) {
+            // useLocation でパスを変更した後、setTimeout でハッシュ部分にスクロール
+            setLocation(path);
+            setTimeout(() => {
+              const hashElement = document.querySelector(url.hash);
+              if (hashElement) {
+                hashElement.scrollIntoView({ behavior: 'smooth' });
+              }
+            }, 100);
+          } else {
+            // ハッシュがない場合は単純に遷移
+            setLocation(path);
+          }
+        } else {
+          // 外部リンクの場合は直接開く
+          window.open(link, '_blank');
+        }
+      } catch (e) {
+        // URLパースエラーが発生した場合、相対パスと仮定して処理
+        console.error("URL解析エラー:", e);
+        
+        // "#"を含むかどうかで分岐
+        if (link.includes('#')) {
+          const [path, hash] = link.split('#');
+          setLocation(path);
+          setTimeout(() => {
+            const hashElement = document.querySelector(`#${hash}`);
+            if (hashElement) {
+              hashElement.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 100);
+        } else {
+          setLocation(link);
+        }
       }
     }
   };
