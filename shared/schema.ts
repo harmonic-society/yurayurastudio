@@ -121,9 +121,11 @@ export const portfolios = pgTable("portfolios", {
   userId: integer("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  url: text("url").notNull(),
+  url: text("url"), // URLはオプションに変更
   workType: text("work_type", { enum: workTypes }).notNull(),
   imageUrl: text("image_url"), // プレビュー画像のURL（OGP画像をキャッシュする場合に使用）
+  filePath: text("file_path"), // アップロードしたファイルのパス
+  fileType: text("file_type"), // ファイルの種類（MIME type）
   isPublic: pgBoolean("is_public").notNull().default(true), // 公開/非公開設定
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -142,13 +144,25 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   userId: z.number().int().positive(),
   title: z.string().min(1, "タイトルは必須です"),
   description: z.string().min(1, "説明は必須です").max(500, "説明は500文字以内で入力してください"),
-  url: z.string().url("有効なURLを入力してください"),
+  url: z.string().url("有効なURLを入力してください").optional().nullable(),
   workType: z.enum(workTypes, {
     errorMap: () => ({ message: "作業種別を選択してください" })
   }),
   imageUrl: z.string().url("有効な画像URLを入力してください").optional().nullable(),
+  filePath: z.string().optional().nullable(),
+  fileType: z.string().optional().nullable(),
   isPublic: z.boolean().default(true)
-});
+})
+.refine(
+  (data) => {
+    // URLかファイルパスのどちらかが必要
+    return (data.url && data.url.trim().length > 0) || (data.filePath && data.filePath.trim().length > 0);
+  },
+  {
+    message: "URLまたはファイルのどちらかを入力してください",
+    path: ["url"]
+  }
+);
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,

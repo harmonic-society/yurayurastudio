@@ -15,6 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -23,11 +29,12 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { insertPortfolioSchema, type User, type InsertPortfolio } from "@shared/schema";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { FileUp, LinkIcon } from "lucide-react";
 
 interface PortfolioFormProps {
-  onSubmit: (data: InsertPortfolio) => void;
+  onSubmit: (data: InsertPortfolio | FormData) => void;
   defaultValues?: Partial<InsertPortfolio>;
   isSubmitting?: boolean;
   currentUserId: number; // 現在のユーザーIDを追加
@@ -42,6 +49,12 @@ export default function PortfolioForm({
   const { isAdmin } = useAuth();
   const [previewUrl, setPreviewUrl] = useState<string>(defaultValues?.url || "");
   const [previewImage, setPreviewImage] = useState<string>("");
+  const [submitMode, setSubmitMode] = useState<"url" | "file">(defaultValues?.url ? "url" : "file");
+  
+  // ファイルアップロード関連の状態
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchOgpImage = async () => {
@@ -75,7 +88,9 @@ export default function PortfolioForm({
       url: defaultValues?.url || "",
       userId: defaultValues?.userId || currentUserId,
       workType: defaultValues?.workType,
-      isPublic: defaultValues?.isPublic ?? true
+      isPublic: defaultValues?.isPublic ?? true,
+      filePath: defaultValues?.filePath || "",
+      fileType: defaultValues?.fileType || ""
     }
   });
 
@@ -100,17 +115,96 @@ export default function PortfolioForm({
 
   if (!users) return null;
 
+  // ファイル選択ハンドラー
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    
+    // 画像ファイルの場合はプレビューを生成
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setFilePreview(e.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // 画像以外のファイルタイプに応じたアイコンを表示
+      if (file.type === 'application/pdf') {
+        setFilePreview('/assets/icons/pdf-icon.png');
+      } else if (file.type.includes('word') || file.type.includes('document')) {
+        setFilePreview('/assets/icons/word-icon.png');
+      } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
+        setFilePreview('/assets/icons/excel-icon.png');
+      } else if (file.type.includes('powerpoint') || file.type.includes('presentation')) {
+        setFilePreview('/assets/icons/powerpoint-icon.png');
+      } else {
+        setFilePreview('/assets/icons/file-icon.png');
+      }
+    }
+  };
+
   const handleSubmit = async (data: InsertPortfolio) => {
     try {
-      const submitData = {
-        userId: Number(data.userId),
-        title: data.title.trim(),
-        description: data.description.trim(),
-        url: data.url.trim(),
-        workType: data.workType,
-        isPublic: data.isPublic ?? true
-      };
-      await onSubmit(submitData);
+      if (submitMode === "url") {
+        // URL提出モード
+        const submitData = {
+          userId: Number(data.userId),
+          title: data.title.trim(),
+          description: data.description.trim(),
+          url: data.url?.trim() || null,
+          workType: data.workType,
+          isPublic: data.isPublic ?? true,
+          filePath: null,
+          fileType: null,
+          imageUrl: previewImage || null
+        };
+        await onSubmit(submitData);
+      } else {
+        // ファイル提出モード
+        if (!selectedFile) {
+          form.setError('root', {
+            type: 'manual',
+            message: 'ファイルを選択してください'
+          });
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('userId', data.userId.toString());
+        formData.append('title', data.title.trim());
+        formData.append('description', data.description.trim());
+        formData.append('workType', data.workType);
+        formData.append('isPublic', (data.isPublic ?? true).toString());
+        
+        // ファイル提出モード（FormDataを使用）
+        const response = await fetch('/api/portfolios/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          throw new Error('ファイルのアップロードに失敗しました');
+        }
+        
+        const result = await response.json();
+        
+        // 結果をフォームデータにマージ
+        const submitData = {
+          ...data,
+          userId: Number(data.userId),
+          filePath: result.filePath,
+          fileType: result.fileType,
+          imageUrl: result.previewImageUrl,
+          url: null
+        };
+        
+        await onSubmit(submitData);
+      }
     } catch (error) {
       console.error('Portfolio form submission error:', error);
       form.setError('root', {
@@ -223,43 +317,119 @@ export default function PortfolioForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="url"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>成果物のURL<span className="text-destructive">*</span></FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder="成果物へのリンクを入力"
-                  onChange={(e) => {
-                    field.onChange(e);
-                    setPreviewUrl(e.target.value);
-                  }}
-                />
-              </FormControl>
-              {previewUrl && (
-                <div className="mt-2">
-                  <p className="text-sm text-muted-foreground mb-2">プレビュー:</p>
-                  {previewImage ? (
-                    <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
-                      <img
-                        src={previewImage}
-                        alt="プレビュー"
-                        className="object-cover w-full h-full"
-                        onError={() => setPreviewImage("")}
+        <div className="border rounded-md p-4">
+          <Tabs 
+            defaultValue={submitMode} 
+            onValueChange={(value) => setSubmitMode(value as "url" | "file")}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="url" className="flex items-center gap-2">
+                <LinkIcon className="h-4 w-4" />
+                URLで追加
+              </TabsTrigger>
+              <TabsTrigger value="file" className="flex items-center gap-2">
+                <FileUp className="h-4 w-4" />
+                ファイルをアップロード
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="url" className="pt-4">
+              <FormField
+                control={form.control}
+                name="url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>成果物のURL</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="成果物へのリンクを入力"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setPreviewUrl(e.target.value);
+                        }}
+                        value={field.value || ""}
                       />
+                    </FormControl>
+                    {previewUrl && (
+                      <div className="mt-2">
+                        <p className="text-sm text-muted-foreground mb-2">プレビュー:</p>
+                        {previewImage ? (
+                          <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+                            <img
+                              src={previewImage}
+                              alt="プレビュー"
+                              className="object-cover w-full h-full"
+                              onError={() => setPreviewImage("")}
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
+                        )}
+                      </div>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+            
+            <TabsContent value="file" className="pt-4">
+              <div className="space-y-4">
+                <div className="flex flex-col items-center justify-center w-full">
+                  <label
+                    htmlFor="fileUpload"
+                    className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600"
+                  >
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <FileUp className="w-10 h-10 mb-3 text-gray-400" />
+                      <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                        <span className="font-semibold">クリックしてファイルを選択</span>
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        PDF、画像ファイル（JPEG、PNG、GIF）、Office文書、テキストファイル
+                      </p>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
-                  )}
+                    <input
+                      id="fileUpload"
+                      type="file"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                    />
+                  </label>
                 </div>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                
+                {selectedFile && (
+                  <div className="mt-4">
+                    <div className="text-sm font-medium mb-2">選択したファイル:</div>
+                    <div className="text-sm text-gray-500 mb-2">{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</div>
+                    
+                    {filePreview && (
+                      <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-gray-50 flex items-center justify-center">
+                        {selectedFile.type.startsWith('image/') ? (
+                          <img
+                            src={filePreview}
+                            alt="ファイルプレビュー"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        ) : (
+                          <img
+                            src={filePreview}
+                            alt="ファイルアイコン"
+                            className="w-16 h-16 object-contain"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
         
         <FormField
           control={form.control}

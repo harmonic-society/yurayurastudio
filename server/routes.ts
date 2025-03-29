@@ -491,17 +491,30 @@ export async function registerRoutes(app: Express) {
     res.json(portfolio);
   });
 
-  // Create a portfolio (ユーザー自身のポートフォリオのみ作成可能)
+  // Create a portfolio (管理者は他のユーザーのポートフォリオも作成可能)
   app.post("/api/portfolios", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
     
     try {
-      const portfolioData = insertPortfolioSchema.parse({
-        ...req.body,
-        userId: req.user.id, // 自分自身のポートフォリオのみ作成可能
-      });
+      let portfolioData;
+      
+      // 管理者の場合は他のユーザーのポートフォリオも作成可能
+      if (req.user.role === "ADMIN" && req.body.userId) {
+        portfolioData = insertPortfolioSchema.parse(req.body);
+      } else {
+        // 一般ユーザーは自分のポートフォリオのみ作成可能
+        portfolioData = insertPortfolioSchema.parse({
+          ...req.body,
+          userId: req.user.id
+        });
+      }
+
+      // OGP画像URLが指定されていれば保存
+      if (req.body.imageUrl) {
+        portfolioData.imageUrl = req.body.imageUrl;
+      }
 
       const portfolio = await storage.createPortfolio(portfolioData);
       res.status(201).json(portfolio);
@@ -845,6 +858,94 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Avatar upload error:", error);
       res.status(500).json({ message: "画像のアップロードに失敗しました" });
+    }
+  });
+  
+  // ポートフォリオファイルアップロードエンドポイント
+  app.post("/api/portfolios/upload", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({ message: "ファイルが必要です" });
+    }
+
+    try {
+      const portfolioFile = req.files.file;
+      const fileType = portfolioFile.mimetype;
+      
+      // サポートされているファイル形式のリスト
+      const allowedTypes = [
+        'application/pdf', 
+        'image/jpeg', 
+        'image/png', 
+        'image/gif', 
+        'image/webp',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation', // pptx
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
+        'application/msword', // doc
+        'application/vnd.ms-powerpoint', // ppt
+        'application/vnd.ms-excel', // xls
+        'text/plain', // txt
+        'application/zip', // zip
+        'application/x-rar-compressed', // rar
+      ];
+      
+      if (!allowedTypes.includes(fileType)) {
+        return res.status(400).json({ 
+          message: "このファイル形式はサポートされていません", 
+          allowedTypes: "PDF, JPEG, PNG, GIF, WEBP, Word, Excel, PowerPoint, テキスト, ZIP, RAR" 
+        });
+      }
+      
+      // ファイル名から拡張子を取得
+      const fileExt = portfolioFile.name.split('.').pop() || '';
+      
+      // 安全なファイル名を生成
+      const sanitizedName = portfolioFile.name
+        .replace(/[^a-zA-Z0-9_\-\.]/g, '_')
+        .replace(/\s+/g, '_');
+      
+      const fileName = `portfolio-${req.user.id}-${Date.now()}-${sanitizedName}`;
+      const uploadPath = path.join(uploadsDir, fileName);
+
+      await portfolioFile.mv(uploadPath);
+      const filePath = `/uploads/${fileName}`;
+      
+      // プレビュー画像URL（PDFやドキュメントの場合はデフォルト画像を使用）
+      let previewImageUrl = null;
+      
+      if (fileType.startsWith('image/')) {
+        // 画像ファイルの場合はそのままプレビューに使用
+        previewImageUrl = filePath;
+      } else if (fileType === 'application/pdf') {
+        // PDFのデフォルトアイコン
+        previewImageUrl = '/assets/icons/pdf-icon.png';
+      } else if (fileType.includes('word') || fileType.includes('document')) {
+        // Wordのデフォルトアイコン
+        previewImageUrl = '/assets/icons/word-icon.png';
+      } else if (fileType.includes('excel') || fileType.includes('spreadsheet')) {
+        // Excelのデフォルトアイコン
+        previewImageUrl = '/assets/icons/excel-icon.png';
+      } else if (fileType.includes('powerpoint') || fileType.includes('presentation')) {
+        // PowerPointのデフォルトアイコン
+        previewImageUrl = '/assets/icons/powerpoint-icon.png';
+      } else {
+        // その他のファイル
+        previewImageUrl = '/assets/icons/file-icon.png';
+      }
+
+      res.json({
+        message: "ファイルをアップロードしました",
+        filePath,
+        fileType,
+        previewImageUrl
+      });
+    } catch (error) {
+      console.error("ポートフォリオファイルアップロードエラー:", error);
+      res.status(500).json({ message: "ファイルのアップロードに失敗しました" });
     }
   });
   
