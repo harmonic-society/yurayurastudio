@@ -134,27 +134,63 @@ export default function PortfolioForm({
     } else {
       // 画像以外のファイルタイプに応じたアイコンを表示
       if (file.type === 'application/pdf') {
-        setFilePreview('/assets/icons/pdf-icon.png');
+        setFilePreview('/assets/icons/pdf-icon.svg');
       } else if (file.type.includes('word') || file.type.includes('document')) {
-        setFilePreview('/assets/icons/word-icon.png');
+        setFilePreview('/assets/icons/word-icon.svg');
       } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
-        setFilePreview('/assets/icons/excel-icon.png');
+        setFilePreview('/assets/icons/excel-icon.svg');
       } else if (file.type.includes('powerpoint') || file.type.includes('presentation')) {
-        setFilePreview('/assets/icons/powerpoint-icon.png');
+        setFilePreview('/assets/icons/powerpoint-icon.svg');
       } else {
-        setFilePreview('/assets/icons/file-icon.png');
+        setFilePreview('/assets/icons/file-icon.svg');
       }
     }
   };
 
   const handleSubmit = async (data: InsertPortfolio) => {
     try {
+      // バリデーションチェック
+      if (!data.title || data.title.trim().length === 0) {
+        form.setError('title', {
+          type: 'manual',
+          message: 'タイトルは必須です'
+        });
+        return;
+      }
+      
+      if (!data.description || data.description.trim().length === 0) {
+        form.setError('description', {
+          type: 'manual',
+          message: '説明は必須です'
+        });
+        return;
+      }
+      
+      if (!data.workType) {
+        form.setError('workType', {
+          type: 'manual',
+          message: '作業種別を選択してください'
+        });
+        return;
+      }
+      
       if (submitMode === "url") {
         // URL提出モード
         if (!data.url || data.url.trim().length === 0) {
           form.setError('url', {
             type: 'manual',
             message: 'URLを入力してください'
+          });
+          return;
+        }
+        
+        try {
+          // URLの形式チェック
+          new URL(data.url);
+        } catch (e) {
+          form.setError('url', {
+            type: 'manual',
+            message: '有効なURLを入力してください'
           });
           return;
         }
@@ -189,17 +225,24 @@ export default function PortfolioForm({
         formData.append('workType', data.workType);
         formData.append('isPublic', (data.isPublic ?? true).toString());
         
+        console.log('ファイルアップロード開始:', selectedFile.name, selectedFile.type, selectedFile.size);
+        
         // ファイル提出モード（FormDataを使用）
         const response = await fetch('/api/portfolios/upload', {
           method: 'POST',
           body: formData,
         });
         
+        console.log('ファイルアップロードレスポンス:', response.status, response.statusText);
+        
         if (!response.ok) {
-          throw new Error('ファイルのアップロードに失敗しました');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('ファイルアップロードエラー:', errorData);
+          throw new Error(errorData.message || 'ファイルのアップロードに失敗しました');
         }
         
         const result = await response.json();
+        console.log('ファイルアップロード成功:', result);
         
         // 結果をフォームデータにマージ
         const submitData = {
@@ -215,9 +258,10 @@ export default function PortfolioForm({
       }
     } catch (error) {
       console.error('Portfolio form submission error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'フォームの送信に失敗しました';
       form.setError('root', {
         type: 'manual',
-        message: 'フォームの送信に失敗しました'
+        message: errorMessage
       });
     }
   };

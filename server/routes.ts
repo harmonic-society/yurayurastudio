@@ -879,16 +879,34 @@ export async function registerRoutes(app: Express) {
   
   // ポートフォリオファイルアップロードエンドポイント
   app.post("/api/portfolios/upload", async (req, res) => {
+    console.log("ファイルアップロードリクエスト受信");
+    
     if (!req.isAuthenticated()) {
+      console.log("認証エラー: ユーザーが認証されていません");
       return res.status(401).json({ message: "認証が必要です" });
     }
 
+    console.log("認証ユーザー:", req.user?.id, req.user?.name);
+    
+    // リクエストのファイル情報を確認
+    console.log("リクエスト本文:", req.body);
+    console.log("files オブジェクト:", req.files ? Object.keys(req.files) : 'なし');
+    
     if (!req.files || !req.files.file) {
+      console.log("エラー: ファイルが見つかりません", req.files);
       return res.status(400).json({ message: "ファイルが必要です" });
     }
 
     try {
       const portfolioFile = req.files.file;
+      console.log("ファイル情報:", {
+        name: portfolioFile.name,
+        size: portfolioFile.size,
+        mimetype: portfolioFile.mimetype,
+        md5: portfolioFile.md5,
+        encoding: portfolioFile.encoding
+      });
+      
       const fileType = portfolioFile.mimetype;
       
       // サポートされているファイル形式のリスト
@@ -907,17 +925,23 @@ export async function registerRoutes(app: Express) {
         'text/plain', // txt
         'application/zip', // zip
         'application/x-rar-compressed', // rar
+        'application/octet-stream', // 一般的なバイナリファイル（拡張子で判断する場合）
       ];
       
-      if (!allowedTypes.includes(fileType)) {
+      // MIMEタイプが不明な場合は拡張子でチェック
+      const fileExt = portfolioFile.name.split('.').pop()?.toLowerCase() || '';
+      const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar'];
+      
+      console.log("ファイルタイプチェック:", fileType, fileExt);
+      
+      // MIMEタイプまたは拡張子のいずれかが許可リストに含まれていることを確認
+      if (!allowedTypes.includes(fileType) && !allowedExtensions.includes(fileExt)) {
+        console.log("エラー: サポートされていないファイル形式", fileType, fileExt);
         return res.status(400).json({ 
           message: "このファイル形式はサポートされていません", 
           allowedTypes: "PDF, JPEG, PNG, GIF, WEBP, Word, Excel, PowerPoint, テキスト, ZIP, RAR" 
         });
       }
-      
-      // ファイル名から拡張子を取得
-      const fileExt = portfolioFile.name.split('.').pop() || '';
       
       // 安全なファイル名を生成
       const sanitizedName = portfolioFile.name
@@ -926,32 +950,54 @@ export async function registerRoutes(app: Express) {
       
       const fileName = `portfolio-${req.user.id}-${Date.now()}-${sanitizedName}`;
       const uploadPath = path.join(uploadsDir, fileName);
+      
+      console.log("ファイル保存パス:", uploadPath);
+      
+      // アップロードディレクトリの確認と作成
+      if (!fs.existsSync(uploadsDir)) {
+        console.log("アップロードディレクトリを作成:", uploadsDir);
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
 
-      await portfolioFile.mv(uploadPath);
+      try {
+        await portfolioFile.mv(uploadPath);
+        console.log("ファイル保存成功:", uploadPath);
+      } catch (mvError: any) {
+        console.error("ファイル移動エラー:", mvError);
+        return res.status(500).json({ message: "ファイルの保存に失敗しました", error: mvError?.message || String(mvError) });
+      }
+      
       const filePath = `/uploads/${fileName}`;
       
       // プレビュー画像URL（PDFやドキュメントの場合はデフォルト画像を使用）
       let previewImageUrl = null;
       
-      if (fileType.startsWith('image/')) {
+      if (fileType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
         // 画像ファイルの場合はそのままプレビューに使用
         previewImageUrl = filePath;
-      } else if (fileType === 'application/pdf') {
+      } else if (fileType === 'application/pdf' || fileExt === 'pdf') {
         // PDFのデフォルトアイコン
-        previewImageUrl = '/assets/icons/pdf-icon.png';
-      } else if (fileType.includes('word') || fileType.includes('document')) {
+        previewImageUrl = '/assets/icons/pdf-icon.svg';
+      } else if (fileType.includes('word') || fileType.includes('document') || ['doc', 'docx'].includes(fileExt)) {
         // Wordのデフォルトアイコン
-        previewImageUrl = '/assets/icons/word-icon.png';
-      } else if (fileType.includes('excel') || fileType.includes('spreadsheet')) {
+        previewImageUrl = '/assets/icons/word-icon.svg';
+      } else if (fileType.includes('excel') || fileType.includes('spreadsheet') || ['xls', 'xlsx'].includes(fileExt)) {
         // Excelのデフォルトアイコン
-        previewImageUrl = '/assets/icons/excel-icon.png';
-      } else if (fileType.includes('powerpoint') || fileType.includes('presentation')) {
+        previewImageUrl = '/assets/icons/excel-icon.svg';
+      } else if (fileType.includes('powerpoint') || fileType.includes('presentation') || ['ppt', 'pptx'].includes(fileExt)) {
         // PowerPointのデフォルトアイコン
-        previewImageUrl = '/assets/icons/powerpoint-icon.png';
+        previewImageUrl = '/assets/icons/powerpoint-icon.svg';
       } else {
         // その他のファイル
-        previewImageUrl = '/assets/icons/file-icon.png';
+        previewImageUrl = '/assets/icons/file-icon.svg';
       }
+      
+      console.log("レスポンス:", {
+        message: "ファイルをアップロードしました",
+        filePath,
+        fileType,
+        previewImageUrl
+      });
 
       res.json({
         message: "ファイルをアップロードしました",
@@ -961,7 +1007,10 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error) {
       console.error("ポートフォリオファイルアップロードエラー:", error);
-      res.status(500).json({ message: "ファイルのアップロードに失敗しました" });
+      res.status(500).json({ 
+        message: "ファイルのアップロードに失敗しました", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
   
