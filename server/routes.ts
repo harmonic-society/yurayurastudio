@@ -226,17 +226,17 @@ export async function registerRoutes(app: Express) {
         console.log(`コメント内容: ${commentData.content}`);
         console.log(`ユーザー一覧:`, users.map(u => ({ id: u.id, name: u.name, username: u.username })));
         
-        // @ユーザー名 のパターンを検出（スペースを含む名前に対応）
-        const mentionRegex = /@([^\s@]+(?:\s+[^\s@]+)*)/g;
+        // @ユーザー名 のパターンを検出（username優先）
+        const mentionRegex = /@([^\s@]+)/g;
         let match;
         while ((match = mentionRegex.exec(commentData.content)) !== null) {
           const mentionText = match[1];
           console.log(`検出されたメンション: ${mentionText}`);
           
-          // ユーザー名とユーザーネームの両方で検索
-          const mentionedUser = users.find(
-            u => u.name === mentionText || u.username === mentionText
-          );
+          // 優先的にusernameで検索し、見つからない場合はnameでも検索
+          const mentionedUserByUsername = users.find(u => u.username === mentionText);
+          const mentionedUserByName = users.find(u => u.name === mentionText);
+          const mentionedUser = mentionedUserByUsername || mentionedUserByName;
           
           if (mentionedUser) {
             console.log(`マッチしたユーザー: ID=${mentionedUser.id}, 名前=${mentionedUser.name}, ユーザー名=${mentionedUser.username}`);

@@ -103,9 +103,9 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
     const atSignIndex = textBeforeCursor.lastIndexOf('@');
     if (atSignIndex === -1) return;
     
-    // @以降の部分を置き換え
+    // @以降の部分を置き換え（usernameを使用）
     const newText = textBeforeCursor.substring(0, atSignIndex) + 
-                    `@${user.name}` + 
+                    `@${user.username}` + 
                     (textAfterCursor.startsWith(' ') ? '' : ' ') + 
                     textAfterCursor;
     
@@ -113,8 +113,8 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
     form.setValue("content", newText);
     setMentionListOpen(false);
     
-    // カーソルを名前の後ろに移動
-    const newCursorPos = atSignIndex + user.name.length + 1 + (textAfterCursor.startsWith(' ') ? 0 : 1);
+    // カーソルをユーザー名の後ろに移動
+    const newCursorPos = atSignIndex + user.username.length + 1 + (textAfterCursor.startsWith(' ') ? 0 : 1);
     
     // フォーカスをテキストエリアに戻し、カーソル位置を設定
     setTimeout(() => {
@@ -130,10 +130,10 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
   const renderCommentWithMentions = (content: string) => {
     if (!users) return content;
     
-    // @名前 のパターンを検出して、ハイライト表示
+    // @ユーザー名 のパターンを検出して、ハイライト表示
     const parts = [];
     let lastIndex = 0;
-    const regex = /@([^\s@]+(?:\s+[^\s@]+)*)/g;
+    const regex = /@([^\s@]+)/g; // ユーザー名（スペースなし）のマッチングに更新
     let match;
     
     while ((match = regex.exec(content)) !== null) {
@@ -146,10 +146,14 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
           parts.push(content.substring(lastIndex, match.index));
         }
         
-        // メンション部分
+        // メンション部分（実際のユーザー名を表示）
         parts.push(
-          <span key={`mention-${match.index}`} className="text-primary font-medium">
-            @{userName}
+          <span 
+            key={`mention-${match.index}`} 
+            className="text-primary font-medium"
+            title={mentionedUser.name} // 本名をツールチップで表示
+          >
+            @{mentionedUser.username}
           </span>
         );
         
@@ -165,9 +169,19 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
     return parts.length > 0 ? parts : content;
   };
 
-  const filteredUsers = users?.filter(u => 
-    u.name.toLowerCase().includes(mentionSearch.toLowerCase())
-  ) || [];
+  const filteredUsers = users?.filter(u => {
+    // まずusernameで検索し、次にnameで検索
+    const usernameMatch = u.username.toLowerCase().includes(mentionSearch.toLowerCase());
+    const nameMatch = u.name.toLowerCase().includes(mentionSearch.toLowerCase());
+    return usernameMatch || nameMatch;
+  }).sort((a, b) => {
+    // usernameが一致するものを優先的に上位表示
+    const aUsernameMatch = a.username.toLowerCase().includes(mentionSearch.toLowerCase());
+    const bUsernameMatch = b.username.toLowerCase().includes(mentionSearch.toLowerCase());
+    if (aUsernameMatch && !bUsernameMatch) return -1;
+    if (!aUsernameMatch && bUsernameMatch) return 1;
+    return 0;
+  }) || [];
 
   return (
     <div className="space-y-4">
@@ -184,7 +198,7 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
                 <FormControl>
                   <div className="relative">
                     <Textarea 
-                      placeholder="コメントを追加... @ユーザー名 でメンション" 
+                      placeholder="コメントを追加... @username でメンション" 
                       {...field}
                       ref={textareaRef}
                       className="min-h-[100px]"
@@ -202,11 +216,14 @@ export default function CommentSection({ projectId }: CommentSectionProps) {
                             <button
                               key={user.id}
                               type="button"
-                              className="w-full text-left px-3 py-2 hover:bg-muted flex items-center gap-2"
+                              className="w-full text-left px-3 py-2 hover:bg-muted flex flex-col"
                               onClick={() => insertMention(user)}
                             >
-                              <span className="font-medium">{user.name}</span>
-                              <span className="text-xs text-muted-foreground">({user.role})</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">@{user.username}</span>
+                                <span className="text-xs text-muted-foreground">({user.role})</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground truncate">{user.name}</span>
                             </button>
                           ))}
                         </div>
