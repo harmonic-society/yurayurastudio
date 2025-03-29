@@ -204,6 +204,16 @@ export default function MessagesPage() {
     
     return () => clearInterval(interval);
   }, [selectedUserId, refetchSelectedConversation, refetchConversations]);
+  
+  // メッセージ一覧の最下部に自動スクロール
+  useEffect(() => {
+    if (selectedConversation && Array.isArray(selectedConversation) && selectedConversation.length > 0) {
+      const messageEnd = document.getElementById('message-end');
+      if (messageEnd) {
+        messageEnd.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [selectedConversation]);
 
   // 会話ごとに最新のメッセージとユーザー情報をグループ化
   const conversationGroups: Record<number, { user: User; latestMessage: DirectMessage }> = {};
@@ -553,84 +563,142 @@ export default function MessagesPage() {
                       </div>
 
                       {/* メッセージ表示エリア */}
-                      <ScrollArea className="flex-1 pr-4 mb-4">
-                        {selectedConversation && Array.isArray(selectedConversation) && selectedConversation.length > 0 ? (
-                          <div className="space-y-4">
-                            {/* 日付ごとにメッセージをグループ化 */}
-                            {Object.entries(groupMessagesByDate(filteredMessages)).map(([date, messages]: [string, DirectMessage[]]) => (
-                              <div key={date} className="mb-6">
-                                {/* 日付ヘッダー */}
-                                <div className="flex items-center justify-center mb-4">
-                                  <div className="h-[1px] flex-1 bg-border"></div>
-                                  <span className="px-2 text-xs font-medium text-muted-foreground bg-background">
-                                    {formatDateHeader(date)}
-                                  </span>
-                                  <div className="h-[1px] flex-1 bg-border"></div>
-                                </div>
-                                
-                                {/* その日のメッセージ */}
-                                <div className="space-y-4">
-                                  {messages.map((msg: DirectMessage) => {
-                                    const isFromMe = msg.fromUserId === user?.id;
-                                    const isHighlighted = messageSearchQuery && 
-                                      msg.message.toLowerCase().includes(messageSearchQuery.toLowerCase());
+                      <div className="relative flex-1 mb-4">
+                        {/* 上部にある「過去のメッセージを表示」ボタン */}
+                        <div className="sticky top-0 z-10 flex justify-center py-2 bg-gradient-to-b from-background via-background/95 to-transparent">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="text-xs rounded-full px-4 shadow-sm flex items-center gap-1"
+                            onClick={() => refetchSelectedConversation()}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            過去のメッセージを表示
+                          </Button>
+                        </div>
+                        
+                        <ScrollArea className="h-[calc(100%-10px)] pr-4">
+                          {selectedConversation && Array.isArray(selectedConversation) && selectedConversation.length > 0 ? (
+                            <div className="space-y-4 pt-8">
+                              {/* 日付ごとにメッセージをグループ化 */}
+                              {Object.entries(groupMessagesByDate(filteredMessages)).map(([date, messages]: [string, DirectMessage[]]) => (
+                                <div key={date} className="mb-6">
+                                  {/* 日付ヘッダー (LINE風のデザイン) */}
+                                  <div className="flex items-center justify-center mb-5">
+                                    <div className="bg-muted px-3 py-1 rounded-full">
+                                      <span className="text-xs font-medium text-muted-foreground">
+                                        {formatDateHeader(date)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* その日のメッセージ */}
+                                  <div className="space-y-2">
+                                    {messages.map((msg: DirectMessage, index: number) => {
+                                      const isFromMe = msg.fromUserId === user?.id;
+                                      const isHighlighted = messageSearchQuery && 
+                                        msg.message.toLowerCase().includes(messageSearchQuery.toLowerCase());
+                                        
+                                      // 連続した同じ送信者のメッセージはアバターを表示しない
+                                      const showAvatar = index === 0 || 
+                                        messages[index - 1].fromUserId !== msg.fromUserId;
                                       
-                                    return (
-                                      <div 
-                                        key={msg.id}
-                                        className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}
-                                      >
+                                      // 最後のメッセージか、次のメッセージが別の送信者のものであれば時間を表示
+                                      const showTime = index === messages.length - 1 || 
+                                        messages[index + 1].fromUserId !== msg.fromUserId;
+                                      
+                                      return (
                                         <div 
-                                          className={`max-w-[80%] ${isFromMe ? 'bg-primary text-primary-foreground' : 'bg-muted'} 
-                                            ${isHighlighted ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}
-                                            rounded-lg p-3 transition-all duration-200`}
+                                          key={msg.id}
+                                          className={`flex ${isFromMe ? 'justify-end' : 'justify-start'} items-end gap-2 relative`}
                                         >
-                                          <p className="whitespace-pre-wrap break-words">{msg.message}</p>
-                                          <p className={`text-xs mt-1 ${isFromMe ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                                            {typeof msg.createdAt === 'string' && formatDate(msg.createdAt)}
-                                            {isFromMe && msg.read && ' ✓'}
-                                          </p>
+                                          {/* 相手のアバター（自分のメッセージの場合は非表示） */}
+                                          {!isFromMe && showAvatar ? (
+                                            <Avatar className="h-8 w-8 flex-shrink-0">
+                                              <AvatarImage src={selectedUser.avatarUrl ? `/uploads/${selectedUser.avatarUrl}` : undefined} />
+                                              <AvatarFallback>{selectedUser.name.slice(0, 2)}</AvatarFallback>
+                                            </Avatar>
+                                          ) : !isFromMe ? (
+                                            <div className="w-8" />
+                                          ) : null}
+                                          
+                                          {/* メッセージ */}
+                                          <div className={`flex flex-col ${isFromMe ? 'items-end' : 'items-start'} max-w-[75%]`}>
+                                            <div 
+                                              className={`
+                                                ${isFromMe ? 'bg-primary text-primary-foreground rounded-tl-lg rounded-tr-lg rounded-bl-lg' : 
+                                                  'bg-muted rounded-tl-lg rounded-tr-lg rounded-br-lg'} 
+                                                ${isHighlighted ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}
+                                                p-3 transition-all duration-200 shadow-sm
+                                              `}
+                                            >
+                                              <p className="whitespace-pre-wrap break-words text-sm">{msg.message}</p>
+                                            </div>
+                                            
+                                            {/* 時間表示 */}
+                                            {showTime && (
+                                              <div className={`flex items-center mt-1 ${isFromMe ? 'justify-end' : 'justify-start'}`}>
+                                                <span className="text-[11px] text-muted-foreground">
+                                                  {typeof msg.createdAt === 'string' && formatDate(msg.createdAt)}
+                                                </span>
+                                                {isFromMe && msg.read && (
+                                                  <span className="text-[11px] text-primary ml-1">既読</span>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    );
-                                  })}
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="h-full flex items-center justify-center">
-                            <div className="text-center text-muted-foreground">
-                              <p className="mb-2">メッセージを送ってみましょう</p>
-                              <p className="text-xs">
-                                {selectedUser.name}さんとの会話が始まります
-                              </p>
+                              ))}
+                              
+                              {/* 画面下部への自動スクロールのためのダミー要素 */}
+                              <div id="message-end" className="h-1" />
                             </div>
-                          </div>
-                        )}
-                      </ScrollArea>
+                          ) : (
+                            <div className="h-full flex items-center justify-center">
+                              <div className="text-center text-muted-foreground">
+                                <p className="mb-2">メッセージを送ってみましょう</p>
+                                <p className="text-xs">
+                                  {selectedUser.name}さんとの会話が始まります
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </div>
                       
-                      {/* メッセージ入力エリア */}
-                      <div className="pt-2">
-                        <div className="flex items-end">
+                      {/* メッセージ入力エリア（LINE風） */}
+                      <div className="pt-2 border-t">
+                        <div className="flex items-end bg-muted/30 p-2 rounded-lg">
                           <Textarea
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
-                            placeholder={`${selectedUser.name}さんにメッセージを送る...（送信ボタンを押してメッセージを送信）`}
-                            className="resize-none flex-1 mr-2 min-h-[120px]"
-                            rows={5}
+                            placeholder={`${selectedUser.name}さんにメッセージを送る...`}
+                            className="resize-none flex-1 mr-2 min-h-[60px] border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 p-2"
+                            rows={3}
                           />
                           <Button 
-                            onClick={handleSendMessage} 
+                            onClick={handleSendMessage}
                             disabled={!message.trim() || isSendingMessage}
+                            size="icon"
+                            className={`rounded-full h-10 w-10 ${!message.trim() ? 'bg-muted text-muted-foreground' : 'bg-primary text-primary-foreground'}`}
                           >
-                            <SendIcon className="h-4 w-4 mr-2" />
-                            送信
+                            <SendIcon className="h-5 w-5" />
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          送信ボタンを押してメッセージを送信します。Enterキーで自由に改行できます。
-                        </p>
+                        <div className="flex justify-between items-center mt-2">
+                          <p className="text-[11px] text-muted-foreground">
+                            Enterキーで改行、メッセージは送信ボタンで送信
+                          </p>
+                          <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                            {message.length > 0 && (
+                              <span>{message.length}文字</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </>
                   ) : (
