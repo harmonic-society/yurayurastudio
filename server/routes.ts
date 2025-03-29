@@ -393,29 +393,8 @@ export async function registerRoutes(app: Express) {
   // Update a user (管理者のみ)
   app.patch("/api/users/:id", isAdmin, async (req, res) => {
     try {
-      // JSON文字列からJSONオブジェクトに変換（既にオブジェクトの場合はそのまま）
-      let userData = req.body;
-      if (userData.socialLinks && typeof userData.socialLinks === 'string') {
-        try {
-          // パースしてsocialLinksとして設定
-          const parsed = JSON.parse(userData.socialLinks);
-          userData = {
-            ...userData,
-            socialLinks: {
-              twitter: typeof parsed.twitter === 'string' ? parsed.twitter : undefined,
-              facebook: typeof parsed.facebook === 'string' ? parsed.facebook : undefined,
-              instagram: typeof parsed.instagram === 'string' ? parsed.instagram : undefined,
-              github: typeof parsed.github === 'string' ? parsed.github : undefined,
-              linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : undefined,
-            }
-          };
-        } catch (e) {
-          // JSONパースに失敗した場合はnullにする
-          userData.socialLinks = null;
-        }
-      }
-      const validatedUserData = updateUserSchema.parse(userData);
-      const user = await storage.updateUser(Number(req.params.id), validatedUserData);
+      const userData = updateUserSchema.parse(req.body);
+      const user = await storage.updateUser(Number(req.params.id), userData);
       res.json(user);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -671,12 +650,7 @@ export async function registerRoutes(app: Express) {
           createdAt: new Date(),
           avatarUrl: null,
           bio: null,
-          title: null,
-          location: null,
-          website: null,
-          socialLinks: null,
-          expertise: null,
-          languages: null
+          title: null
         });
 
         await storage.updateRegistrationRequestStatus(Number(id), "APPROVED");
@@ -724,39 +698,8 @@ export async function registerRoutes(app: Express) {
 
   app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
     try {
-      // JSON文字列からJSONオブジェクトに変換（既にオブジェクトの場合はそのまま）
-      let userData = req.body;
-      console.log('管理者用エンドポイント - 元のuserData:', userData);
-      if (userData.socialLinks) {
-        try {
-          // 文字列の場合はパース、オブジェクトの場合はそのまま
-          if (typeof userData.socialLinks === 'string') {
-            console.log('socialLinksはJSON文字列:', userData.socialLinks);
-            const parsed = JSON.parse(userData.socialLinks);
-            userData = {
-              ...userData,
-              socialLinks: parsed
-            };
-          } else if (typeof userData.socialLinks === 'object') {
-            console.log('socialLinksはオブジェクト:', userData.socialLinks);
-            // socialLinksが空のオブジェクト（{}）の場合は、nullに設定
-            if (Object.keys(userData.socialLinks).length === 0) {
-              console.log('socialLinksは空のオブジェクト、nullに設定します');
-              userData.socialLinks = null;
-            }
-          } else {
-            console.log('socialLinksは不明な型:', typeof userData.socialLinks);
-            userData.socialLinks = null;
-          }
-        } catch (e) {
-          console.error('socialLinksのパースエラー:', e);
-          // JSONパースに失敗した場合はnullにする
-          userData.socialLinks = null;
-        }
-      }
-      console.log('管理者用エンドポイント - 処理後のuserData:', userData);
-      const validatedUserData = updateUserSchema.parse(userData);
-      const user = await storage.updateUser(Number(req.params.id), validatedUserData);
+      const userData = updateUserSchema.parse(req.body);
+      const user = await storage.updateUser(Number(req.params.id), userData);
       res.json(user);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -784,61 +727,14 @@ export async function registerRoutes(app: Express) {
 
     try {
       console.log('リクエストボディ:', req.body);
-      
-      // socialLinksの処理
-      let userData = req.body;
-      console.log('元のuserData:', userData);
-      if (userData.socialLinks) {
-        try {
-          // 文字列の場合はパース、オブジェクトの場合はそのまま
-          if (typeof userData.socialLinks === 'string') {
-            console.log('socialLinksはJSON文字列:', userData.socialLinks);
-            const parsed = JSON.parse(userData.socialLinks);
-            userData = {
-              ...userData,
-              socialLinks: parsed
-            };
-          } else if (typeof userData.socialLinks === 'object') {
-            console.log('socialLinksはオブジェクト:', userData.socialLinks);
-            // socialLinksが空のオブジェクト（{}）の場合は、nullに設定
-            if (Object.keys(userData.socialLinks).length === 0) {
-              console.log('socialLinksは空のオブジェクト、nullに設定します');
-              userData.socialLinks = null;
-            }
-          } else {
-            console.log('socialLinksは不明な型:', typeof userData.socialLinks);
-            userData.socialLinks = null;
-          }
-        } catch (e) {
-          console.error('socialLinksのパースエラー:', e);
-          // JSONパースに失敗した場合はnullにする
-          userData.socialLinks = null;
-        }
-      }
-      
-      console.log('パース後のデータ:', userData);
-      
-      try {
-        const profileData = updateProfileSchema.parse(userData);
-        console.log('バリデーション後のデータ:', profileData);
-        
-        try {
-          console.log('更新を試みるユーザーID:', req.user.id);
-          console.log('更新を試みるデータ:', JSON.stringify(profileData, null, 2));
-          await storage.updateUser(req.user.id, profileData);
-          console.log('ユーザー更新成功');
-          const updatedUser = await storage.getUser(req.user.id);
-          console.log('取得したユーザー:', updatedUser);
-          console.log('更新後のユーザー:', updatedUser);
-          res.json(updatedUser);
-        } catch (updateError) {
-          console.error('ユーザー更新中にエラーが発生:', updateError);
-          throw updateError;
-        }
-      } catch (validationError) {
-        console.error('バリデーションエラー:', validationError);
-        throw validationError;
-      }
+      const profileData = updateProfileSchema.parse(req.body);
+      console.log('バリデーション後のデータ:', profileData);
+
+      await storage.updateUser(req.user.id, profileData);
+      const updatedUser = await storage.getUser(req.user.id);
+
+      console.log('更新後のユーザー:', updatedUser);
+      res.json(updatedUser);
     } catch (error) {
       console.error("プロフィール更新エラー:", error);
       if (error instanceof ZodError) {
@@ -847,11 +743,7 @@ export async function registerRoutes(app: Express) {
           errors: error.errors 
         });
       } else {
-        console.error("詳細なエラーメッセージ:", error instanceof Error ? error.message : "不明なエラー");
-        res.status(500).json({ 
-          message: "プロフィールの更新に失敗しました",
-          details: error instanceof Error ? error.message : "不明なエラー" 
-        });
+        res.status(500).json({ message: "プロフィールの更新に失敗しました" });
       }
     }
   });

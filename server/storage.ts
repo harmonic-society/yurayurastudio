@@ -303,35 +303,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: number, user: Partial<Omit<User, "id">>): Promise<User> {
-    // socialLinksがオブジェクトの場合はJSON文字列に変換
-    let userData = { ...user };
-    
-    console.log('updateUser - 渡されたデータ:', JSON.stringify(userData, null, 2));
-    
-    // socialLinksがオブジェクトの場合はJSON文字列に変換する必要がある場合がある
-    if (userData.socialLinks !== null && userData.socialLinks !== undefined && typeof userData.socialLinks === 'object') {
-      try {
-        // SQLiteでは既にJSON文字列として保存するため
-        console.log('socialLinksはオブジェクト', userData.socialLinks);
-      } catch (e) {
-        console.error('socialLinksの処理中にエラー:', e);
-        userData.socialLinks = null;
-      }
-    }
-    
-    try {
-      console.log('updateUser - 保存するデータ:', JSON.stringify(userData, null, 2));
-      const [updated] = await db
-        .update(users)
-        .set(userData)
-        .where(eq(users.id, id))
-        .returning();
-      console.log('updateUser - 更新結果:', JSON.stringify(updated, null, 2));
-      return updated;
-    } catch (error) {
-      console.error('updateUser - エラー発生:', error);
-      throw error;
-    }
+    const [updated] = await db
+      .update(users)
+      .set(user)
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
   }
 
   async deleteUser(id: number): Promise<void> {

@@ -41,12 +41,6 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   bio: text("bio"),
   title: text("title"),
-  // 追加のプロフィールフィールド
-  location: text("location"),
-  website: text("website"),
-  socialLinks: json("social_links").$type<{twitter?: string, facebook?: string, instagram?: string, github?: string, linkedin?: string}>(),
-  expertise: text("expertise"),
-  languages: text("languages"),
 });
 
 export const projects = pgTable("projects", {
@@ -198,15 +192,7 @@ export const verifyEmailSchema = z.object({
   token: z.string().min(1, "認証トークンは必須です"),
 });
 
-export const updateUserSchema = insertUserSchema.partial().extend({
-  socialLinks: z.object({
-    twitter: z.string().optional(),
-    facebook: z.string().optional(),
-    instagram: z.string().optional(),
-    github: z.string().optional(),
-    linkedin: z.string().optional()
-  }).nullable().optional(),
-});
+export const updateUserSchema = insertUserSchema.partial();
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "現在のパスワードを入力してください"),
@@ -256,17 +242,6 @@ export const updateProfileSchema = z.object({
   avatarUrl: z.string().url("有効な画像URLを入力してください").optional().nullable(),
   bio: z.string().max(500, "プロフィール文は500文字以内で入力してください").optional().nullable(),
   title: z.string().max(100, "肩書きは100文字以内で入力してください").optional().nullable(),
-  location: z.string().max(100, "所在地は100文字以内で入力してください").optional().nullable(),
-  website: z.string().url("有効なURLを入力してください").optional().nullable(),
-  socialLinks: z.object({
-    twitter: z.string().optional(),
-    facebook: z.string().optional(),
-    instagram: z.string().optional(),
-    github: z.string().optional(),
-    linkedin: z.string().optional(),
-  }).optional().nullable(),
-  expertise: z.string().max(200, "専門分野は200文字以内で入力してください").optional().nullable(),
-  languages: z.string().max(200, "言語スキルは200文字以内で入力してください").optional().nullable(),
 });
 
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
