@@ -24,6 +24,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { insertPortfolioSchema, type User, type InsertPortfolio } from "@shared/schema";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface PortfolioFormProps {
   onSubmit: (data: InsertPortfolio) => void;
@@ -38,6 +39,7 @@ export default function PortfolioForm({
   isSubmitting,
   currentUserId
 }: PortfolioFormProps) {
+  const { isAdmin } = useAuth();
   const [previewUrl, setPreviewUrl] = useState<string>(defaultValues?.url || "");
   const [previewImage, setPreviewImage] = useState<string>("");
 
@@ -129,33 +131,37 @@ export default function PortfolioForm({
           </Alert>
         )}
 
-        <FormField
-          control={form.control}
-          name="userId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>担当者<span className="text-destructive">*</span></FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(Number(value))}
-                value={field.value?.toString()}
-              >
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="担当者を選択" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.name}（{roleLabels[user.role]}）
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {isAdmin ? (
+          <FormField
+            control={form.control}
+            name="userId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>担当者<span className="text-destructive">*</span></FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="担当者を選択" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.name}（{roleLabels[user.role]}）
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : (
+          <input type="hidden" name="userId" value={currentUserId} />
+        )}
 
         <FormField
           control={form.control}
