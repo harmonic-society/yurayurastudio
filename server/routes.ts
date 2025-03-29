@@ -212,15 +212,32 @@ export async function registerRoutes(app: Express) {
         const users = await storage.getUsers();
         const mentionedUsers = new Set<number>();
         
+        console.log(`コメント内容: ${commentData.content}`);
+        console.log(`ユーザー一覧:`, users.map(u => ({ id: u.id, name: u.name, username: u.username })));
+        
         // @ユーザー名 のパターンを検出
         const mentionRegex = /@([^\s]+)/g;
         let match;
         while ((match = mentionRegex.exec(commentData.content)) !== null) {
-          const userName = match[1];
-          const mentionedUser = users.find(u => u.name === userName);
+          const mentionText = match[1];
+          console.log(`検出されたメンション: @${mentionText}`);
           
-          if (mentionedUser && mentionedUser.id !== userId) {
-            mentionedUsers.add(mentionedUser.id);
+          // ユーザー名とユーザーネームの両方で検索
+          const mentionedUser = users.find(
+            u => u.name === mentionText || u.username === mentionText
+          );
+          
+          if (mentionedUser) {
+            console.log(`マッチしたユーザー: ID=${mentionedUser.id}, 名前=${mentionedUser.name}, ユーザー名=${mentionedUser.username}`);
+            
+            if (mentionedUser.id !== userId) {
+              mentionedUsers.add(mentionedUser.id);
+              console.log(`メンションユーザーリストに追加: ${mentionedUser.id}`);
+            } else {
+              console.log(`自分自身のメンションは無視: ${mentionedUser.id}`);
+            }
+          } else {
+            console.log(`メンションされたユーザーが見つかりません: @${mentionText}`);
           }
         }
         
