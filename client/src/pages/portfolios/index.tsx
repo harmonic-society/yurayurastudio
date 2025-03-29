@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
-import { Loader2, ExternalLink, User as UserIcon, Calendar, Tag } from "lucide-react";
+import { Loader2, ExternalLink, User as UserIcon, Calendar, Tag, Download } from "lucide-react";
 
 export default function Portfolios() {
   const { data: portfolios, isLoading: isLoadingPortfolios } = useQuery<Portfolio[]>({
@@ -24,14 +24,25 @@ export default function Portfolios() {
 
       const images: Record<number, string> = {};
       for (const portfolio of portfolios) {
-        try {
-          const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`);
-          if (response.ok) {
-            const data = await response.json();
-            images[portfolio.id] = data.imageUrl;
+        // イメージURL（ファイルアップロード時のプレビュー）が既にある場合
+        if (portfolio.imageUrl) {
+          images[portfolio.id] = portfolio.imageUrl;
+        }
+        // ファイルタイプが画像で、ファイルパスがある場合
+        else if (portfolio.fileType?.startsWith('image/') && portfolio.filePath) {
+          images[portfolio.id] = portfolio.filePath;
+        }
+        // URL形式のポートフォリオのOGP画像を取得
+        else if (portfolio.url && portfolio.url.trim() !== '') {
+          try {
+            const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`);
+            if (response.ok) {
+              const data = await response.json();
+              images[portfolio.id] = data.imageUrl;
+            }
+          } catch (error) {
+            console.error(`Failed to fetch OGP image for portfolio ${portfolio.id}:`, error);
           }
-        } catch (error) {
-          console.error(`Failed to fetch OGP image for portfolio ${portfolio.id}:`, error);
         }
       }
       setPreviewImages(images);
@@ -82,12 +93,25 @@ export default function Portfolios() {
             <Card key={portfolio.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 group">
               <div className="relative h-40">
                 {previewImages[portfolio.id] ? (
-                  <img
-                    src={previewImages[portfolio.id]}
-                    alt={`成果物 ${portfolio.title}`}
-                    className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                    onError={(e) => e.currentTarget.style.display = 'none'}
-                  />
+                  <a 
+                    href={portfolio.filePath || portfolio.url || '#'} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block w-full h-full cursor-pointer"
+                  >
+                    <img
+                      src={previewImages[portfolio.id]}
+                      alt={`成果物 ${portfolio.title}`}
+                      className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => e.currentTarget.style.display = 'none'}
+                    />
+                    {/* プレビュー表示ボタン（画像の上に重ねて表示） */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-200">
+                      <button className="bg-white/90 text-primary px-4 py-2 rounded-md text-xs font-medium">
+                        {portfolio.filePath ? 'ファイルを表示' : '成果物を見る'}
+                      </button>
+                    </div>
+                  </a>
                 ) : (
                   <div className="flex items-center justify-center w-full h-full bg-muted">
                     <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
@@ -114,15 +138,28 @@ export default function Portfolios() {
                     {format(new Date(portfolio.createdAt), "yyyy年M月d日")}
                   </div>
                   <div className="flex justify-end mt-1">
-                    <a
-                      href={portfolio.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
-                    >
-                      成果物を見る
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    {portfolio.url ? (
+                      <a
+                        href={portfolio.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
+                      >
+                        成果物を見る
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : portfolio.filePath ? (
+                      <a
+                        href={portfolio.filePath}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
+                        download={portfolio.title}
+                      >
+                        {portfolio.fileType?.startsWith('image/') ? 'ファイルを表示' : 'ファイルをダウンロード'}
+                        {portfolio.fileType?.startsWith('image/') ? <ExternalLink className="w-3 h-3" /> : <Download className="w-3 h-3" />}
+                      </a>
+                    ) : null}
                   </div>
                 </div>
               </CardContent>

@@ -31,7 +31,16 @@ export default function PortfolioList({
       const images: Record<number, string> = {};
 
       for (const portfolio of portfolios) {
-        if (portfolio.url) { // URL形式のポートフォリオのみOGP画像を取得
+        // イメージURL（ファイルアップロード時のプレビュー）が既にある場合
+        if (portfolio.imageUrl) {
+          images[portfolio.id] = portfolio.imageUrl;
+        }
+        // ファイルタイプが画像で、ファイルパスがある場合
+        else if (portfolio.fileType?.startsWith('image/') && portfolio.filePath) {
+          images[portfolio.id] = portfolio.filePath;
+        }
+        // URL形式のポートフォリオのOGP画像を取得
+        else if (portfolio.url) {
           try {
             const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`);
             if (response.ok) {
@@ -41,8 +50,6 @@ export default function PortfolioList({
           } catch (error) {
             console.error(`Failed to fetch OGP image for portfolio ${portfolio.id}:`, error);
           }
-        } else if (portfolio.imageUrl) { // すでに保存されているイメージURLがある場合
-          images[portfolio.id] = portfolio.imageUrl;
         }
       }
 
@@ -112,29 +119,68 @@ export default function PortfolioList({
               {/* 画像表示エリア */}
               {previewImages[portfolio.id] ? (
                 // OGP画像またはイメージURLがある場合
-                <img
-                  src={previewImages[portfolio.id]}
-                  alt={`成果物 ${portfolio.title}`}
-                  className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => e.currentTarget.style.display = 'none'}
-                />
+                <a 
+                  href={portfolio.filePath || portfolio.url || '#'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block w-full h-full cursor-pointer"
+                >
+                  <img
+                    src={previewImages[portfolio.id]}
+                    alt={`成果物 ${portfolio.title}`}
+                    className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => e.currentTarget.style.display = 'none'}
+                  />
+                  {/* プレビュー表示ボタン（画像の上に重ねて表示） */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-200">
+                    <button className="bg-white/90 text-primary px-4 py-2 rounded-md text-xs font-medium">
+                      {isFileType ? (isImageFile ? '画像を表示' : 'ファイルを開く') : '成果物を見る'}
+                    </button>
+                  </div>
+                </a>
               ) : isFileType && isImageFile ? (
                 // 画像ファイルの場合、ファイルパスから直接表示
-                <img
-                  src={portfolio.filePath || ''}
-                  alt={`成果物 ${portfolio.title}`}
-                  className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => e.currentTarget.style.display = 'none'}
-                />
+                <a 
+                  href={portfolio.filePath || '#'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block w-full h-full cursor-pointer"
+                >
+                  <img
+                    src={portfolio.filePath || ''}
+                    alt={`成果物 ${portfolio.title}`}
+                    className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => e.currentTarget.style.display = 'none'}
+                  />
+                  {/* プレビュー表示ボタン（画像の上に重ねて表示） */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-200">
+                    <button className="bg-white/90 text-primary px-4 py-2 rounded-md text-xs font-medium">
+                      画像を表示
+                    </button>
+                  </div>
+                </a>
               ) : isFileType && fileTypeIcon ? (
                 // ファイルタイプのアイコンを表示
-                <div className="flex items-center justify-center w-full h-full bg-gray-50">
-                  <img
-                    src={fileTypeIcon}
-                    alt={`${portfolio.fileType} ファイル`}
-                    className="w-20 h-20 object-contain"
-                  />
-                </div>
+                <a 
+                  href={portfolio.filePath || '#'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block w-full h-full cursor-pointer"
+                >
+                  <div className="flex items-center justify-center w-full h-full bg-gray-50">
+                    <img
+                      src={fileTypeIcon}
+                      alt={`${portfolio.fileType} ファイル`}
+                      className="w-20 h-20 object-contain"
+                    />
+                  </div>
+                  {/* プレビュー表示ボタン（画像の上に重ねて表示） */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-200">
+                    <button className="bg-white/90 text-primary px-4 py-2 rounded-md text-xs font-medium">
+                      ファイルを開く
+                    </button>
+                  </div>
+                </a>
               ) : (
                 // プレビューなし
                 <div className="flex items-center justify-center w-full h-full bg-muted">
