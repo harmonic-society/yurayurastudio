@@ -212,20 +212,24 @@ export default function PortfolioForm({
       }
       
       // 提出モードに応じた追加バリデーション
-      if (submitMode === "url" && (!data.url || data.url.trim().length === 0)) {
-        form.setError('url', {
-          type: 'manual',
-          message: 'URLを入力してください'
-        });
-        console.error('URLエラー: 空または未入力');
-        hasError = true;
-      } else if (submitMode === "file" && !selectedFile) {
-        form.setError('root', {
-          type: 'manual',
-          message: 'ファイルを選択してください'
-        });
-        console.error('ファイルエラー: 未選択');
-        hasError = true;
+      if (submitMode === "url") {
+        if (!data.url || data.url.trim().length === 0) {
+          form.setError('url', {
+            type: 'manual',
+            message: 'URLを入力してください'
+          });
+          console.error('URLエラー: 空または未入力');
+          hasError = true;
+        }
+      } else if (submitMode === "file") {
+        if (!selectedFile) {
+          form.setError('root', {
+            type: 'manual',
+            message: 'ファイルを選択してください'
+          });
+          console.error('ファイルエラー: 未選択');
+          hasError = true;
+        }
       }
       
       // 必須フィールドの値をコンソールに表示

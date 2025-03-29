@@ -147,16 +147,18 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   url: z.string().optional().nullable()
     .refine(
       (url) => {
-        // urlが入力されている場合は有効なURLであることを確認
-        if (url && url.trim().length > 0) {
-          try {
-            new URL(url);
-            return true;
-          } catch {
-            return false;
-          }
+        // urlが空の場合は検証をスキップ（ファイルアップロードモードの場合はURLが不要）
+        if (!url || url.trim().length === 0) {
+          return true;
         }
-        return true; // urlが空の場合は検証をスキップ
+        
+        // urlが入力されている場合は有効なURLであることを確認
+        try {
+          new URL(url);
+          return true;
+        } catch {
+          return false;
+        }
       },
       {
         message: "有効なURLを入力してください"
@@ -170,19 +172,7 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   fileType: z.string().optional().nullable(),
   isPublic: z.boolean().default(true)
 })
-.superRefine((data, ctx) => {
-  // URLかファイルパスのどちらかが必要
-  if (
-    (!data.url || data.url.trim().length === 0) && 
-    (!data.filePath || data.filePath.trim().length === 0)
-  ) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "URLまたはファイルのどちらかを入力してください",
-      path: ["url"]
-    });
-  }
-});
+// URLとファイルパスの相互依存チェックは削除 - フォームコンポーネント側でモードに応じた検証を行う
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
