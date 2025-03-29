@@ -594,7 +594,13 @@ export default function ProjectDetails() {
                       createPortfolioMutation.mutate(dataWithProject);
                     }
                   }}
-                  defaultValues={selectedPortfolio || undefined}
+                  defaultValues={selectedPortfolio || {
+                    userId: Number(currentUserId),
+                    title: "",
+                    description: "",
+                    workType: undefined,
+                    isPublic: true
+                  }}
                   isSubmitting={
                     createPortfolioMutation.isPending || updatePortfolioMutation.isPending
                   }

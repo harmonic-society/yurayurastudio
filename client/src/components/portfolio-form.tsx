@@ -82,18 +82,25 @@ export default function PortfolioForm({
     fetchOgpImage();
   }, [previewUrl]);
 
+  // フォームのデフォルト値を設定
+  const defaultFormValues = {
+    title: defaultValues?.title || "",
+    description: defaultValues?.description || "",
+    url: defaultValues?.url || "",
+    userId: defaultValues?.userId || currentUserId,
+    workType: defaultValues?.workType || undefined,
+    isPublic: defaultValues?.isPublic ?? true,
+    filePath: defaultValues?.filePath || null,
+    fileType: defaultValues?.fileType || null,
+    imageUrl: defaultValues?.imageUrl || null
+  };
+  
+  console.log('フォームのデフォルト値:', defaultFormValues);
+  
   const form = useForm<InsertPortfolio>({
     resolver: zodResolver(insertPortfolioSchema),
-    defaultValues: {
-      title: defaultValues?.title || "",
-      description: defaultValues?.description || "",
-      url: defaultValues?.url || "",
-      userId: defaultValues?.userId || currentUserId,
-      workType: defaultValues?.workType || undefined,
-      isPublic: defaultValues?.isPublic ?? true,
-      filePath: defaultValues?.filePath || null,
-      fileType: defaultValues?.fileType || null
-    }
+    defaultValues: defaultFormValues,
+    mode: 'onChange' // 入力時にバリデーションを行う
   });
 
   const { data: users } = useQuery<User[]>({
@@ -159,9 +166,22 @@ export default function PortfolioForm({
 
   const handleSubmit = async (data: InsertPortfolio) => {
     try {
-      console.log('フォーム送信データ:', data);
+      console.log('フォーム送信データ:', JSON.stringify(data, null, 2));
       
-      // バリデーションチェック
+      // フォームの現在の状態をログ出力
+      console.log('フォーム状態:', {
+        isDirty: form.formState.isDirty,
+        isValid: form.formState.isValid,
+        dirtyFields: Object.keys(form.formState.dirtyFields),
+        touchedFields: Object.keys(form.formState.touchedFields),
+      });
+      
+      // エラーの詳細をログ出力
+      if (Object.keys(form.formState.errors).length > 0) {
+        console.error('フォームエラー詳細:', JSON.stringify(form.formState.errors, null, 2));
+      }
+      
+      // バリデーションチェック - 必須フィールドの確認
       let hasError = false;
       
       if (!data.title || data.title.trim().length === 0) {
@@ -169,6 +189,7 @@ export default function PortfolioForm({
           type: 'manual',
           message: 'タイトルは必須です'
         });
+        console.error('タイトルエラー: 空または未入力');
         hasError = true;
       }
       
@@ -177,6 +198,7 @@ export default function PortfolioForm({
           type: 'manual',
           message: '説明は必須です'
         });
+        console.error('説明エラー: 空または未入力');
         hasError = true;
       }
       
@@ -185,8 +207,36 @@ export default function PortfolioForm({
           type: 'manual',
           message: '作業種別を選択してください'
         });
+        console.error('作業種別エラー: 未選択');
         hasError = true;
       }
+      
+      // 提出モードに応じた追加バリデーション
+      if (submitMode === "url" && (!data.url || data.url.trim().length === 0)) {
+        form.setError('url', {
+          type: 'manual',
+          message: 'URLを入力してください'
+        });
+        console.error('URLエラー: 空または未入力');
+        hasError = true;
+      } else if (submitMode === "file" && !selectedFile) {
+        form.setError('root', {
+          type: 'manual',
+          message: 'ファイルを選択してください'
+        });
+        console.error('ファイルエラー: 未選択');
+        hasError = true;
+      }
+      
+      // 必須フィールドの値をコンソールに表示
+      console.log('必須フィールド値:', {
+        title: data.title || '未入力',
+        description: data.description || '未入力',
+        workType: data.workType || '未選択',
+        submitMode: submitMode,
+        hasFile: !!selectedFile,
+        hasUrl: !!data.url
+      });
       
       if (hasError) {
         console.error('フォームバリデーションエラー:', Object.keys(form.formState.errors));
@@ -195,17 +245,15 @@ export default function PortfolioForm({
       
       if (submitMode === "url") {
         // URL提出モード
-        if (!data.url || data.url.trim().length === 0) {
-          form.setError('url', {
-            type: 'manual',
-            message: 'URLを入力してください'
-          });
-          return;
-        }
+        // 上のバリデーションでチェック済みなのでここでは追加チェックしない
         
         try {
           // URLの形式チェック
-          new URL(data.url);
+          if (data.url) {
+            new URL(data.url);
+          } else {
+            throw new Error("URLが未入力です");
+          }
         } catch (e) {
           form.setError('url', {
             type: 'manual',
@@ -218,7 +266,7 @@ export default function PortfolioForm({
           userId: Number(data.userId),
           title: data.title.trim(),
           description: data.description.trim(),
-          url: data.url.trim(),
+          url: data.url ? data.url.trim() : "",
           workType: data.workType,
           isPublic: data.isPublic ?? true,
           filePath: null,
@@ -228,12 +276,9 @@ export default function PortfolioForm({
         await onSubmit(submitData);
       } else {
         // ファイル提出モード
+        // 上のバリデーションでチェック済みなのでここでは追加チェックしない
         if (!selectedFile) {
-          form.setError('root', {
-            type: 'manual',
-            message: 'ファイルを選択してください'
-          });
-          return;
+          throw new Error('ファイルが選択されていません');
         }
 
         const formData = new FormData();
