@@ -1,0 +1,18 @@
+// 以下をbuild.gradleファイルのandroid{}ブロック内の最後に追加してください
+// Google Playに公開するためのリリース署名設定
+signingConfigs {
+    release {
+        storeFile file('keystore.jks')
+        storePassword System.getenv('KEYSTORE_PASSWORD') ?: 'yurayura_keystore_password'
+        keyAlias System.getenv('KEY_ALIAS') ?: 'upload'
+        keyPassword System.getenv('KEY_PASSWORD') ?: 'yurayura_key_password'
+    }
+}
+
+buildTypes {
+    release {
+        signingConfig signingConfigs.release
+        minifyEnabled true
+        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+    }
+}
