@@ -726,25 +726,35 @@ export async function registerRoutes(app: Express) {
     try {
       // JSON文字列からJSONオブジェクトに変換（既にオブジェクトの場合はそのまま）
       let userData = req.body;
-      if (userData.socialLinks && typeof userData.socialLinks === 'string') {
+      console.log('管理者用エンドポイント - 元のuserData:', userData);
+      if (userData.socialLinks) {
         try {
-          // パースしてsocialLinksとして設定
-          const parsed = JSON.parse(userData.socialLinks);
-          userData = {
-            ...userData,
-            socialLinks: {
-              twitter: typeof parsed.twitter === 'string' ? parsed.twitter : undefined,
-              facebook: typeof parsed.facebook === 'string' ? parsed.facebook : undefined,
-              instagram: typeof parsed.instagram === 'string' ? parsed.instagram : undefined,
-              github: typeof parsed.github === 'string' ? parsed.github : undefined,
-              linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : undefined,
+          // 文字列の場合はパース、オブジェクトの場合はそのまま
+          if (typeof userData.socialLinks === 'string') {
+            console.log('socialLinksはJSON文字列:', userData.socialLinks);
+            const parsed = JSON.parse(userData.socialLinks);
+            userData = {
+              ...userData,
+              socialLinks: parsed
+            };
+          } else if (typeof userData.socialLinks === 'object') {
+            console.log('socialLinksはオブジェクト:', userData.socialLinks);
+            // socialLinksが空のオブジェクト（{}）の場合は、nullに設定
+            if (Object.keys(userData.socialLinks).length === 0) {
+              console.log('socialLinksは空のオブジェクト、nullに設定します');
+              userData.socialLinks = null;
             }
-          };
+          } else {
+            console.log('socialLinksは不明な型:', typeof userData.socialLinks);
+            userData.socialLinks = null;
+          }
         } catch (e) {
+          console.error('socialLinksのパースエラー:', e);
           // JSONパースに失敗した場合はnullにする
           userData.socialLinks = null;
         }
       }
+      console.log('管理者用エンドポイント - 処理後のuserData:', userData);
       const validatedUserData = updateUserSchema.parse(userData);
       const user = await storage.updateUser(Number(req.params.id), validatedUserData);
       res.json(user);
@@ -777,20 +787,28 @@ export async function registerRoutes(app: Express) {
       
       // socialLinksの処理
       let userData = req.body;
-      if (userData.socialLinks && typeof userData.socialLinks === 'string') {
+      console.log('元のuserData:', userData);
+      if (userData.socialLinks) {
         try {
-          // パースしてsocialLinksとして設定
-          const parsed = JSON.parse(userData.socialLinks);
-          userData = {
-            ...userData,
-            socialLinks: {
-              twitter: typeof parsed.twitter === 'string' ? parsed.twitter : undefined,
-              facebook: typeof parsed.facebook === 'string' ? parsed.facebook : undefined,
-              instagram: typeof parsed.instagram === 'string' ? parsed.instagram : undefined,
-              github: typeof parsed.github === 'string' ? parsed.github : undefined,
-              linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : undefined,
+          // 文字列の場合はパース、オブジェクトの場合はそのまま
+          if (typeof userData.socialLinks === 'string') {
+            console.log('socialLinksはJSON文字列:', userData.socialLinks);
+            const parsed = JSON.parse(userData.socialLinks);
+            userData = {
+              ...userData,
+              socialLinks: parsed
+            };
+          } else if (typeof userData.socialLinks === 'object') {
+            console.log('socialLinksはオブジェクト:', userData.socialLinks);
+            // socialLinksが空のオブジェクト（{}）の場合は、nullに設定
+            if (Object.keys(userData.socialLinks).length === 0) {
+              console.log('socialLinksは空のオブジェクト、nullに設定します');
+              userData.socialLinks = null;
             }
-          };
+          } else {
+            console.log('socialLinksは不明な型:', typeof userData.socialLinks);
+            userData.socialLinks = null;
+          }
         } catch (e) {
           console.error('socialLinksのパースエラー:', e);
           // JSONパースに失敗した場合はnullにする
@@ -803,12 +821,20 @@ export async function registerRoutes(app: Express) {
       try {
         const profileData = updateProfileSchema.parse(userData);
         console.log('バリデーション後のデータ:', profileData);
-
-        await storage.updateUser(req.user.id, profileData);
-        const updatedUser = await storage.getUser(req.user.id);
-
-        console.log('更新後のユーザー:', updatedUser);
-        res.json(updatedUser);
+        
+        try {
+          console.log('更新を試みるユーザーID:', req.user.id);
+          console.log('更新を試みるデータ:', JSON.stringify(profileData, null, 2));
+          await storage.updateUser(req.user.id, profileData);
+          console.log('ユーザー更新成功');
+          const updatedUser = await storage.getUser(req.user.id);
+          console.log('取得したユーザー:', updatedUser);
+          console.log('更新後のユーザー:', updatedUser);
+          res.json(updatedUser);
+        } catch (updateError) {
+          console.error('ユーザー更新中にエラーが発生:', updateError);
+          throw updateError;
+        }
       } catch (validationError) {
         console.error('バリデーションエラー:', validationError);
         throw validationError;
@@ -821,7 +847,11 @@ export async function registerRoutes(app: Express) {
           errors: error.errors 
         });
       } else {
-        res.status(500).json({ message: "プロフィールの更新に失敗しました" });
+        console.error("詳細なエラーメッセージ:", error instanceof Error ? error.message : "不明なエラー");
+        res.status(500).json({ 
+          message: "プロフィールの更新に失敗しました",
+          details: error instanceof Error ? error.message : "不明なエラー" 
+        });
       }
     }
   });

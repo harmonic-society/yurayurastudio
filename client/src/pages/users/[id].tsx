@@ -272,6 +272,16 @@ export default function UserProfile() {
           formattedSocialLinks[key as keyof typeof formattedSocialLinks] = `https://${value}`;
         }
       });
+      
+      // 空文字列のフィールドを削除
+      Object.keys(formattedSocialLinks).forEach(key => {
+        const value = formattedSocialLinks[key as keyof typeof formattedSocialLinks];
+        if (!value || value.trim() === '') {
+          delete formattedSocialLinks[key as keyof typeof formattedSocialLinks];
+        }
+      });
+      
+      console.log('フォーマット後のソーシャルリンク:', formattedSocialLinks);
     }
     
     updateProfileMutation.mutate({
