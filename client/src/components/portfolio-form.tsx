@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -12,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -24,17 +26,17 @@ import { insertPortfolioSchema, type User, type InsertPortfolio } from "@shared/
 import { useState, useEffect } from "react";
 
 interface PortfolioFormProps {
-  projectId: number;
   onSubmit: (data: InsertPortfolio) => void;
   defaultValues?: Partial<InsertPortfolio>;
   isSubmitting?: boolean;
+  currentUserId: number; // 現在のユーザーIDを追加
 }
 
 export default function PortfolioForm({
-  projectId,
   onSubmit,
   defaultValues,
-  isSubmitting
+  isSubmitting,
+  currentUserId
 }: PortfolioFormProps) {
   const [previewUrl, setPreviewUrl] = useState<string>(defaultValues?.url || "");
   const [previewImage, setPreviewImage] = useState<string>("");
@@ -66,12 +68,12 @@ export default function PortfolioForm({
   const form = useForm<InsertPortfolio>({
     resolver: zodResolver(insertPortfolioSchema),
     defaultValues: {
-      projectId,
       title: defaultValues?.title || "",
       description: defaultValues?.description || "",
       url: defaultValues?.url || "",
-      userId: defaultValues?.userId,
-      workType: defaultValues?.workType
+      userId: defaultValues?.userId || currentUserId,
+      workType: defaultValues?.workType,
+      isPublic: defaultValues?.isPublic ?? true
     }
   });
 
@@ -80,6 +82,7 @@ export default function PortfolioForm({
   });
 
   const roleLabels = {
+    ADMIN: "管理者",
     DIRECTOR: "ディレクター",
     SALES: "営業担当",
     CREATOR: "クリエイター"
@@ -98,12 +101,12 @@ export default function PortfolioForm({
   const handleSubmit = async (data: InsertPortfolio) => {
     try {
       const submitData = {
-        projectId,
         userId: Number(data.userId),
         title: data.title.trim(),
         description: data.description.trim(),
         url: data.url.trim(),
-        workType: data.workType
+        workType: data.workType,
+        isPublic: data.isPublic ?? true
       };
       await onSubmit(submitData);
     } catch (error) {
@@ -248,6 +251,27 @@ export default function PortfolioForm({
                 </div>
               )}
               <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="isPublic"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>公開設定</FormLabel>
+                <FormDescription>
+                  このポートフォリオを他のユーザーに公開しますか？
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
             </FormItem>
           )}
         />

@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/tooltip";
 
 interface PortfolioListProps {
-  projectId: number;
   portfolios: Portfolio[];
   onEdit?: (portfolio: Portfolio) => void;
   onDelete?: (portfolio: Portfolio) => void;
@@ -20,7 +19,6 @@ interface PortfolioListProps {
 }
 
 export default function PortfolioList({
-  projectId,
   portfolios,
   onEdit,
   onDelete,

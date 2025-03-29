@@ -105,7 +105,6 @@ export const rewardDistributionsRelations = relations(rewardDistributions, ({ on
 export const projectsRelations = relations(projects, ({ many, one }) => ({
   assignments: many(projectAssignments),
   comments: many(comments),
-  portfolios: many(portfolios),
   rewardDistribution: one(rewardDistributions),
 }));
 
@@ -119,20 +118,17 @@ export const comments = pgTable("comments", {
 
 export const portfolios = pgTable("portfolios", {
   id: serial("id").primaryKey(),
-  projectId: integer("project_id").notNull().references(() => projects.id),
   userId: integer("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   description: text("description").notNull(),
   url: text("url").notNull(),
   workType: text("work_type", { enum: workTypes }).notNull(),
+  imageUrl: text("image_url"), // プレビュー画像のURL（OGP画像をキャッシュする場合に使用）
+  isPublic: pgBoolean("is_public").notNull().default(true), // 公開/非公開設定
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const portfoliosRelations = relations(portfolios, ({ one }) => ({
-  project: one(projects, {
-    fields: [portfolios.projectId],
-    references: [projects.id],
-  }),
   user: one(users, {
     fields: [portfolios.userId],
     references: [users.id],
@@ -143,14 +139,15 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   id: true,
   createdAt: true
 }).extend({
-  projectId: z.number().int().positive(),
   userId: z.number().int().positive(),
   title: z.string().min(1, "タイトルは必須です"),
-  description: z.string().min(1, "説明は必須です"),
+  description: z.string().min(1, "説明は必須です").max(500, "説明は500文字以内で入力してください"),
   url: z.string().url("有効なURLを入力してください"),
   workType: z.enum(workTypes, {
     errorMap: () => ({ message: "作業種別を選択してください" })
-  })
+  }),
+  imageUrl: z.string().url("有効な画像URLを入力してください").optional().nullable(),
+  isPublic: z.boolean().default(true)
 });
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
@@ -459,9 +456,10 @@ export const insertNotificationHistorySchema = createInsertSchema(notificationHi
   link: z.string().nullable().optional(),
 });
 
-// ユーザーリレーションの定義（スキルとメール通知を含む）
+// ユーザーリレーションの定義（スキル、ポートフォリオ、通知を含む）
 export const usersRelations = relations(users, ({ many }) => ({
   skills: many(userSkills),
+  portfolios: many(portfolios),
   notificationSettings: many(notificationSettings),
   notificationHistory: many(notificationHistory),
 }));

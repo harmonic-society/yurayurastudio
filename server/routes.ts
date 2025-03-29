@@ -447,17 +447,35 @@ export async function registerRoutes(app: Express) {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
-    const portfolios = await storage.getAllPortfolios();
+    // 公開されているポートフォリオのみを取得
+    const portfolios = await storage.getPublicPortfolios();
     res.json(portfolios);
   });
 
-  // Get project portfolios (読み取り可能)
+  // Get user's portfolios (読み取り可能)
+  app.get("/api/users/:id/portfolios", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    const portfolios = await storage.getUserPortfolios(Number(req.params.id));
+    
+    // 本人または管理者以外の場合は、公開設定のもののみを返す
+    if (req.user.id !== Number(req.params.id) && req.user.role !== "ADMIN") {
+      const publicPortfolios = portfolios.filter(p => p.isPublic);
+      return res.json(publicPortfolios);
+    }
+    
+    res.json(portfolios);
+  });
+
+  // 後方互換性のため残す (空の配列を返す)
   app.get("/api/projects/:id/portfolios", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
-    const portfolios = await storage.getPortfolios(Number(req.params.id));
-    res.json(portfolios);
+    // 空の配列を返す
+    res.json([]);
   });
 
   // Get a single portfolio (読み取り可能)
@@ -473,12 +491,16 @@ export async function registerRoutes(app: Express) {
     res.json(portfolio);
   });
 
-  // Create a portfolio (管理者のみ)
-  app.post("/api/projects/:id/portfolios", isAdmin, async (req, res) => {
+  // Create a portfolio (ユーザー自身のポートフォリオのみ作成可能)
+  app.post("/api/portfolios", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
     try {
       const portfolioData = insertPortfolioSchema.parse({
         ...req.body,
-        projectId: Number(req.params.id),
+        userId: req.user.id, // 自分自身のポートフォリオのみ作成可能
       });
 
       const portfolio = await storage.createPortfolio(portfolioData);
@@ -487,30 +509,82 @@ export async function registerRoutes(app: Express) {
       if (error instanceof ZodError) {
         res.status(400).json({ message: "無効なポートフォリオデータです", errors: error.errors });
       } else {
+        console.error("ポートフォリオ作成エラー:", error);
         res.status(500).json({ message: "ポートフォリオの作成に失敗しました" });
       }
     }
   });
+  
+  // 後方互換性のためのエンドポイント (使用禁止)
+  app.post("/api/projects/:id/portfolios", isAdmin, async (req, res) => {
+    return res.status(410).json({ 
+      message: "このエンドポイントは非推奨です。新しいエンドポイント /api/portfolios を使用してください。" 
+    });
+  });
 
-  // Update a portfolio (管理者のみ)
-  app.patch("/api/portfolios/:id", isAdmin, async (req, res) => {
+  // Update a portfolio (自分のポートフォリオまたは管理者のみ)
+  app.patch("/api/portfolios/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
     try {
+      const portfolioId = Number(req.params.id);
+      const portfolio = await storage.getPortfolio(portfolioId);
+      
+      if (!portfolio) {
+        return res.status(404).json({ message: "ポートフォリオが見つかりません" });
+      }
+      
+      // 自分のポートフォリオか管理者のみ許可
+      if (portfolio.userId !== req.user.id && req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "このポートフォリオを編集する権限がありません" });
+      }
+      
       const portfolioData = insertPortfolioSchema.partial().parse(req.body);
-      const portfolio = await storage.updatePortfolio(Number(req.params.id), portfolioData);
-      res.json(portfolio);
+      
+      // アップデートデータからuserIdを削除（変更不可）
+      if ('userId' in portfolioData && portfolioData.userId !== portfolio.userId) {
+        delete portfolioData.userId;
+      }
+      
+      const updatedPortfolio = await storage.updatePortfolio(portfolioId, portfolioData);
+      res.json(updatedPortfolio);
     } catch (error) {
       if (error instanceof ZodError) {
         res.status(400).json({ message: "無効なポートフォリオデータです", errors: error.errors });
       } else {
+        console.error("ポートフォリオ更新エラー:", error);
         res.status(500).json({ message: "ポートフォリオの更新に失敗しました" });
       }
     }
   });
 
-  // Delete a portfolio (管理者のみ)
-  app.delete("/api/portfolios/:id", isAdmin, async (req, res) => {
-    await storage.deletePortfolio(Number(req.params.id));
-    res.status(204).send();
+  // Delete a portfolio (自分のポートフォリオまたは管理者のみ)
+  app.delete("/api/portfolios/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const portfolioId = Number(req.params.id);
+      const portfolio = await storage.getPortfolio(portfolioId);
+      
+      if (!portfolio) {
+        return res.status(404).json({ message: "ポートフォリオが見つかりません" });
+      }
+      
+      // 自分のポートフォリオか管理者のみ許可
+      if (portfolio.userId !== req.user.id && req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "このポートフォリオを削除する権限がありません" });
+      }
+      
+      await storage.deletePortfolio(portfolioId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("ポートフォリオ削除エラー:", error);
+      res.status(500).json({ message: "ポートフォリオの削除に失敗しました" });
+    }
   });
 
   // First OGP implementation removed to fix duplicate endpoint
