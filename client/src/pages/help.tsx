@@ -98,19 +98,61 @@ export default function HelpPage() {
       // 対応する目次項目を探す
       const tocItem = tableOfContents.find(item => item.title === text && item.level === 1);
       const id = tocItem ? tocItem.id : `h1-${Math.random().toString(36).substring(2, 7)}`;
-      return <h1 id={id} {...props}>{children}</h1>;
+      
+      // プライバシーポリシーと利用規約のセクションには特別なスタイルを適用
+      const isSpecialSection = text === "プライバシーポリシー" || text === "サイト利用規約";
+      
+      return (
+        <h1 
+          id={id} 
+          {...props} 
+          className={`
+            ${isSpecialSection ? 'mt-8 py-3 px-4 bg-primary/5 border-l-4 border-primary rounded-md' : ''}
+          `}
+        >
+          {children}
+        </h1>
+      );
     },
     h2: ({ children, ...props }: any) => {
       const text = normalizeHeadingText(children);
       const tocItem = tableOfContents.find(item => item.title === text && item.level === 2);
       const id = tocItem ? tocItem.id : `h2-${Math.random().toString(36).substring(2, 7)}`;
-      return <h2 id={id} {...props}>{children}</h2>;
+      
+      return (
+        <h2 
+          id={id} 
+          {...props}
+          className={`
+            ${text.startsWith("1.") || text.startsWith("2.") || text.startsWith("3.") || 
+              text.startsWith("4.") || text.startsWith("5.") || text.startsWith("6.") || 
+              text.startsWith("7.") || text.startsWith("8.") || text.startsWith("9.") ? 
+              'mt-6 pt-2 border-b border-primary/20' : ''}
+          `}
+        >
+          {children}
+        </h2>
+      );
     },
     h3: ({ children, ...props }: any) => {
       const text = normalizeHeadingText(children);
       const tocItem = tableOfContents.find(item => item.title === text && item.level === 3);
       const id = tocItem ? tocItem.id : `h3-${Math.random().toString(36).substring(2, 7)}`;
-      return <h3 id={id} {...props}>{children}</h3>;
+      
+      return (
+        <h3 
+          id={id} 
+          {...props}
+          className={`
+            ${text.includes("アカウント情報") || text.includes("利用情報") || text.includes("技術情報") ||
+              text.includes("登録手続き") || text.includes("アカウント承認") || text.includes("知的財産権") ||
+              text.includes("コンテンツの責任") || text.includes("サービスの変更") ? 
+              'text-primary/90 font-medium' : ''}
+          `}
+        >
+          {children}
+        </h3>
+      );
     },
     // リンクコンポーネント
     a: ({ node, href, children, ...props }: any) => {
@@ -177,6 +219,53 @@ export default function HelpPage() {
         <pre className="bg-muted p-4 rounded-md overflow-x-auto my-4 whitespace-pre-wrap break-all" {...props}>
           {children}
         </pre>
+      );
+    },
+    // リストアイテムのカスタマイズ
+    li: ({ children, ...props }: any) => {
+      const text = normalizeHeadingText(children);
+      
+      // プライバシーポリシーと利用規約のリストアイテムに特別なスタイルを適用
+      // セクション内容を検出するための簡易的な方法
+      const isPrivacyOrTerms = 
+        text.includes("収集した情報") || 
+        text.includes("法律に基づく") || 
+        text.includes("当サービスの権利") ||
+        text.includes("SSL/TLS") ||
+        text.includes("アクセス制限") ||
+        text.includes("法令または公序良俗") ||
+        text.includes("犯罪行為") ||
+        text.includes("知的財産権") ||
+        text.includes("誹謗中傷") ||
+        text.includes("本サービスの提供を中断");
+      
+      return (
+        <li
+          {...props}
+          className={isPrivacyOrTerms ? "mb-2 py-1 border-b border-muted" : ""}
+        >
+          {children}
+        </li>
+      );
+    },
+    // 段落のカスタマイズ
+    p: ({ children, ...props }: any) => {
+      const text = normalizeHeadingText(children);
+      
+      // 重要な段落に特別なスタイルを適用
+      const isImportantParagraph = 
+        text.includes("当サービスでは、お客様の情報を保護するために") || 
+        text.includes("ユーザーは、自身のアカウント情報") ||
+        text.includes("当社は、本サービスに事実上または法律上の瑕疵") ||
+        text.includes("このプライバシーポリシーは、必要に応じて更新");
+      
+      return (
+        <p
+          {...props}
+          className={isImportantParagraph ? "bg-muted/50 p-2 rounded border-l-2 border-primary/50" : ""}
+        >
+          {children}
+        </p>
       );
     }
   };
@@ -279,8 +368,8 @@ export default function HelpPage() {
                             <div
                               key={`toc-item-${index}`}
                               className={`
-                                cursor-pointer py-1 px-2 rounded text-sm
-                                ${item.level === 1 ? "font-bold" : ""}
+                                cursor-pointer py-1 px-2 rounded text-sm flex items-center
+                                ${item.level === 1 ? "font-bold mt-2" : ""}
                                 ${item.level === 2 ? "ml-2" : ""}
                                 ${item.level === 3 ? "ml-4 text-xs" : ""}
                                 ${activeSection === item.id ? "bg-primary/10 text-primary" : "hover:bg-muted"}
@@ -288,7 +377,12 @@ export default function HelpPage() {
                               style={{ marginLeft: `${(item.level - 1) * 0.75}rem` }}
                               onClick={() => scrollToSection(item.id)}
                             >
-                              {cleanTitle}
+                              {item.level === 1 && <div className="w-1 h-4 bg-primary/80 rounded-full mr-2"></div>}
+                              {item.level === 2 && <div className="w-1 h-3 bg-primary/50 rounded-full mr-2"></div>}
+                              {item.level === 3 && <div className="w-1 h-2 bg-primary/30 rounded-full mr-2"></div>}
+                              <span className={`${item.title === "プライバシーポリシー" || item.title === "サイト利用規約" ? "text-primary font-medium" : ""}`}>
+                                {cleanTitle}
+                              </span>
                             </div>
                           );
                         })}
