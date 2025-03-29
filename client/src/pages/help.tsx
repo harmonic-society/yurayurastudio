@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import Layout from "@/components/layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "wouter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Home, ChevronsLeft } from "lucide-react";
 
 export default function HelpPage() {
   const { toast } = useToast();
@@ -194,11 +194,25 @@ export default function HelpPage() {
     });
   }
 
+  // レイアウトのヘッダーとサイドバーがネストする問題を解決するため、独自レイアウトを使用
   return (
-    <Layout>
+    <div className="container mx-auto py-6 md:py-10 px-4">
+      {/* ナビゲーションバー */}
+      <div className="flex items-center mb-4 gap-4">
+        <Link href="/">
+          <Button variant="outline" className="flex items-center gap-2">
+            <Home className="h-4 w-4" />
+            <span>ダッシュボードに戻る</span>
+          </Button>
+        </Link>
+        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+          Yura Yura STUDIO
+        </h1>
+      </div>
+      
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl">Yura Yura STUDIO ヘルプ</CardTitle>
+          <CardTitle className="text-2xl">ヘルプセンター</CardTitle>
           <CardDescription>
             アプリケーションの使い方とよくある質問
           </CardDescription>
@@ -319,7 +333,23 @@ export default function HelpPage() {
             </div>
           </div>
         </CardContent>
+        <CardFooter className="flex justify-between border-t pt-6">
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          >
+            <ChevronsLeft className="h-4 w-4" />
+            <span>ページの先頭に戻る</span>
+          </Button>
+          <Link href="/">
+            <Button variant="default" className="flex items-center gap-2">
+              <Home className="h-4 w-4" />
+              <span>ダッシュボードに戻る</span>
+            </Button>
+          </Link>
+        </CardFooter>
       </Card>
-    </Layout>
+    </div>
   );
 }
