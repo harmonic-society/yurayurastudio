@@ -33,9 +33,13 @@ export function NotificationMenu() {
     if (link) {
       // コメントメンションの場合は、ハッシュ（#comment-section）をつける
       if (link.includes('/projects/') && (notifications.find(n => n.id === id)?.event === 'COMMENT_MENTION')) {
-        window.location.href = `${link}#comment-section`;
+        // セッションを維持するため、Locationフックを使用
+        const newPath = link.replace(/^https?:\/\/[^\/]+/, '') + '#comment-section';
+        window.location.href = newPath; // 相対パスを使用してセッションを維持
       } else {
-        window.location.href = link;
+        // 他の通知も相対パスを使用
+        const newPath = link.replace(/^https?:\/\/[^\/]+/, '');
+        window.location.href = newPath;
       }
     }
   };
