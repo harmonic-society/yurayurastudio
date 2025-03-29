@@ -140,69 +140,108 @@ export default function AuthPage() {
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       {/* サイドイメージパネル */}
-      <div className="relative hidden h-full flex-col p-10 text-white lg:flex dark:border-r">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-primary/70" />
+      <div className="relative hidden h-full flex-col p-10 text-white lg:flex dark:border-r overflow-hidden">
+        {/* バックグラウンド画像 */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/assets/chiba-creative.jpeg" 
+            alt="千葉クリエイティブ" 
+            className="h-full w-full object-cover object-center brightness-[0.35] contrast-[1.1]"
+          />
+        </div>
+        
+        {/* グラデーションオーバーレイ */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-primary/50 z-10 mix-blend-multiply" />
+        
         {/* オーバーレイパターン */}
-        <div className="absolute inset-0 opacity-10" style={{ 
+        <div className="absolute inset-0 opacity-10 z-10" style={{ 
           backgroundImage: 'url("data:image/svg+xml,%3Csvg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23ffffff" fill-opacity="0.8" fill-rule="evenodd"%3E%3Ccircle cx="3" cy="3" r="1.5"/%3E%3Ccircle cx="13" cy="13" r="1.5"/%3E%3C/g%3E%3C/svg%3E")',
           backgroundSize: '24px 24px'
         }} />
         
-        <div className="relative z-20 flex items-center text-lg font-medium">
-          <h1 className="text-3xl font-bold tracking-tight">Yura Yura STUDIO</h1>
+        <div className="relative z-20 flex items-center text-lg font-medium bg-black/30 backdrop-blur-sm px-4 py-3 rounded-lg shadow-md">
+          <h1 className="text-3xl font-bold tracking-tight text-white">Yura Yura STUDIO</h1>
         </div>
         
-        <div className="relative z-20 flex flex-col h-full">
-          <div className="flex-grow flex flex-col justify-center items-center">
-            {/* アイコンとタグライン */}
-            <div className="bg-white/15 rounded-xl p-6 mb-8 backdrop-blur-sm border border-white/30 w-2/3 mx-auto shadow-lg">
-              <img 
-                src="/app-icon.svg" 
-                alt="Yura Yura Studio Icon" 
-                className="w-full rounded-md shadow-lg mb-4 transition-all duration-300 hover:transform hover:scale-105" 
-              />
-              <div className="bg-white/20 text-white text-center py-2 px-3 rounded-md text-sm font-medium tracking-wide backdrop-blur-md">
-                千葉から世界へ、クリエイティブの力を
+        <div className="relative z-20 flex flex-col h-full mt-6">
+          <div className="flex-grow flex flex-col justify-center">
+            {/* 魅力的なコピー - カバー画像に合わせて調整 */}
+            <blockquote className="space-y-6 backdrop-blur-sm bg-black/30 p-6 rounded-xl shadow-xl border border-white/10 max-w-xl">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tight text-white">千葉と共に成長する<br/>クリエイティブの力</h2>
+                <p className="text-lg leading-relaxed font-medium text-white/90 mt-3">
+                  Yura Yura STUDIOは、<span className="bg-primary/40 px-2 py-0.5 rounded mx-1 text-white">千葉県</span>の事業者とクリエイターをつなぐプロジェクト管理プラットフォーム
+                </p>
               </div>
-            </div>
-            
-            {/* 魅力的なコピー */}
-            <blockquote className="space-y-4">
-              <h2 className="text-2xl font-bold tracking-tight">地域と創るWebの未来</h2>
-              <p className="text-lg leading-relaxed font-medium">
-                Yura Yura STUDIOは<span className="bg-white/20 px-2 py-0.5 rounded mx-1">千葉県の事業者</span>と<span className="bg-white/20 px-2 py-0.5 rounded mx-1">クリエイター</span>をつなぐ、新しいプロジェクト管理プラットフォーム。
-              </p>
               
-              <div className="pt-6">
-                <h3 className="text-lg font-semibold mb-3">あなたの参加で広がる可能性</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-start gap-2">
-                    <div className="bg-white/30 p-1 rounded-full mt-0.5">
+              {/* アイコンとタグライン */}
+              <div className="flex items-center gap-4 my-6 border-t border-b border-white/20 py-4">
+                <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm shadow-lg h-16 w-16 flex items-center justify-center">
+                  <img 
+                    src="/app-icon.svg" 
+                    alt="Yura Yura Studio Icon" 
+                    className="rounded-md transition-all duration-300 hover:transform hover:scale-110" 
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="text-white text-lg font-semibold">地域と創るWebの未来</div>
+                  <div className="text-white/80 text-sm mt-1">地域密着型プロジェクトのためのプラットフォーム</div>
+                </div>
+              </div>
+              
+              <div className="pt-3">
+                <h3 className="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-300"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+                  あなたの参加で広がる可能性
+                </h3>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3 bg-white/10 p-3 rounded-lg">
+                    <div className="bg-white/30 p-1.5 rounded-full mt-0.5 text-white">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                     </div>
-                    <span>地域に根ざしたプロジェクトで実績を積める</span>
+                    <div className="flex-1">
+                      <span className="text-white font-medium">地域に根ざしたプロジェクト</span>
+                      <p className="text-white/70 text-xs mt-0.5">千葉の事業者と直接繋がり、地元での実績を積めます</p>
+                    </div>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <div className="bg-white/30 p-1 rounded-full mt-0.5">
+                  <li className="flex items-start gap-3 bg-white/10 p-3 rounded-lg">
+                    <div className="bg-white/30 p-1.5 rounded-full mt-0.5 text-white">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                     </div>
-                    <span>スキルに合わせた報酬システムで適正評価</span>
+                    <div className="flex-1">
+                      <span className="text-white font-medium">公平な報酬システム</span>
+                      <p className="text-white/70 text-xs mt-0.5">スキルと貢献度に基づいた透明性のある報酬配分</p>
+                    </div>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <div className="bg-white/30 p-1 rounded-full mt-0.5">
+                  <li className="flex items-start gap-3 bg-white/10 p-3 rounded-lg">
+                    <div className="bg-white/30 p-1.5 rounded-full mt-0.5 text-white">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                     </div>
-                    <span>ポートフォリオを自動構築し、成長が見える</span>
+                    <div className="flex-1">
+                      <span className="text-white font-medium">自動ポートフォリオ構築</span>
+                      <p className="text-white/70 text-xs mt-0.5">プロジェクト完了ごとに実績が蓄積され、成長が可視化</p>
+                    </div>
                   </li>
                 </ul>
               </div>
             </blockquote>
           </div>
           
-          {/* フッターエリア */}
+          {/* フッターエリアとCTA */}
           <div className="mt-auto">
-            <div className="flex justify-between items-center border-t border-white/20 pt-4">
-              <div className="animate-pulse">
+            <div className="backdrop-blur-sm bg-black/40 p-5 rounded-lg border border-white/10 shadow-lg mb-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="bg-primary/30 px-3 py-1 rounded-full text-white text-xs font-medium tracking-wide animate-pulse flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  <span>クリエイター登録受付中</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-400"></span>
+                  <span className="text-white/90 text-xs">オンライン</span>
+                </div>
+              </div>
+              
+              <div className="flex justify-center mb-3">
                 <button 
                   onClick={() => {
                     setActiveTab("register");
@@ -214,15 +253,39 @@ export default function AuthPage() {
                       setTimeout(() => registerTab.focus(), 500);
                     }
                   }} 
-                  className="flex items-center gap-2 bg-white text-primary hover:bg-white/90 font-medium px-4 py-2 rounded-md transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="group relative w-full"
                 >
-                  <UserPlus className="h-4 w-4" />
-                  <span className="tracking-wide">今すぐ登録する</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 via-primary to-yellow-400 rounded-lg blur opacity-50 group-hover:opacity-75 transition duration-500 group-hover:duration-200 animate-pulse"></div>
+                  <div className="relative flex items-center justify-center gap-2 w-full bg-white text-primary hover:bg-white/95 font-bold px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl">
+                    <UserPlus className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                    <span className="tracking-wide text-base">今すぐ登録する</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1 group-hover:translate-x-1 transition-transform"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </div>
                 </button>
               </div>
-              <p className="text-sm opacity-90">
-                © 2025 Harmonic Society
+              
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <img src="/app-icon.svg" alt="Yura Yura Studio Icon" className="h-5 w-5" />
+                  <p className="text-xs text-white/80 font-medium">
+                    Harmonic Society株式会社
+                  </p>
+                </div>
+                <a 
+                  href="https://harmonic-society.co.jp/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-white/80 hover:text-white flex items-center gap-1 transition-colors"
+                >
+                  <span>公式サイト</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
+                </a>
+              </div>
+            </div>
+            
+            <div className="flex justify-center">
+              <p className="text-white/70 text-xs">
+                © 2025 Harmonic Society All Rights Reserved.
               </p>
             </div>
           </div>
