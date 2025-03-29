@@ -1,6 +1,9 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { 
   insertProjectSchema, 
   insertCommentSchema, 
@@ -30,10 +33,6 @@ import { comparePasswords, hashPassword } from "./auth";
 import { db } from './db';
 import { sendNotificationEmail } from "./mail";
 import { eq } from 'drizzle-orm';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
-import type { Request } from 'express';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,6 +65,17 @@ function getBaseUrl(req: Request): string {
 }
 
 export async function registerRoutes(app: Express) {
+  // READMEファイルを提供するエンドポイント
+  app.get('/api/readme', (req: Request, res: Response) => {
+    try {
+      const readmePath = path.join(process.cwd(), 'README.md');
+      const readmeContent = fs.readFileSync(readmePath, 'utf-8');
+      res.json({ content: readmeContent });
+    } catch (error) {
+      console.error('READMEファイルの読み込みエラー:', error);
+      res.status(500).json({ error: 'READMEファイルの読み込みに失敗しました' });
+    }
+  });
   // Set up authentication routes and middleware
   setupAuth(app);
 

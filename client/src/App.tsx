@@ -18,6 +18,7 @@ import AuthPage from "@/pages/auth";
 import AdminUsers from "@/pages/admin/users";
 import RegistrationRequests from "@/pages/admin/registration-requests";
 import UserProfile from "@/pages/users/[id]";
+import HelpPage from "@/pages/help";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
               <ProtectedRoute path="/team" component={Team} />
               <ProtectedRoute path="/users/:id" component={UserProfile} />
               <ProtectedRoute path="/settings" component={Settings} />
+              <ProtectedRoute path="/help" component={HelpPage} />
               <ProtectedRoute path="/admin/users" component={AdminUsers} />
               <ProtectedRoute path="/admin/registration-requests" component={RegistrationRequests} />
               <Route component={NotFound} />
