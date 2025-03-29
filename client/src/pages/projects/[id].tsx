@@ -110,7 +110,7 @@ export default function ProjectDetails() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, userId: currentUserId } = useAuth();
 
   // ページロード時にURLのハッシュに基づいてコメントセクションにスクロール
   useEffect(() => {
@@ -587,13 +587,18 @@ export default function ProjectDetails() {
                     if (selectedPortfolio) {
                       updatePortfolioMutation.mutate(data);
                     } else {
-                      createPortfolioMutation.mutate(data);
+                      const dataWithProject = {
+                        ...data,
+                        projectId: projectId
+                      };
+                      createPortfolioMutation.mutate(dataWithProject);
                     }
                   }}
                   defaultValues={selectedPortfolio || undefined}
                   isSubmitting={
                     createPortfolioMutation.isPending || updatePortfolioMutation.isPending
                   }
+                  currentUserId={Number(currentUserId)}
                 />
               </div>
             </DialogContent>

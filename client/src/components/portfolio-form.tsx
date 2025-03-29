@@ -38,13 +38,15 @@ interface PortfolioFormProps {
   defaultValues?: Partial<InsertPortfolio>;
   isSubmitting?: boolean;
   currentUserId: number; // 現在のユーザーIDを追加
+  projectId?: number; // プロジェクトID（オプション）
 }
 
 export default function PortfolioForm({
   onSubmit,
   defaultValues,
   isSubmitting,
-  currentUserId
+  currentUserId,
+  projectId
 }: PortfolioFormProps) {
   const { isAdmin } = useAuth();
   const [previewUrl, setPreviewUrl] = useState<string>(defaultValues?.url || "");
@@ -87,10 +89,10 @@ export default function PortfolioForm({
       description: defaultValues?.description || "",
       url: defaultValues?.url || "",
       userId: defaultValues?.userId || currentUserId,
-      workType: defaultValues?.workType,
+      workType: defaultValues?.workType || undefined,
       isPublic: defaultValues?.isPublic ?? true,
-      filePath: defaultValues?.filePath || "",
-      fileType: defaultValues?.fileType || ""
+      filePath: defaultValues?.filePath || null,
+      fileType: defaultValues?.fileType || null
     }
   });
 
@@ -157,13 +159,17 @@ export default function PortfolioForm({
 
   const handleSubmit = async (data: InsertPortfolio) => {
     try {
+      console.log('フォーム送信データ:', data);
+      
       // バリデーションチェック
+      let hasError = false;
+      
       if (!data.title || data.title.trim().length === 0) {
         form.setError('title', {
           type: 'manual',
           message: 'タイトルは必須です'
         });
-        return;
+        hasError = true;
       }
       
       if (!data.description || data.description.trim().length === 0) {
@@ -171,7 +177,7 @@ export default function PortfolioForm({
           type: 'manual',
           message: '説明は必須です'
         });
-        return;
+        hasError = true;
       }
       
       if (!data.workType) {
@@ -179,6 +185,11 @@ export default function PortfolioForm({
           type: 'manual',
           message: '作業種別を選択してください'
         });
+        hasError = true;
+      }
+      
+      if (hasError) {
+        console.error('フォームバリデーションエラー:', Object.keys(form.formState.errors));
         return;
       }
       
