@@ -319,7 +319,7 @@ export default function PortfolioForm({
           filePath: result.filePath,
           fileType: result.fileType,
           imageUrl: result.previewImageUrl,
-          url: null
+          url: "" // データベースのNOT NULL制約のため空文字列を設定
         };
         
         console.log('送信データ:', JSON.stringify(submitData, null, 2));
