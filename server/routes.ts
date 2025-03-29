@@ -475,8 +475,15 @@ export async function registerRoutes(app: Express) {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
-    // 空の配列を返す
-    res.json([]);
+    
+    try {
+      const projectId = Number(req.params.id);
+      const portfolios = await storage.getPortfolios(projectId);
+      res.json(portfolios);
+    } catch (error) {
+      console.error("プロジェクトのポートフォリオ取得エラー:", error);
+      res.status(500).json({ message: "ポートフォリオの取得に失敗しました" });
+    }
   });
 
   // Get a single portfolio (読み取り可能)
@@ -529,11 +536,51 @@ export async function registerRoutes(app: Express) {
     }
   });
   
-  // 後方互換性のためのエンドポイント (使用禁止)
-  app.post("/api/projects/:id/portfolios", isAdmin, async (req, res) => {
-    return res.status(410).json({ 
-      message: "このエンドポイントは非推奨です。新しいエンドポイント /api/portfolios を使用してください。" 
-    });
+  // プロジェクトに紐づくポートフォリオ作成エンドポイント
+  app.post("/api/projects/:id/portfolios", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const projectId = Number(req.params.id);
+      
+      // プロジェクトが存在するか確認
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "プロジェクトが見つかりません" });
+      }
+      
+      let portfolioData;
+      
+      // 管理者の場合は他のユーザーのポートフォリオも作成可能
+      if (req.user.role === "ADMIN" && req.body.userId) {
+        portfolioData = insertPortfolioSchema.parse({
+          ...req.body,
+          projectId
+        });
+      } else {
+        // 一般ユーザーは自分のポートフォリオのみ作成可能
+        portfolioData = insertPortfolioSchema.parse({
+          ...req.body,
+          userId: req.user.id,
+          projectId
+        });
+      }
+      
+      console.log('作成するポートフォリオデータ:', portfolioData);
+      const portfolio = await storage.createPortfolio(portfolioData);
+      
+      res.status(201).json(portfolio);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        console.error("ポートフォリオ作成バリデーションエラー:", error.errors);
+        res.status(400).json({ message: "無効なポートフォリオデータです", errors: error.errors });
+      } else {
+        console.error("プロジェクトのポートフォリオ作成エラー:", error);
+        res.status(500).json({ message: "ポートフォリオの作成に失敗しました" });
+      }
+    }
   });
 
   // Update a portfolio (自分のポートフォリオまたは管理者のみ)

@@ -120,6 +120,7 @@ export default function PortfolioForm({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log('ファイル選択:', file.name, file.type, file.size);
     setSelectedFile(file);
     
     // 画像ファイルの場合はプレビューを生成
@@ -128,22 +129,29 @@ export default function PortfolioForm({
       reader.onload = (e) => {
         if (e.target?.result) {
           setFilePreview(e.target.result as string);
+          console.log('画像プレビュー生成完了');
         }
+      };
+      reader.onerror = (error) => {
+        console.error('画像読み込みエラー:', error);
       };
       reader.readAsDataURL(file);
     } else {
       // 画像以外のファイルタイプに応じたアイコンを表示
+      let iconPath = '/assets/icons/file-icon.svg';
+      
       if (file.type === 'application/pdf') {
-        setFilePreview('/assets/icons/pdf-icon.svg');
+        iconPath = '/assets/icons/pdf-icon.svg';
       } else if (file.type.includes('word') || file.type.includes('document')) {
-        setFilePreview('/assets/icons/word-icon.svg');
+        iconPath = '/assets/icons/word-icon.svg';
       } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
-        setFilePreview('/assets/icons/excel-icon.svg');
+        iconPath = '/assets/icons/excel-icon.svg';
       } else if (file.type.includes('powerpoint') || file.type.includes('presentation')) {
-        setFilePreview('/assets/icons/powerpoint-icon.svg');
-      } else {
-        setFilePreview('/assets/icons/file-icon.svg');
+        iconPath = '/assets/icons/powerpoint-icon.svg';
       }
+      
+      console.log('ファイルアイコン設定:', iconPath);
+      setFilePreview(iconPath);
     }
   };
 

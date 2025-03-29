@@ -192,7 +192,11 @@ export default function ProjectDetails() {
           title: data.title,
           description: data.description,
           url: data.url,
-          workType: data.workType
+          workType: data.workType,
+          filePath: data.filePath,
+          fileType: data.fileType,
+          imageUrl: data.imageUrl,
+          isPublic: data.isPublic
         };
         console.log('Creating portfolio with data:', submitData);
         return await apiRequest(`/api/projects/${projectId}/portfolios`, {
