@@ -15,7 +15,8 @@ import {
   MessageSquare,
   Sun,
   Moon,
-  Bell
+  Bell,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       { name: "プロフィール", href: `/users/${user?.id}`, icon: UserCircle }
     ]),
     { name: "設定", href: "/settings", icon: Settings },
+    { name: "ヘルプ", href: "/help", icon: HelpCircle },
     // 管理者の場合のみ表示
     ...(isAdmin ? [
       { name: "ユーザー管理", href: "/admin/users", icon: UserCog },
@@ -168,6 +170,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     設定
                   </DropdownMenuItem>
                 </Link>
+                <Link href="/help">
+                  <DropdownMenuItem>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    ヘルプ
+                  </DropdownMenuItem>
+                </Link>
                 <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   ログアウト
@@ -261,6 +269,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       <DropdownMenuItem>
                         <Settings className="mr-2 h-4 w-4" />
                         <span>設定</span>
+                      </DropdownMenuItem>
+                    </Link>
+                    <Link href="/help">
+                      <DropdownMenuItem>
+                        <HelpCircle className="mr-2 h-4 w-4" />
+                        <span>ヘルプ</span>
                       </DropdownMenuItem>
                     </Link>
                     <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
