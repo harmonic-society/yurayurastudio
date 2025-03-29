@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Camera, PencilLine, Check } from "lucide-react";
+import { ArrowLeft, Camera, PencilLine, Check, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import PortfolioForm from "@/components/portfolio-form";
 
 interface SkillTag {
   id: number;
@@ -55,6 +56,18 @@ interface UserSkillsData {
   skillTagIds: number[];
 }
 
+interface Portfolio {
+  id: number;
+  userId: number;
+  title: string;
+  description: string;
+  url: string;
+  workType: string;
+  imageUrl?: string;
+  isPublic: boolean;
+  createdAt: string;
+}
+
 const roleLabels = {
   DIRECTOR: "ディレクター",
   SALES: "営業担当",
@@ -74,6 +87,8 @@ export default function UserProfile() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedSkills, setSelectedSkills] = useState<number[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio | null>(null);
 
   // 自分のプロフィールかどうかを判断
   const isOwnProfile = currentUser?.id === userId;
@@ -102,6 +117,16 @@ export default function UserProfile() {
   const { data: skillCategories, isLoading: isLoadingCategories } = useQuery<SkillCategory[]>({
     queryKey: ['/api/skills/categories'],
     enabled: isOwnProfile
+  });
+  
+  // ユーザーのポートフォリオを取得
+  const {
+    data: portfolios,
+    isLoading: isLoadingPortfolios,
+    refetch: refetchPortfolios
+  } = useQuery<Portfolio[]>({
+    queryKey: [`/api/users/${userId}/portfolios`],
+    enabled: !!userId && !isNaN(userId)
   });
 
   // プロフィール情報の初期化
@@ -175,6 +200,81 @@ export default function UserProfile() {
         variant: "destructive",
       });
     }
+  });
+  
+  // ポートフォリオ作成のミューテーション
+  const createPortfolioMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiRequest({
+        url: "/api/portfolios",
+        method: "POST", 
+        body: JSON.stringify(data)
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/portfolios`] });
+      setPortfolioDialogOpen(false);
+      setSelectedPortfolio(null);
+      toast({
+        title: "成功",
+        description: "ポートフォリオが作成されました",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "エラー",
+        description: `ポートフォリオの作成に失敗しました: ${error.message || '不明なエラー'}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // ポートフォリオ更新のミューテーション
+  const updatePortfolioMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiRequest({
+        url: `/api/portfolios/${selectedPortfolio?.id}`,
+        method: "PATCH", 
+        body: JSON.stringify(data)
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/portfolios`] });
+      setPortfolioDialogOpen(false);
+      setSelectedPortfolio(null);
+      toast({
+        title: "成功",
+        description: "ポートフォリオが更新されました",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `ポートフォリオの更新に失敗しました: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // ポートフォリオ削除のミューテーション
+  const deletePortfolioMutation = useMutation({
+    mutationFn: (portfolioId: number) =>
+      apiRequest({
+        url: `/api/portfolios/${portfolioId}`,
+        method: "DELETE"
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/portfolios`] });
+      toast({
+        title: "成功",
+        description: "ポートフォリオが削除されました",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: `ポートフォリオの削除に失敗しました: ${error.message}`,
+        variant: "destructive",
+      });
+    },
   });
 
   // スキル選択の処理
@@ -390,6 +490,7 @@ export default function UserProfile() {
             <TabsList className="mb-4">
               <TabsTrigger value="profile">プロフィール</TabsTrigger>
               <TabsTrigger value="skills">スキル</TabsTrigger>
+              <TabsTrigger value="portfolios">ポートフォリオ</TabsTrigger>
             </TabsList>
             
             <TabsContent value="profile" className="space-y-6">
@@ -534,9 +635,194 @@ export default function UserProfile() {
                 </CardContent>
               </Card>
             </TabsContent>
+            
+            <TabsContent value="portfolios" className="space-y-6">
+              {/* ポートフォリオ一覧 */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>ポートフォリオ</CardTitle>
+                    <CardDescription>
+                      {portfolios?.length
+                        ? `${portfolios.length}件の成果物が登録されています`
+                        : '登録された成果物はありません'}
+                    </CardDescription>
+                  </div>
+                  {isOwnProfile && (
+                    <Button 
+                      size="sm" 
+                      variant="default"
+                      onClick={() => {
+                        setSelectedPortfolio(null);
+                        setPortfolioDialogOpen(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      ポートフォリオを登録
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {isLoadingPortfolios ? (
+                    <div className="flex justify-center py-16">
+                      <div className="text-center">
+                        <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-primary/70" />
+                        <p className="text-muted-foreground">ポートフォリオデータを読み込み中...</p>
+                      </div>
+                    </div>
+                  ) : portfolios && portfolios.length > 0 ? (
+                    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                      {portfolios.map((portfolio) => (
+                        <Card key={portfolio.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 group">
+                          <div className="relative h-40">
+                            {portfolio.imageUrl ? (
+                              <img
+                                src={portfolio.imageUrl}
+                                alt={`成果物 ${portfolio.title}`}
+                                className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                                onError={(e) => e.currentTarget.style.display = 'none'}
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center w-full h-full bg-muted">
+                                <p className="text-sm text-muted-foreground">画像なし</p>
+                              </div>
+                            )}
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              {isOwnProfile && (
+                                <>
+                                  <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    className="h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background"
+                                    onClick={() => {
+                                      setSelectedPortfolio(portfolio);
+                                      setPortfolioDialogOpen(true);
+                                    }}
+                                  >
+                                    <PencilLine className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-destructive"
+                                    onClick={() => {
+                                      if (confirm(`本当に「${portfolio.title}」を削除しますか？`)) {
+                                        deletePortfolioMutation.mutate(portfolio.id);
+                                      }
+                                    }}
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="h-3.5 w-3.5"
+                                    >
+                                      <path d="M3 6h18" />
+                                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                      <line x1="10" y1="11" x2="10" y2="17" />
+                                      <line x1="14" y1="11" x2="14" y2="17" />
+                                    </svg>
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <CardContent className="p-4 flex-1 flex flex-col">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h3 className="text-lg font-bold">{portfolio.title}</h3>
+                                <Badge variant="outline" className="mt-1">
+                                  {portfolio.workType === "DESIGN" ? "デザイン" :
+                                   portfolio.workType === "DEVELOPMENT" ? "開発" :
+                                   portfolio.workType === "WRITING" ? "ライティング" :
+                                   portfolio.workType === "VIDEO" ? "動画" :
+                                   portfolio.workType === "PHOTO" ? "写真" : portfolio.workType}
+                                </Badge>
+                              </div>
+                              {isOwnProfile && (
+                                <Badge variant={portfolio.isPublic ? "default" : "secondary"} className="text-xs">
+                                  {portfolio.isPublic ? "公開" : "非公開"}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-4 flex-1">
+                              {portfolio.description}
+                            </p>
+                            <a 
+                              href={portfolio.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline flex items-center gap-1"
+                            >
+                              成果物を見る
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M7 7h10v10" />
+                                <path d="M7 17 17 7" />
+                              </svg>
+                            </a>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">登録されたポートフォリオはありません</p>
+                      {isOwnProfile && (
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedPortfolio(null);
+                            setPortfolioDialogOpen(true);
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          ポートフォリオを追加する
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </div>
+      
+      {/* ポートフォリオ作成/編集ダイアログ */}
+      <Dialog open={portfolioDialogOpen} onOpenChange={setPortfolioDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedPortfolio ? 'ポートフォリオを編集' : 'ポートフォリオを登録'}
+            </DialogTitle>
+            <DialogDescription>
+              あなたの成果物を共有しましょう。URLを入力すると自動的にOGP情報を取得します。
+            </DialogDescription>
+          </DialogHeader>
+          
+          <PortfolioForm
+            portfolio={selectedPortfolio}
+            onSubmit={(data) => {
+              if (selectedPortfolio) {
+                updatePortfolioMutation.mutate(data);
+              } else {
+                const submitData = {
+                  ...data,
+                  userId: userId
+                };
+                createPortfolioMutation.mutate(submitData);
+              }
+            }}
+            isSubmitting={createPortfolioMutation.isPending || updatePortfolioMutation.isPending}
+            onCancel={() => setPortfolioDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
