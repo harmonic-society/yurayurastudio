@@ -496,15 +496,9 @@ export default function MessagesPage() {
                           <Textarea
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
-                            placeholder={`${selectedUser.name}さんにメッセージを送る...`}
-                            className="resize-none flex-1 mr-2"
-                            rows={3}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
-                              }
-                            }}
+                            placeholder={`${selectedUser.name}さんにメッセージを送る...（送信ボタンを押してメッセージを送信）`}
+                            className="resize-none flex-1 mr-2 min-h-[120px]"
+                            rows={5}
                           />
                           <Button 
                             onClick={handleSendMessage} 
@@ -515,7 +509,7 @@ export default function MessagesPage() {
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
-                          Enterで送信、Shift+Enterで改行
+                          送信ボタンを押してメッセージを送信します。Enterキーで自由に改行できます。
                         </p>
                       </div>
                     </>
