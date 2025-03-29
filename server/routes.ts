@@ -197,7 +197,11 @@ export async function registerRoutes(app: Express) {
         userId // ログインユーザーのIDを使用
       });
       
+      console.log(`新しいコメントの投稿: ProjectID=${projectId}, UserID=${userId}`);
+      console.log(`コメント内容: "${commentData.content}"`);
+      
       const comment = await storage.createComment(commentData);
+      console.log(`コメント作成成功: CommentID=${comment.id}`);
       
       // Get the project details for notifications
       const project = await storage.getProject(projectId);
@@ -205,6 +209,13 @@ export async function registerRoutes(app: Express) {
         console.error(`プロジェクト情報が見つかりません: ID=${projectId}`);
         return res.status(201).json(comment);
       }
+      
+      console.log(`プロジェクト情報取得: ${project.name} (ID=${project.id})`);
+      
+      // 現在のユーザー情報を取得
+      const currentUser = await storage.getUser(userId);
+      console.log(`投稿ユーザー: ${currentUser?.name || 'Unknown'} (ID=${userId})`);
+      
       
       // メンションの処理
       try {
