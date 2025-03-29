@@ -20,7 +20,8 @@ import {
   Search, 
   Users, 
   UserPlus, 
-  MessageCircle
+  MessageCircle,
+  X
 } from "lucide-react";
 import type { User, DirectMessage } from "@shared/schema";
 import Layout from "@/components/layout";
@@ -191,16 +192,34 @@ export default function MessagesPage() {
     setSelectedUser(null);
   };
 
-  // ユーザー検索
+  // ユーザー検索（名前、ユーザー名、ロールでリアルタイム検索）およびソート
   const filteredUsers = users && Array.isArray(users) 
     ? users.filter((u: User) => 
         u.id !== user?.id && 
         (searchQuery === "" || 
           u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.username.toLowerCase().includes(searchQuery.toLowerCase())
+          u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (u.role && u.role.toLowerCase().includes(searchQuery.toLowerCase()))
         )
       )
+      .sort((a, b) => {
+        // 名前順でソート
+        return a.name.localeCompare(b.name);
+      })
     : [];
+    
+  // ユーザーをロール別にグループ化（検索結果をより見やすく）
+  const groupedUsers = filteredUsers.reduce<Record<string, User[]>>((groups, user) => {
+    const role = user.role || 'OTHER';
+    if (!groups[role]) {
+      groups[role] = [];
+    }
+    groups[role].push(user);
+    return groups;
+  }, {});
+  
+  // ロールの表示順序を定義
+  const roleOrder = ['ADMIN', 'DIRECTOR', 'SALES', 'CREATOR', 'OTHER'];
 
   return (
     <Layout>
@@ -219,13 +238,31 @@ export default function MessagesPage() {
                 <div className={`${isMobile ? 'w-full' : 'w-1/3 border-r'} pr-4`}>
                   {/* 検索および新規メッセージ機能 */}
                   <div className="flex flex-col gap-2 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        placeholder="ユーザー名を検索..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="flex-1"
-                      />
+                    <div className="relative flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          placeholder="ユーザー名やロールを検索..."
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            if (e.target.value.trim() !== "" && !isUserListOpen) {
+                              setIsUserListOpen(true);
+                            }
+                          }}
+                          className="pl-8 flex-1 pr-8"
+                        />
+                        {searchQuery && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                            onClick={() => setSearchQuery("")}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                       <Button
                         variant="outline"
                         size="icon"
@@ -315,31 +352,61 @@ export default function MessagesPage() {
                       <ScrollArea className="h-[calc(70vh-18rem)]">
                         <div className="space-y-2 pr-4 pt-2">
                           {filteredUsers.length > 0 ? (
-                            filteredUsers.map((otherUser: User) => (
-                              <div 
-                                key={otherUser.id}
-                                onClick={() => {
-                                  navigate(`/messages?userId=${otherUser.id}`);
-                                  setSelectedUser(otherUser);
-                                  setIsUserListOpen(false);
-                                }}
-                                className="flex items-center p-3 rounded-md cursor-pointer hover:bg-muted"
-                              >
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage src={otherUser.avatarUrl ? `/uploads/${otherUser.avatarUrl}` : undefined} />
-                                  <AvatarFallback>{otherUser.name.slice(0, 2)}</AvatarFallback>
-                                </Avatar>
-                                <div className="ml-3">
-                                  <p className="font-medium">{otherUser.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    @{otherUser.username}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {otherUser.role}
-                                  </p>
-                                </div>
-                              </div>
-                            ))
+                            <>
+                              {/* ロール別にグループ化して表示 */}
+                              {roleOrder.map(role => {
+                                const usersInRole = groupedUsers[role] || [];
+                                if (usersInRole.length === 0) return null;
+                                
+                                return (
+                                  <div key={role} className="mb-4">
+                                    {/* ロールヘッダー */}
+                                    <div className="flex items-center mb-2 border-b pb-1">
+                                      <Badge 
+                                        variant={
+                                          role === 'ADMIN' ? 'destructive' : 
+                                          role === 'DIRECTOR' ? 'default' : 
+                                          role === 'SALES' ? 'outline' : 
+                                          'secondary'
+                                        }
+                                        className="mr-2"
+                                      >
+                                        {role}
+                                      </Badge>
+                                      <span className="text-xs text-muted-foreground">
+                                        {usersInRole.length}人
+                                      </span>
+                                    </div>
+                                    
+                                    {/* ユーザーリスト */}
+                                    <div className="space-y-1">
+                                      {usersInRole.map(otherUser => (
+                                        <div 
+                                          key={otherUser.id}
+                                          onClick={() => {
+                                            navigate(`/messages?userId=${otherUser.id}`);
+                                            setSelectedUser(otherUser);
+                                            setIsUserListOpen(false);
+                                          }}
+                                          className="flex items-center p-3 rounded-md cursor-pointer hover:bg-muted"
+                                        >
+                                          <Avatar className="h-10 w-10">
+                                            <AvatarImage src={otherUser.avatarUrl ? `/uploads/${otherUser.avatarUrl}` : undefined} />
+                                            <AvatarFallback>{otherUser.name.slice(0, 2)}</AvatarFallback>
+                                          </Avatar>
+                                          <div className="ml-3 flex-1">
+                                            <p className="font-medium">{otherUser.name}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                              @{otherUser.username}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </>
                           ) : (
                             <div className="text-center text-muted-foreground py-8">
                               検索結果がありません
