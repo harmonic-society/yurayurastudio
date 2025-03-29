@@ -44,6 +44,70 @@ function useMobile() {
   return isMobile;
 }
 
+// 日付でメッセージをグループ化する補助関数
+function groupMessagesByDate(messages: DirectMessage[]): Record<string, DirectMessage[]> {
+  const groups: Record<string, DirectMessage[]> = {};
+  
+  messages.forEach(message => {
+    const date = new Date(message.createdAt);
+    const dateStr = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+    
+    if (!groups[dateStr]) {
+      groups[dateStr] = [];
+    }
+    
+    groups[dateStr].push(message);
+  });
+  
+  // 日付順にソート（古い→新しい）
+  return Object.keys(groups)
+    .sort()
+    .reduce((sorted, key) => {
+      sorted[key] = groups[key];
+      return sorted;
+    }, {} as Record<string, DirectMessage[]>);
+}
+
+// 日付ヘッダーのフォーマット関数
+function formatDateHeader(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const isToday = today.getFullYear() === year && 
+                  today.getMonth() + 1 === month && 
+                  today.getDate() === day;
+                  
+  const isYesterday = yesterday.getFullYear() === year && 
+                      yesterday.getMonth() + 1 === month && 
+                      yesterday.getDate() === day;
+  
+  if (isToday) {
+    return '今日';
+  } else if (isYesterday) {
+    return '昨日';
+  } else {
+    return new Intl.DateTimeFormat('ja-JP', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      weekday: 'long'
+    }).format(date);
+  }
+}
+
+// 時刻のみを表示するフォーマット関数
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  return new Intl.DateTimeFormat('ja-JP', { 
+    hour: '2-digit', 
+    minute: '2-digit'
+  }).format(date);
+}
+
 export default function MessagesPage() {
   const { user } = useAuth();
   const [location, navigate] = useLocation();
@@ -54,6 +118,7 @@ export default function MessagesPage() {
   const [message, setMessage] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [messageSearchQuery, setMessageSearchQuery] = useState("");
   const [isUserListOpen, setIsUserListOpen] = useState(false);
 
   // ユーザー一覧の取得
@@ -220,6 +285,14 @@ export default function MessagesPage() {
   
   // ロールの表示順序を定義
   const roleOrder = ['ADMIN', 'DIRECTOR', 'SALES', 'CREATOR', 'OTHER'];
+  
+  // 検索クエリでメッセージをフィルタリング
+  const filteredMessages = selectedConversation && Array.isArray(selectedConversation) 
+    ? selectedConversation.filter(msg => 
+        messageSearchQuery === "" || 
+        msg.message.toLowerCase().includes(messageSearchQuery.toLowerCase())
+      )
+    : [];
 
   return (
     <Layout>
@@ -456,27 +529,74 @@ export default function MessagesPage() {
                         </Button>
                       </div>
                       
+                      {/* メッセージ検索機能 */}
+                      <div className="mb-4">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            placeholder="メッセージを検索..."
+                            value={messageSearchQuery}
+                            onChange={(e) => setMessageSearchQuery(e.target.value)}
+                            className="pl-8 pr-8"
+                          />
+                          {messageSearchQuery && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                              onClick={() => setMessageSearchQuery("")}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
                       {/* メッセージ表示エリア */}
                       <ScrollArea className="flex-1 pr-4 mb-4">
                         {selectedConversation && Array.isArray(selectedConversation) && selectedConversation.length > 0 ? (
                           <div className="space-y-4">
-                            {selectedConversation.map((msg: DirectMessage) => {
-                              const isFromMe = msg.fromUserId === user?.id;
-                              return (
-                                <div 
-                                  key={msg.id}
-                                  className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}
-                                >
-                                  <div className={`max-w-[80%] ${isFromMe ? 'bg-primary text-primary-foreground' : 'bg-muted'} rounded-lg p-3`}>
-                                    <p className="whitespace-pre-wrap break-words">{msg.message}</p>
-                                    <p className={`text-xs mt-1 ${isFromMe ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                                      {typeof msg.createdAt === 'string' && formatDate(msg.createdAt)}
-                                      {isFromMe && msg.read && ' ✓'}
-                                    </p>
-                                  </div>
+                            {/* 日付ごとにメッセージをグループ化 */}
+                            {Object.entries(groupMessagesByDate(filteredMessages)).map(([date, messages]: [string, DirectMessage[]]) => (
+                              <div key={date} className="mb-6">
+                                {/* 日付ヘッダー */}
+                                <div className="flex items-center justify-center mb-4">
+                                  <div className="h-[1px] flex-1 bg-border"></div>
+                                  <span className="px-2 text-xs font-medium text-muted-foreground bg-background">
+                                    {formatDateHeader(date)}
+                                  </span>
+                                  <div className="h-[1px] flex-1 bg-border"></div>
                                 </div>
-                              );
-                            })}
+                                
+                                {/* その日のメッセージ */}
+                                <div className="space-y-4">
+                                  {messages.map((msg: DirectMessage) => {
+                                    const isFromMe = msg.fromUserId === user?.id;
+                                    const isHighlighted = messageSearchQuery && 
+                                      msg.message.toLowerCase().includes(messageSearchQuery.toLowerCase());
+                                      
+                                    return (
+                                      <div 
+                                        key={msg.id}
+                                        className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}
+                                      >
+                                        <div 
+                                          className={`max-w-[80%] ${isFromMe ? 'bg-primary text-primary-foreground' : 'bg-muted'} 
+                                            ${isHighlighted ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}
+                                            rounded-lg p-3 transition-all duration-200`}
+                                        >
+                                          <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+                                          <p className={`text-xs mt-1 ${isFromMe ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                                            {typeof msg.createdAt === 'string' && formatDate(msg.createdAt)}
+                                            {isFromMe && msg.read && ' ✓'}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         ) : (
                           <div className="h-full flex items-center justify-center">
