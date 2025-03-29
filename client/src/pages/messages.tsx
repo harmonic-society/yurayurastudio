@@ -247,12 +247,12 @@ export default function MessagesPage() {
                       )}
                       
                       {/* すべてのユーザー表示（会話がないユーザーも） */}
-                      {Object.values(conversationGroups).length > 0 ? (
-                        <>
+                      {Object.values(conversationGroups as Record<number, any>).length > 0 && (
+                        <div>
                           <Separator className="my-4" />
                           <p className="text-sm text-muted-foreground mb-2">その他のユーザー</p>
-                        </>
-                      ) : null}
+                        </div>
+                      )}
                       {users && Array.isArray(users) && users
                         .filter((u: User) => 
                           u.id !== user?.id && 

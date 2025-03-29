@@ -13,6 +13,7 @@ import Team from "@/pages/team";
 import Settings from "@/pages/settings";
 import Portfolios from "@/pages/portfolios";
 import Timeline from "@/pages/timeline";
+import MessagesPage from "@/pages/messages";
 import AuthPage from "@/pages/auth";
 import AdminUsers from "@/pages/admin/users";
 import RegistrationRequests from "@/pages/admin/registration-requests";
@@ -31,6 +32,7 @@ function Router() {
               <ProtectedRoute path="/projects/:id" component={ProjectDetails} />
               <ProtectedRoute path="/portfolios" component={Portfolios} />
               <ProtectedRoute path="/timeline" component={Timeline} />
+              <ProtectedRoute path="/messages" component={MessagesPage} />
               <ProtectedRoute path="/team" component={Team} />
               <ProtectedRoute path="/users/:id" component={UserProfile} />
               <ProtectedRoute path="/settings" component={Settings} />
