@@ -397,17 +397,9 @@ export async function registerRoutes(app: Express) {
       let userData = req.body;
       if (userData.socialLinks && typeof userData.socialLinks === 'string') {
         try {
-          // パースしてsocialLinksとして設定
-          const parsed = JSON.parse(userData.socialLinks);
           userData = {
             ...userData,
-            socialLinks: {
-              twitter: typeof parsed.twitter === 'string' ? parsed.twitter : undefined,
-              facebook: typeof parsed.facebook === 'string' ? parsed.facebook : undefined,
-              instagram: typeof parsed.instagram === 'string' ? parsed.instagram : undefined,
-              github: typeof parsed.github === 'string' ? parsed.github : undefined,
-              linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : undefined,
-            }
+            socialLinks: JSON.parse(userData.socialLinks)
           };
         } catch (e) {
           // JSONパースに失敗した場合はnullにする
@@ -728,17 +720,9 @@ export async function registerRoutes(app: Express) {
       let userData = req.body;
       if (userData.socialLinks && typeof userData.socialLinks === 'string') {
         try {
-          // パースしてsocialLinksとして設定
-          const parsed = JSON.parse(userData.socialLinks);
           userData = {
             ...userData,
-            socialLinks: {
-              twitter: typeof parsed.twitter === 'string' ? parsed.twitter : undefined,
-              facebook: typeof parsed.facebook === 'string' ? parsed.facebook : undefined,
-              instagram: typeof parsed.instagram === 'string' ? parsed.instagram : undefined,
-              github: typeof parsed.github === 'string' ? parsed.github : undefined,
-              linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : undefined,
-            }
+            socialLinks: JSON.parse(userData.socialLinks)
           };
         } catch (e) {
           // JSONパースに失敗した場合はnullにする
@@ -779,17 +763,9 @@ export async function registerRoutes(app: Express) {
       let userData = req.body;
       if (userData.socialLinks && typeof userData.socialLinks === 'string') {
         try {
-          // パースしてsocialLinksとして設定
-          const parsed = JSON.parse(userData.socialLinks);
           userData = {
             ...userData,
-            socialLinks: {
-              twitter: typeof parsed.twitter === 'string' ? parsed.twitter : undefined,
-              facebook: typeof parsed.facebook === 'string' ? parsed.facebook : undefined,
-              instagram: typeof parsed.instagram === 'string' ? parsed.instagram : undefined,
-              github: typeof parsed.github === 'string' ? parsed.github : undefined,
-              linkedin: typeof parsed.linkedin === 'string' ? parsed.linkedin : undefined,
-            }
+            socialLinks: JSON.parse(userData.socialLinks)
           };
         } catch (e) {
           // JSONパースに失敗した場合はnullにする

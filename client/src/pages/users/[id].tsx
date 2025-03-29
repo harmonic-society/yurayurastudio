@@ -6,7 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Camera, PencilLine, Check } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Camera, 
+  PencilLine, 
+  Check, 
+  MapPin, 
+  Globe, 
+  Twitter, 
+  Facebook, 
+  Instagram, 
+  Github, 
+  Linkedin 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
@@ -47,6 +59,17 @@ interface User {
   avatarUrl: string | null;
   bio: string | null;
   title: string | null;
+  location: string | null;
+  website: string | null;
+  socialLinks: {
+    twitter?: string;
+    facebook?: string;
+    instagram?: string;
+    github?: string;
+    linkedin?: string;
+  } | null;
+  expertise: string | null;
+  languages: string | null;
 }
 
 interface UserSkillsData {
@@ -70,6 +93,17 @@ export default function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [bioValue, setBioValue] = useState("");
   const [titleValue, setTitleValue] = useState("");
+  const [locationValue, setLocationValue] = useState("");
+  const [websiteValue, setWebsiteValue] = useState("");
+  const [expertiseValue, setExpertiseValue] = useState("");
+  const [languagesValue, setLanguagesValue] = useState("");
+  const [socialLinks, setSocialLinks] = useState<{
+    twitter?: string;
+    facebook?: string;
+    instagram?: string;
+    github?: string;
+    linkedin?: string;
+  } | null>(null);
   const [selectedTab, setSelectedTab] = useState("profile");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedSkills, setSelectedSkills] = useState<number[]>([]);
@@ -109,6 +143,17 @@ export default function UserProfile() {
     if (user) {
       setBioValue(user.bio || "");
       setTitleValue(user.title || "");
+      setLocationValue(user.location || "");
+      setWebsiteValue(user.website || "");
+      setExpertiseValue(user.expertise || "");
+      setLanguagesValue(user.languages || "");
+      setSocialLinks(user.socialLinks || {
+        twitter: "",
+        facebook: "",
+        instagram: "",
+        github: "",
+        linkedin: ""
+      });
     }
   }, [user]);
 
@@ -121,10 +166,27 @@ export default function UserProfile() {
 
   // プロフィール更新のミューテーション
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { bio: string | null, title: string | null }) => {
+    mutationFn: async (data: {
+      bio: string | null;
+      title: string | null;
+      location: string | null;
+      website: string | null;
+      expertise: string | null;
+      languages: string | null;
+      socialLinks: {
+        twitter?: string;
+        facebook?: string;
+        instagram?: string;
+        github?: string;
+        linkedin?: string;
+      } | null;
+    }) => {
       if (!userId) return null;
+      // 自分のプロフィールの場合は/api/users/profileエンドポイントを使う
+      // それ以外の場合（管理者が他のユーザーを編集する場合）は/api/users/:idエンドポイントを使う
+      const isOwnProfile = currentUser?.id === userId;
       return await apiRequest({
-        url: `/api/users/${userId}`,
+        url: isOwnProfile ? '/api/users/profile' : `/api/users/${userId}`,
         method: 'PATCH',
         body: JSON.stringify(data)
       });
@@ -197,7 +259,14 @@ export default function UserProfile() {
   const handleSaveProfile = () => {
     updateProfileMutation.mutate({
       bio: bioValue || null,
-      title: titleValue || null
+      title: titleValue || null,
+      location: locationValue || null,
+      website: websiteValue || null,
+      expertise: expertiseValue || null,
+      languages: languagesValue || null,
+      socialLinks: Object.values(socialLinks || {}).some(v => v && v.trim() !== '') 
+        ? socialLinks 
+        : null
     });
   };
 
@@ -367,6 +436,17 @@ export default function UserProfile() {
                       setIsEditing(false);
                       setBioValue(user.bio || "");
                       setTitleValue(user.title || "");
+                      setLocationValue(user.location || "");
+                      setWebsiteValue(user.website || "");
+                      setExpertiseValue(user.expertise || "");
+                      setLanguagesValue(user.languages || "");
+                      setSocialLinks(user.socialLinks || {
+                        twitter: "",
+                        facebook: "",
+                        instagram: "",
+                        github: "",
+                        linkedin: ""
+                      });
                     }}
                   >
                     キャンセル
@@ -412,6 +492,209 @@ export default function UserProfile() {
                       placeholder="自己紹介を入力してください"
                       className="min-h-[150px]"
                     />
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* 追加のプロフィール情報 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>プロフィール詳細</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!isEditing ? (
+                    <div className="space-y-4">
+                      {/* 場所 */}
+                      {user.location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span>{user.location}</span>
+                        </div>
+                      )}
+                      
+                      {/* ウェブサイト */}
+                      {user.website && (
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                          <a href={user.website.startsWith('http') ? user.website : `https://${user.website}`} 
+                             target="_blank" 
+                             rel="noopener noreferrer"
+                             className="text-primary hover:underline">
+                            {user.website}
+                          </a>
+                        </div>
+                      )}
+                      
+                      {/* ソーシャルリンク */}
+                      {user.socialLinks && Object.entries(user.socialLinks).some(([_, v]) => v && v.trim() !== '') && (
+                        <div className="flex flex-wrap gap-3 mt-2">
+                          {user.socialLinks.twitter && (
+                            <a href={`https://twitter.com/${user.socialLinks.twitter}`} 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               className="text-primary hover:text-primary/80">
+                              <Twitter className="h-5 w-5" />
+                            </a>
+                          )}
+                          {user.socialLinks.facebook && (
+                            <a href={`https://facebook.com/${user.socialLinks.facebook}`} 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               className="text-primary hover:text-primary/80">
+                              <Facebook className="h-5 w-5" />
+                            </a>
+                          )}
+                          {user.socialLinks.instagram && (
+                            <a href={`https://instagram.com/${user.socialLinks.instagram}`} 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               className="text-primary hover:text-primary/80">
+                              <Instagram className="h-5 w-5" />
+                            </a>
+                          )}
+                          {user.socialLinks.github && (
+                            <a href={`https://github.com/${user.socialLinks.github}`} 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               className="text-primary hover:text-primary/80">
+                              <Github className="h-5 w-5" />
+                            </a>
+                          )}
+                          {user.socialLinks.linkedin && (
+                            <a href={`https://linkedin.com/in/${user.socialLinks.linkedin}`} 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               className="text-primary hover:text-primary/80">
+                              <Linkedin className="h-5 w-5" />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* 専門分野 */}
+                      {user.expertise && (
+                        <div className="mt-4">
+                          <h3 className="text-sm font-medium mb-1">専門分野</h3>
+                          <p className="text-sm">{user.expertise}</p>
+                        </div>
+                      )}
+                      
+                      {/* 言語 */}
+                      {user.languages && (
+                        <div className="mt-4">
+                          <h3 className="text-sm font-medium mb-1">言語</h3>
+                          <p className="text-sm">{user.languages}</p>
+                        </div>
+                      )}
+
+                      {/* 情報がない場合 */}
+                      {!user.location && !user.website && 
+                       (!user.socialLinks || !Object.entries(user.socialLinks).some(([_, v]) => v && v.trim() !== '')) && 
+                       !user.expertise && !user.languages && (
+                        <p className="text-muted-foreground">詳細情報は登録されていません</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* 場所の編集 */}
+                      <div>
+                        <Label htmlFor="location">場所</Label>
+                        <div className="flex items-center mt-1">
+                          <MapPin className="h-4 w-4 text-muted-foreground mr-2" />
+                          <Input
+                            id="location"
+                            value={locationValue}
+                            onChange={(e) => setLocationValue(e.target.value)}
+                            placeholder="例: 東京都渋谷区"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* ウェブサイトの編集 */}
+                      <div>
+                        <Label htmlFor="website">ウェブサイト</Label>
+                        <div className="flex items-center mt-1">
+                          <Globe className="h-4 w-4 text-muted-foreground mr-2" />
+                          <Input
+                            id="website"
+                            value={websiteValue}
+                            onChange={(e) => setWebsiteValue(e.target.value)}
+                            placeholder="例: https://example.com"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* ソーシャルリンクの編集 */}
+                      <div>
+                        <Label>ソーシャルメディア</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                          <div className="flex items-center">
+                            <Twitter className="h-4 w-4 text-muted-foreground mr-2" />
+                            <Input
+                              placeholder="Twitterユーザー名"
+                              value={socialLinks?.twitter || ""}
+                              onChange={(e) => setSocialLinks(prev => ({ ...prev, twitter: e.target.value }))}
+                            />
+                          </div>
+                          <div className="flex items-center">
+                            <Facebook className="h-4 w-4 text-muted-foreground mr-2" />
+                            <Input
+                              placeholder="Facebookユーザー名"
+                              value={socialLinks?.facebook || ""}
+                              onChange={(e) => setSocialLinks(prev => ({ ...prev, facebook: e.target.value }))}
+                            />
+                          </div>
+                          <div className="flex items-center">
+                            <Instagram className="h-4 w-4 text-muted-foreground mr-2" />
+                            <Input
+                              placeholder="Instagramユーザー名"
+                              value={socialLinks?.instagram || ""}
+                              onChange={(e) => setSocialLinks(prev => ({ ...prev, instagram: e.target.value }))}
+                            />
+                          </div>
+                          <div className="flex items-center">
+                            <Github className="h-4 w-4 text-muted-foreground mr-2" />
+                            <Input
+                              placeholder="GitHubユーザー名"
+                              value={socialLinks?.github || ""}
+                              onChange={(e) => setSocialLinks(prev => ({ ...prev, github: e.target.value }))}
+                            />
+                          </div>
+                          <div className="flex items-center">
+                            <Linkedin className="h-4 w-4 text-muted-foreground mr-2" />
+                            <Input
+                              placeholder="LinkedInユーザー名"
+                              value={socialLinks?.linkedin || ""}
+                              onChange={(e) => setSocialLinks(prev => ({ ...prev, linkedin: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* 専門分野の編集 */}
+                      <div>
+                        <Label htmlFor="expertise">専門分野</Label>
+                        <Textarea
+                          id="expertise"
+                          value={expertiseValue}
+                          onChange={(e) => setExpertiseValue(e.target.value)}
+                          placeholder="例: ウェブデザイン、UI/UXデザイン、フロントエンド開発"
+                          className="mt-1"
+                        />
+                      </div>
+                      
+                      {/* 言語の編集 */}
+                      <div>
+                        <Label htmlFor="languages">使用言語</Label>
+                        <Textarea
+                          id="languages"
+                          value={languagesValue}
+                          onChange={(e) => setLanguagesValue(e.target.value)}
+                          placeholder="例: 日本語（ネイティブ）、英語（ビジネスレベル）"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
