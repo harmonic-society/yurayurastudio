@@ -257,40 +257,56 @@ export async function registerRoutes(app: Express) {
           
           // メンションされたユーザーそれぞれに通知を送信
           for (const mentionedUserId of Array.from(mentionedUsers)) {
+            console.log(`メンションユーザーID ${mentionedUserId} の通知処理を開始`);
+            
+            // メンションされたユーザー情報を取得して確認
+            const mentionedUserInfo = await storage.getUser(mentionedUserId);
+            console.log(`メンションされたユーザー情報:`, mentionedUserInfo);
+            
             // ユーザーの通知設定を確認
             const notificationSettings = await storage.getUserNotificationSettings(mentionedUserId);
+            console.log(`メンションユーザーの通知設定:`, notificationSettings);
             
             if (notificationSettings?.notifyCommentMention !== false) {
+              console.log(`通知設定OK: ${mentionedUserId} に通知を送信します`);
               const commenterName = req.user.name || 'ユーザー';
               
-              // 通知履歴を追加
-              await storage.createNotificationHistory({
-                userId: mentionedUserId,
-                event: "COMMENT_MENTION",
-                title: `${commenterName}さんがあなたをメンションしました`,
-                message: `プロジェクト「${project.name}」のコメントであなたがメンションされました`,
-                link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/projects/${projectId}`
-              });
-              
-              // メール通知
               try {
-                const mentionedUser = users.find(u => u.id === mentionedUserId);
-                if (mentionedUser?.email) {
-                  await sendNotificationEmail(
-                    mentionedUser.email,
-                    "COMMENT_MENTION",
-                    {
-                      title: `${commenterName}さんがあなたをメンションしました`,
-                      message: `プロジェクト「${project.name}」のコメントで${commenterName}さんがあなたをメンションしました。\n\n「${commentData.content.substring(0, 100)}${commentData.content.length > 100 ? '...' : ''}」`,
-                      link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/projects/${projectId}`
-                    }
-                  );
-                  console.log(`✅ メンション通知メールを送信しました: ユーザーID ${mentionedUserId}`);
+                // 通知履歴を追加
+                const notification = await storage.createNotificationHistory({
+                  userId: mentionedUserId,
+                  event: "COMMENT_MENTION",
+                  title: `${commenterName}さんがあなたをメンションしました`,
+                  message: `プロジェクト「${project.name}」のコメントであなたがメンションされました`,
+                  link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/projects/${projectId}`
+                });
+                
+                console.log(`✅ 通知履歴の追加に成功: ID=${notification.id}`);
+                
+                // メール通知
+                try {
+                  const mentionedUser = users.find(u => u.id === mentionedUserId);
+                  if (mentionedUser?.email) {
+                    await sendNotificationEmail(
+                      mentionedUser.email,
+                      "COMMENT_MENTION",
+                      {
+                        title: `${commenterName}さんがあなたをメンションしました`,
+                        message: `プロジェクト「${project.name}」のコメントで${commenterName}さんがあなたをメンションしました。\n\n「${commentData.content.substring(0, 100)}${commentData.content.length > 100 ? '...' : ''}」`,
+                        link: `${process.env.APP_URL || 'https://yurayurastudio.com'}/projects/${projectId}`
+                      }
+                    );
+                    console.log(`✅ メンション通知メールを送信しました: ユーザーID ${mentionedUserId}`);
+                  }
+                } catch (emailError) {
+                  console.error(`メンション通知メールの送信に失敗しました: ユーザーID ${mentionedUserId}`, emailError);
+                  // メール送信エラーはコメント作成自体の失敗とはしない
                 }
-              } catch (emailError) {
-                console.error(`メンション通知メールの送信に失敗しました: ユーザーID ${mentionedUserId}`, emailError);
-                // メール送信エラーはコメント作成自体の失敗とはしない
+              } catch (notificationError) {
+                console.error(`通知の作成に失敗しました: ユーザーID ${mentionedUserId}`, notificationError);
               }
+            } else {
+              console.log(`通知設定により通知はスキップされました: ユーザーID ${mentionedUserId}`);
             }
           }
         }
