@@ -32,6 +32,13 @@ import { registrationRequestSchema, registrationRoles } from "@shared/schema";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import type { UseMutationResult } from "@tanstack/react-query";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { 
   LogIn, 
   UserPlus, 
@@ -41,7 +48,15 @@ import {
   Briefcase, 
   AlertCircle,
   CheckCircle,
-  Loader2
+  Loader2,
+  HelpCircle,
+  Info,
+  ArrowRight,
+  Users,
+  Calendar,
+  Gauge,
+  BarChart,
+  MessageSquare
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -82,12 +97,13 @@ export default function AuthPage() {
       password: "",
       name: "",
       email: "",
-      role: undefined,
+      role: "" as any, // 型エラーを解消するために明示的に型キャスト
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (data) => {
+  // 登録リクエスト用のミューテーション
+  const registerMutation: UseMutationResult<any, Error, any> = useMutation({
+    mutationFn: async (data: any) => {
       const response = await fetch("/api/registration-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -262,10 +278,95 @@ export default function AuthPage() {
                     </form>
                   </Form>
                 </CardContent>
-                <CardFooter className="flex flex-col">
-                  <p className="text-sm text-muted-foreground mt-2">
+                <CardFooter className="flex flex-col space-y-4">
+                  <p className="text-sm text-muted-foreground">
                     アカウントをお持ちでない場合は「新規登録」タブから登録申請を行ってください。
                   </p>
+                  
+                  {/* ユーザーチュートリアル */}
+                  <div className="rounded-md border p-4 bg-muted/30">
+                    <div className="flex items-center gap-2 mb-2">
+                      <HelpCircle className="h-5 w-5 text-primary" />
+                      <h3 className="text-sm font-medium">はじめての方へ：使い方ガイド</h3>
+                    </div>
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="overview">
+                        <AccordionTrigger className="text-sm py-2">
+                          <div className="flex items-center gap-2">
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                            <span>Yura Yura STUDIOとは？</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-xs leading-relaxed">
+                          <p className="mb-2">
+                            Yura Yura STUDIOは、千葉県を中心とした小規模事業者向けのWeb制作・集客支援プラットフォームです。
+                            地域のクリエイターと事業者をつなぎ、地域活性化に貢献します。
+                          </p>
+                          <div className="flex items-center gap-2 text-primary mt-3">
+                            <ArrowRight className="h-3 w-3" />
+                            <span className="font-medium">誰でも簡単にプロジェクト管理ができます</span>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="features">
+                        <AccordionTrigger className="text-sm py-2">
+                          <div className="flex items-center gap-2">
+                            <Gauge className="h-4 w-4 text-muted-foreground" />
+                            <span>主な機能</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="space-y-2 text-xs">
+                            <li className="flex items-start gap-2">
+                              <Users className="h-3.5 w-3.5 text-primary mt-0.5" />
+                              <span>チーム管理：プロジェクトごとにチームを編成し、効率的に協業</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <Calendar className="h-3.5 w-3.5 text-primary mt-0.5" />
+                              <span>スケジュール管理：期限設定と進捗管理で遅延を防止</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <BarChart className="h-3.5 w-3.5 text-primary mt-0.5" />
+                              <span>報酬配分：貢献度に応じた公平な報酬分配システム</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <MessageSquare className="h-3.5 w-3.5 text-primary mt-0.5" />
+                              <span>コミュニケーション：メッセージとタイムラインで情報共有</span>
+                            </li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="firstSteps">
+                        <AccordionTrigger className="text-sm py-2">
+                          <div className="flex items-center gap-2">
+                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                            <span>はじめてのステップ</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-xs space-y-2">
+                          <div className="bg-background p-2 rounded-md border mb-1">
+                            <p className="font-medium">1. ログイン後のダッシュボード</p>
+                            <p className="text-muted-foreground">最新のプロジェクト、通知、タスクが一目でわかります</p>
+                          </div>
+                          <div className="bg-background p-2 rounded-md border mb-1">
+                            <p className="font-medium">2. プロジェクト参加</p>
+                            <p className="text-muted-foreground">招待されたプロジェクトに参加するか、新しいプロジェクトを作成</p>
+                          </div>
+                          <div className="bg-background p-2 rounded-md border">
+                            <p className="font-medium">3. スキル登録</p>
+                            <p className="text-muted-foreground">あなたのスキルを登録して、最適なプロジェクトマッチングを</p>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                    
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      詳細な使い方は、ログイン後のヘルプページでご確認いただけます。
+                    </div>
+                  </div>
                 </CardFooter>
               </Card>
             </TabsContent>
