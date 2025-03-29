@@ -121,7 +121,7 @@ export default function PortfolioList({
               ) : isFileType && isImageFile ? (
                 // 画像ファイルの場合、ファイルパスから直接表示
                 <img
-                  src={portfolio.filePath}
+                  src={portfolio.filePath || ''}
                   alt={`成果物 ${portfolio.title}`}
                   className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => e.currentTarget.style.display = 'none'}

@@ -151,11 +151,19 @@ export default function PortfolioForm({
     try {
       if (submitMode === "url") {
         // URL提出モード
+        if (!data.url || data.url.trim().length === 0) {
+          form.setError('url', {
+            type: 'manual',
+            message: 'URLを入力してください'
+          });
+          return;
+        }
+        
         const submitData = {
           userId: Number(data.userId),
           title: data.title.trim(),
           description: data.description.trim(),
-          url: data.url?.trim() || null,
+          url: data.url.trim(),
           workType: data.workType,
           isPublic: data.isPublic ?? true,
           filePath: null,

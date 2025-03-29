@@ -24,9 +24,10 @@ import {
   notificationEvents,
   type NotificationEvent,
   insertDirectMessageSchema,
-  type DirectMessage
+  type DirectMessage,
+  workTypes
 } from "@shared/schema";
-import { ZodError } from "zod";
+import { ZodError, z } from "zod";
 import { setupAuth } from "./auth";
 import { isAdmin, canUpdateProjectStatus, canChangePassword, canAccessProject } from "./middleware/permissions";
 import { comparePasswords, hashPassword } from "./auth";
@@ -554,7 +555,22 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ message: "このポートフォリオを編集する権限がありません" });
       }
       
-      const portfolioData = insertPortfolioSchema.partial().parse(req.body);
+      // 独自のバリデーションスキーマを作成（全てのフィールドをオプショナル）
+      const updatePortfolioSchema = z.object({
+        title: z.string().min(1, "タイトルは必須です").optional(),
+        description: z.string().min(1, "説明は必須です").max(500, "説明は500文字以内で入力してください").optional(),
+        url: z.string().url("有効なURLを入力してください").optional().nullable(),
+        workType: z.enum(workTypes, {
+          errorMap: () => ({ message: "作業種別を選択してください" })
+        }).optional(),
+        imageUrl: z.string().url("有効な画像URLを入力してください").optional().nullable(),
+        filePath: z.string().optional().nullable(),
+        fileType: z.string().optional().nullable(),
+        isPublic: z.boolean().optional()
+      });
+      
+      // リクエストデータをバリデーション
+      const portfolioData = updatePortfolioSchema.parse(req.body);
       
       // アップデートデータからuserIdを削除（変更不可）
       if ('userId' in portfolioData && portfolioData.userId !== portfolio.userId) {
@@ -1560,7 +1576,15 @@ export async function registerRoutes(app: Express) {
         // 画像がなければページ内の大きな画像を探す
         let imageUrl = ogImage;
         if (!imageUrl) {
-          const imgMatches = [...html.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)];
+          const imgPattern = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+          let match;
+          const imgMatches = [];
+          
+          // 正規表現を手動で実行して結果を配列に格納
+          while ((match = imgPattern.exec(html)) !== null) {
+            imgMatches.push(match);
+          }
+          
           // サイズが明示されている大きな画像を優先
           for (const match of imgMatches) {
             const imgTag = match[0];

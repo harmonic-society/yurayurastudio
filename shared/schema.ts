@@ -144,7 +144,24 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   userId: z.number().int().positive(),
   title: z.string().min(1, "タイトルは必須です"),
   description: z.string().min(1, "説明は必須です").max(500, "説明は500文字以内で入力してください"),
-  url: z.string().url("有効なURLを入力してください").optional().nullable(),
+  url: z.string().optional().nullable()
+    .refine(
+      (url) => {
+        // urlが入力されている場合は有効なURLであることを確認
+        if (url && url.trim().length > 0) {
+          try {
+            new URL(url);
+            return true;
+          } catch {
+            return false;
+          }
+        }
+        return true; // urlが空の場合は検証をスキップ
+      },
+      {
+        message: "有効なURLを入力してください"
+      }
+    ),
   workType: z.enum(workTypes, {
     errorMap: () => ({ message: "作業種別を選択してください" })
   }),
@@ -153,16 +170,19 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   fileType: z.string().optional().nullable(),
   isPublic: z.boolean().default(true)
 })
-.refine(
-  (data) => {
-    // URLかファイルパスのどちらかが必要
-    return (data.url && data.url.trim().length > 0) || (data.filePath && data.filePath.trim().length > 0);
-  },
-  {
-    message: "URLまたはファイルのどちらかを入力してください",
-    path: ["url"]
+.superRefine((data, ctx) => {
+  // URLかファイルパスのどちらかが必要
+  if (
+    (!data.url || data.url.trim().length === 0) && 
+    (!data.filePath || data.filePath.trim().length === 0)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "URLまたはファイルのどちらかを入力してください",
+      path: ["url"]
+    });
   }
-);
+});
 
 export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
