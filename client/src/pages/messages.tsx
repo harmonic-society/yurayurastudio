@@ -567,9 +567,9 @@ export default function MessagesPage() {
                       </div>
 
                       {/* メッセージ表示エリア */}
-                      <div className="relative flex-1 mb-4">
+                      <div className="relative flex-1 mb-4 flex flex-col">
                         {/* 上部にある「過去のメッセージを表示」ボタン */}
-                        <div className="sticky top-0 z-10 flex justify-center py-2 bg-gradient-to-b from-background via-background/95 to-transparent">
+                        <div className="sticky top-0 z-10 flex justify-center py-2 bg-background">
                           <Button 
                             variant="outline" 
                             size="sm"
@@ -589,7 +589,7 @@ export default function MessagesPage() {
                           </Button>
                         </div>
                         
-                        <ScrollArea className="h-[calc(100%-10px)] pr-4">
+                        <ScrollArea className="h-[calc(60vh-10.5rem)] pr-4 flex-1">
                           {selectedConversation && Array.isArray(selectedConversation) && selectedConversation.length > 0 ? (
                             <div className="space-y-4 pt-8">
                               {/* 日付ごとにメッセージをグループ化 */}
