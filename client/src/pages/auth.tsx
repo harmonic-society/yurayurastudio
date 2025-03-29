@@ -218,8 +218,8 @@ export default function AuthPage() {
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                     </div>
                     <div className="flex-1">
-                      <span className="text-white font-medium">自動ポートフォリオ構築</span>
-                      <p className="text-white/70 text-xs mt-0.5">プロジェクト完了ごとに実績が蓄積され、成長が可視化</p>
+                      <span className="text-white font-medium">拡張ポートフォリオ機能</span>
+                      <p className="text-white/70 text-xs mt-0.5">URL・ファイル添付に対応したポートフォリオで実績を効果的に共有</p>
                     </div>
                   </li>
                 </ul>
@@ -460,6 +460,10 @@ export default function AuthPage() {
                               <span>スケジュール管理：期限設定と進捗管理で遅延を防止</span>
                             </li>
                             <li className="flex items-start gap-2">
+                              <FileText className="h-3.5 w-3.5 text-primary mt-0.5" />
+                              <span>拡張ポートフォリオ：URL共有とファイルアップロードに対応した実績管理</span>
+                            </li>
+                            <li className="flex items-start gap-2">
                               <BarChart className="h-3.5 w-3.5 text-primary mt-0.5" />
                               <span>報酬配分：貢献度に応じた公平な報酬分配システム</span>
                             </li>
@@ -612,9 +616,10 @@ export default function AuthPage() {
                       <div className="bg-muted/30 p-3 rounded-md border border-border/50 mt-2">
                         <p className="text-xs font-medium text-primary">✨ 新規登録の特典</p>
                         <ul className="text-xs mt-1 space-y-0.5 list-disc list-inside">
-                          <li>プロフェッショナルなポートフォリオ作成</li>
+                          <li>URL・ファイル添付対応の高機能ポートフォリオ</li>
                           <li>地域企業とのマッチング機会</li>
                           <li>スキルレベルに応じた公平な報酬システム</li>
+                          <li>作品の効果的な表示とプレビュー機能</li>
                         </ul>
                       </div>
                     </CardDescription>
