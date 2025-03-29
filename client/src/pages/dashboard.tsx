@@ -262,7 +262,7 @@ export default function Dashboard() {
               進行中
             </CardTitle>
             <div className="p-2 rounded-full bg-blue-100">
-              <STATUS_CONFIG.IN_PROGRESS.icon className="h-4 w-4 text-blue-500 animate-spin" />
+              <STATUS_CONFIG.IN_PROGRESS.icon className="h-4 w-4 text-blue-500" />
             </div>
           </CardHeader>
           <CardContent>
