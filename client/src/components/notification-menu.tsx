@@ -31,7 +31,12 @@ export function NotificationMenu() {
     
     // リンクがある場合は遷移
     if (link) {
-      window.location.href = link;
+      // コメントメンションの場合は、ハッシュ（#comment-section）をつける
+      if (link.includes('/projects/') && (notifications.find(n => n.id === id)?.event === 'COMMENT_MENTION')) {
+        window.location.href = `${link}#comment-section`;
+      } else {
+        window.location.href = link;
+      }
     }
   };
 

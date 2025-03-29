@@ -25,7 +25,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertCircle, Edit2, ArrowRightLeft, Trash2, Plus, DollarSign } from "lucide-react";
 import {
   AlertDialog,
@@ -111,6 +111,19 @@ export default function ProjectDetails() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { isAdmin } = useAuth();
+
+  // ページロード時にURLのハッシュに基づいてコメントセクションにスクロール
+  useEffect(() => {
+    // ハッシュがある場合（#comment-section など）
+    if (location.hash === '#comment-section') {
+      setTimeout(() => {
+        const commentSection = document.getElementById('comment-section');
+        if (commentSection) {
+          commentSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 500); // 少し遅延させてページのロードが完了するのを待つ
+    }
+  }, []);
 
   const { data: project, isLoading, error } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
@@ -500,7 +513,7 @@ export default function ProjectDetails() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2" id="comment-section">
           <CardHeader>
             <CardTitle>コメント</CardTitle>
           </CardHeader>
