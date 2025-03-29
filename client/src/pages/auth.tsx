@@ -56,7 +56,11 @@ import {
   Calendar,
   Gauge,
   BarChart,
-  MessageSquare
+  MessageSquare,
+  Building2,
+  FileText,
+  Lock,
+  ShieldCheck
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -365,6 +369,81 @@ export default function AuthPage() {
                     
                     <div className="mt-2 text-xs text-muted-foreground">
                       詳細な使い方は、ログイン後のヘルプページでご確認いただけます。
+                    </div>
+                  </div>
+                  
+                  {/* 運営情報、プライバシーポリシー、利用規約 */}
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="company">
+                        <AccordionTrigger className="text-xs py-1.5">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span>運営会社</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-xs">
+                          <p className="mb-2">Yura Yura STUDIOは、Harmonic Society株式会社が運営しています。</p>
+                          <p className="mb-2">
+                            弊社は千葉県を拠点とし、地域のクリエイターと事業者の協業を促進することで地域経済の活性化に貢献することを目指しています。
+                          </p>
+                          <a 
+                            href="https://harmonic-society.co.jp/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline inline-flex items-center gap-1"
+                          >
+                            <span>詳細はこちら</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </a>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="privacy">
+                        <AccordionTrigger className="text-xs py-1.5">
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                            <span>プライバシーポリシー</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-xs">
+                          <p className="mb-2">Yura Yura STUDIOは、ユーザーの個人情報保護を最優先事項と考えています。</p>
+                          <ul className="list-disc pl-5 space-y-1 mb-2">
+                            <li>収集した個人情報は、サービス提供の目的以外には使用しません</li>
+                            <li>適切なセキュリティ対策を講じ、個人情報の漏洩を防止します</li>
+                            <li>法令に基づく場合を除き、第三者への個人情報の提供は行いません</li>
+                            <li>ユーザーからの個人情報の訂正・削除のリクエストに対応します</li>
+                          </ul>
+                          <p className="text-muted-foreground">詳細なプライバシーポリシーは、ログイン後のヘルプページでご確認いただけます。</p>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="terms">
+                        <AccordionTrigger className="text-xs py-1.5">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span>サイト利用規約</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="text-xs">
+                          <p className="mb-2">Yura Yura STUDIOをご利用いただくにあたり、以下の利用規約に同意いただく必要があります。</p>
+                          <ul className="list-disc pl-5 space-y-1 mb-2">
+                            <li>本サービスの不正利用、違法行為、他のユーザーへの迷惑行為は禁止されています</li>
+                            <li>投稿されたコンテンツの著作権は投稿者に帰属しますが、サービス内での表示・編集権限を当社に許諾するものとします</li>
+                            <li>サービスの安定運用のため、事前の告知なくメンテナンスを実施する場合があります</li>
+                            <li>利用規約に違反した場合、アカウントの停止または削除の措置を取る場合があります</li>
+                          </ul>
+                          <p className="text-muted-foreground">詳細な利用規約は、ログイン後のヘルプページでご確認いただけます。</p>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                    
+                    <div className="mt-4 pt-3 text-center text-xs text-muted-foreground border-t border-border/30">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <Lock className="h-3 w-3" />
+                        <span>安全なサイト接続</span>
+                      </div>
+                      © {new Date().getFullYear()} Harmonic Society Inc. All rights reserved.
                     </div>
                   </div>
                 </CardFooter>
