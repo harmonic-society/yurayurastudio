@@ -19,7 +19,9 @@ import {
   userSkillSchema,
   updateProfileSchema,
   notificationEvents,
-  type NotificationEvent
+  type NotificationEvent,
+  insertDirectMessageSchema,
+  type DirectMessage
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { setupAuth } from "./auth";
@@ -1735,6 +1737,148 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("すべての通知の既読処理に失敗しました:", error);
       res.status(500).json({ message: "すべての通知の既読処理に失敗しました" });
+    }
+  });
+
+  // ダイレクトメッセージ関連のAPIエンドポイント
+  
+  // ダイレクトメッセージの取得
+  app.get("/api/messages", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const messages = await storage.getDirectMessages(req.user.id);
+      res.json(messages);
+    } catch (error) {
+      console.error("ダイレクトメッセージの取得に失敗しました:", error);
+      res.status(500).json({ message: "ダイレクトメッセージの取得に失敗しました" });
+    }
+  });
+  
+  // ユーザー間の会話の取得
+  app.get("/api/messages/conversation/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const conversation = await storage.getConversation(
+        req.user.id,
+        Number(req.params.userId)
+      );
+      res.json(conversation);
+    } catch (error) {
+      console.error("会話の取得に失敗しました:", error);
+      res.status(500).json({ message: "会話の取得に失敗しました" });
+    }
+  });
+  
+  // ダイレクトメッセージの送信
+  app.post("/api/messages", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const fromUserId = req.user.id;
+      const messageData = insertDirectMessageSchema.parse({
+        ...req.body,
+        fromUserId
+      });
+      
+      const message = await storage.createDirectMessage(messageData);
+      
+      // 受信者のユーザー情報を取得
+      const toUser = await storage.getUser(messageData.toUserId);
+      
+      if (toUser) {
+        // 送信者情報を取得
+        const fromUser = await storage.getUser(fromUserId);
+        const senderName = fromUser?.name || "ユーザー";
+        
+        // 受信者の通知設定を確認
+        const notificationSettings = await storage.getUserNotificationSettings(messageData.toUserId);
+        
+        // アプリ内通知の送信
+        if (notificationSettings?.notifyDirectMessage !== false) {
+          try {
+            // 通知履歴を追加
+            await storage.createNotificationHistory({
+              userId: messageData.toUserId,
+              event: "DIRECT_MESSAGE",
+              title: `${senderName}さんからメッセージが届きました`,
+              message: messageData.message.length > 100 
+                ? `${messageData.message.substring(0, 100)}...` 
+                : messageData.message,
+              link: `/messages?userId=${fromUserId}`
+            });
+          } catch (notificationError) {
+            console.error("通知の作成に失敗しました:", notificationError);
+          }
+        }
+        
+        // メール通知の送信
+        if (notificationSettings?.emailNotifyDirectMessage !== false && toUser.email) {
+          try {
+            await sendNotificationEmail(
+              toUser.email,
+              "DIRECT_MESSAGE",
+              {
+                title: `${senderName}さんからメッセージが届きました`,
+                message: `${senderName}さんから新しいメッセージが届きました。\n\n「${
+                  messageData.message.length > 100 
+                  ? `${messageData.message.substring(0, 100)}...` 
+                  : messageData.message
+                }」`,
+                link: `${getBaseUrl(req)}/messages?userId=${fromUserId}`
+              }
+            );
+          } catch (emailError) {
+            console.error("メール通知の送信に失敗しました:", emailError);
+          }
+        }
+      }
+      
+      res.status(201).json(message);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なメッセージデータです", errors: error.errors });
+      } else {
+        console.error("メッセージの送信に失敗しました:", error);
+        res.status(500).json({ message: "メッセージの送信に失敗しました" });
+      }
+    }
+  });
+  
+  // メッセージを既読にする
+  app.patch("/api/messages/:id/read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      await storage.markDirectMessageAsRead(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("メッセージの既読処理に失敗しました:", error);
+      res.status(500).json({ message: "メッセージの既読処理に失敗しました" });
+    }
+  });
+  
+  // 未読メッセージ数の取得
+  app.get("/api/messages/unread-count", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+    
+    try {
+      const count = await storage.getUnreadDirectMessageCount(req.user.id);
+      res.json({ count });
+    } catch (error) {
+      console.error("未読メッセージ数の取得に失敗しました:", error);
+      res.status(500).json({ message: "未読メッセージ数の取得に失敗しました" });
     }
   });
 

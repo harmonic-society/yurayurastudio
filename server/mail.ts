@@ -131,7 +131,8 @@ export function getNotificationSubject(event: NotificationEvent): string {
     REGISTRATION_APPROVED: "登録リクエストが承認されました",
     PROJECT_ASSIGNED: "プロジェクトにアサインされました",
     REGISTRATION_REQUEST: "新しい登録リクエストがあります",
-    COMMENT_MENTION: "コメントであなたがメンションされました"
+    COMMENT_MENTION: "コメントであなたがメンションされました",
+    DIRECT_MESSAGE: "新しいダイレクトメッセージがあります"
   };
   return subjects[event];
 }

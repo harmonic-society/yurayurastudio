@@ -1,0 +1,403 @@
+import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { SendIcon, RefreshCw, ChevronLeft } from "lucide-react";
+import type { User, DirectMessage } from "@shared/schema";
+import Layout from "@/components/layout";
+import { format } from "date-fns";
+
+// シンプルなモバイルかどうかの判定
+function useMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkSize();
+    window.addEventListener('resize', checkSize);
+    return () => window.removeEventListener('resize', checkSize);
+  }, []);
+  
+  return isMobile;
+}
+
+export default function MessagesPage() {
+  const { user } = useAuth();
+  const [location, navigate] = useLocation();
+  const { toast } = useToast();
+  const isMobile = useMobile();
+  const urlParams = new URLSearchParams(window.location.search);
+  const selectedUserId = urlParams.get("userId") ? Number(urlParams.get("userId")) : null;
+  const [message, setMessage] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
+  // ユーザー一覧の取得
+  const { data: users } = useQuery({
+    queryKey: ["/api/users"],
+    enabled: !!user,
+  });
+
+  // 会話一覧の取得（最新のメッセージだけを表示するため）
+  const { data: conversations, isLoading: isLoadingConversations, refetch: refetchConversations } = useQuery({
+    queryKey: ["/api/messages"],
+    enabled: !!user,
+  });
+
+  // 選択されたユーザーとの会話の取得
+  const { data: selectedConversation, isLoading: isLoadingSelectedConversation, refetch: refetchSelectedConversation } = useQuery({
+    queryKey: ["/api/messages/conversation", selectedUserId],
+    enabled: !!user && !!selectedUserId,
+  });
+
+  // メッセージの送信
+  const { mutate: sendMessage, isPending: isSendingMessage } = useMutation({
+    mutationFn: (data: { toUserId: number; message: string }) => 
+      apiRequest("/api/messages", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      setMessage("");
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/conversation", selectedUserId] });
+      toast({
+        title: "メッセージを送信しました",
+        description: "メッセージが正常に送信されました。",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "エラー",
+        description: "メッセージの送信に失敗しました。",
+        variant: "destructive",
+      });
+      console.error("メッセージ送信エラー:", error);
+    },
+  });
+
+  // メッセージを既読にする
+  const { mutate: markAsRead } = useMutation({
+    mutationFn: (messageId: number) => 
+      apiRequest(`/api/messages/${messageId}/read`, { method: "PATCH" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/unread-count"] });
+    },
+  });
+
+  // 選択されたユーザーの設定
+  useEffect(() => {
+    if (selectedUserId && users && Array.isArray(users)) {
+      const selectedUser = users.find((u: User) => u.id === selectedUserId);
+      if (selectedUser) {
+        setSelectedUser(selectedUser);
+      }
+    }
+  }, [selectedUserId, users]);
+
+  // 会話が読み込まれたら未読メッセージを既読に
+  useEffect(() => {
+    if (selectedConversation && Array.isArray(selectedConversation)) {
+      selectedConversation.forEach((msg: DirectMessage) => {
+        if (msg.toUserId === user?.id && !msg.read) {
+          markAsRead(msg.id);
+        }
+      });
+    }
+  }, [selectedConversation, user?.id, markAsRead]);
+
+  // 定期的に会話を更新
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (selectedUserId) {
+        refetchSelectedConversation();
+      }
+      refetchConversations();
+    }, 10000); // 10秒ごとに更新
+    
+    return () => clearInterval(interval);
+  }, [selectedUserId, refetchSelectedConversation, refetchConversations]);
+
+  // 会話ごとに最新のメッセージとユーザー情報をグループ化
+  const conversationGroups: Record<number, { user: User; latestMessage: DirectMessage }> = {};
+  
+  if (conversations && Array.isArray(conversations) && users && Array.isArray(users)) {
+    conversations.forEach((msg: DirectMessage) => {
+      const otherUserId = msg.fromUserId === user?.id ? msg.toUserId : msg.fromUserId;
+      const otherUser = users.find((u: User) => u.id === otherUserId);
+      
+      if (otherUser) {
+        if (!conversationGroups[otherUserId] || 
+            new Date(msg.createdAt) > new Date(conversationGroups[otherUserId].latestMessage.createdAt)) {
+          conversationGroups[otherUserId] = {
+            user: otherUser,
+            latestMessage: msg,
+          };
+        }
+      }
+    });
+  }
+
+  // メッセージの送信処理
+  const handleSendMessage = () => {
+    if (!message.trim() || !selectedUserId) return;
+    
+    sendMessage({
+      toUserId: selectedUserId,
+      message: message.trim(),
+    });
+  };
+
+  // 日付のフォーマット
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    if (date.toDateString() === now.toDateString()) {
+      return `今日 ${format(date, 'HH:mm')}`;
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return `昨日 ${format(date, 'HH:mm')}`;
+    } else {
+      return format(date, 'yyyy/MM/dd HH:mm');
+    }
+  };
+
+  // ユーザー選択を解除してリストに戻る（モバイル用）
+  const handleBackToList = () => {
+    navigate("/messages");
+    setSelectedUser(null);
+  };
+
+  return (
+    <Layout>
+      <div className="container py-6 max-w-6xl">
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-2xl">メッセージ</CardTitle>
+            <CardDescription>
+              チームメンバーとのダイレクトメッセージ
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex h-[70vh] md:h-[60vh] overflow-hidden">
+              {/* ユーザーリスト（モバイルでは選択時に非表示） */}
+              {(!isMobile || !selectedUser) && (
+                <div className={`${isMobile ? 'w-full' : 'w-1/3 border-r'} pr-4`}>
+                  <h3 className="font-medium mb-4">チームメンバー</h3>
+                  <ScrollArea className="h-[calc(70vh-8rem)]">
+                    <div className="space-y-2 pr-4">
+                      {Object.values(conversationGroups).length > 0 ? (
+                        Object.values(conversationGroups)
+                          .sort((a, b) => 
+                            new Date(b.latestMessage.createdAt).getTime() - 
+                            new Date(a.latestMessage.createdAt).getTime()
+                          )
+                          .map(({ user: otherUser, latestMessage }) => (
+                            <div 
+                              key={otherUser.id}
+                              onClick={() => {
+                                navigate(`/messages?userId=${otherUser.id}`);
+                                setSelectedUser(otherUser);
+                              }}
+                              className={`flex items-center p-3 rounded-md cursor-pointer
+                                ${selectedUserId === otherUser.id ? 'bg-primary/10' : 'hover:bg-muted'}
+                                ${!latestMessage.read && latestMessage.toUserId === user?.id ? 'border-l-4 border-primary pl-2' : ''}
+                              `}
+                            >
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={otherUser.avatarUrl ? `/uploads/${otherUser.avatarUrl}` : undefined} />
+                                <AvatarFallback>{otherUser.name.slice(0, 2)}</AvatarFallback>
+                              </Avatar>
+                              <div className="ml-3 flex-1 overflow-hidden">
+                                <div className="flex justify-between items-center">
+                                  <p className="font-medium">{otherUser.name}</p>
+                                  <span className="text-xs text-muted-foreground">
+                                    {typeof latestMessage.createdAt === 'string' && formatDate(latestMessage.createdAt)}
+                                  </span>
+                                </div>
+                                <p className={`text-sm truncate ${!latestMessage.read && latestMessage.toUserId === user?.id ? 'font-medium' : 'text-muted-foreground'}`}>
+                                  {latestMessage.fromUserId === user?.id ? '自分: ' : ''}
+                                  {latestMessage.message}
+                                </p>
+                                {!latestMessage.read && latestMessage.toUserId === user?.id && (
+                                  <Badge variant="default" className="mt-1">新着</Badge>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                      ) : (
+                        <div className="text-center text-muted-foreground py-8">
+                          メッセージはまだありません。
+                          <div className="mt-4">
+                            <p className="text-sm">他のユーザーにメッセージを送ってみましょう</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* すべてのユーザー表示（会話がないユーザーも） */}
+                      {Object.values(conversationGroups).length > 0 ? (
+                        <>
+                          <Separator className="my-4" />
+                          <p className="text-sm text-muted-foreground mb-2">その他のユーザー</p>
+                        </>
+                      ) : null}
+                      {users && Array.isArray(users) && users
+                        .filter((u: User) => 
+                          u.id !== user?.id && 
+                          !Object.values(conversationGroups).some(conv => conv.user.id === u.id)
+                        )
+                        .map((otherUser: User) => (
+                          <div 
+                            key={otherUser.id}
+                            onClick={() => {
+                              navigate(`/messages?userId=${otherUser.id}`);
+                              setSelectedUser(otherUser);
+                            }}
+                            className="flex items-center p-3 rounded-md cursor-pointer hover:bg-muted"
+                          >
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={otherUser.avatarUrl ? `/uploads/${otherUser.avatarUrl}` : undefined} />
+                              <AvatarFallback>{otherUser.name.slice(0, 2)}</AvatarFallback>
+                            </Avatar>
+                            <div className="ml-3">
+                              <p className="font-medium">{otherUser.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {otherUser.role}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+              
+              {/* メッセージエリア */}
+              {(!isMobile || selectedUser) && (
+                <div className={`${isMobile ? 'w-full' : 'w-2/3'} pl-4 flex flex-col h-full`}>
+                  {selectedUser ? (
+                    <>
+                      {/* ヘッダー */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center">
+                          {isMobile && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="mr-2"
+                              onClick={handleBackToList}
+                            >
+                              <ChevronLeft />
+                            </Button>
+                          )}
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={selectedUser.avatarUrl ? `/uploads/${selectedUser.avatarUrl}` : undefined} />
+                            <AvatarFallback>{selectedUser.name.slice(0, 2)}</AvatarFallback>
+                          </Avatar>
+                          <div className="ml-3">
+                            <p className="font-medium">{selectedUser.name}</p>
+                            <p className="text-xs text-muted-foreground">{selectedUser.role}</p>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => refetchSelectedConversation()}
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {/* メッセージ表示エリア */}
+                      <ScrollArea className="flex-1 pr-4 mb-4">
+                        {selectedConversation && Array.isArray(selectedConversation) && selectedConversation.length > 0 ? (
+                          <div className="space-y-4">
+                            {selectedConversation.map((msg: DirectMessage) => {
+                              const isFromMe = msg.fromUserId === user?.id;
+                              return (
+                                <div 
+                                  key={msg.id}
+                                  className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}
+                                >
+                                  <div className={`max-w-[80%] ${isFromMe ? 'bg-primary text-primary-foreground' : 'bg-muted'} rounded-lg p-3`}>
+                                    <p className="whitespace-pre-wrap break-words">{msg.message}</p>
+                                    <p className={`text-xs mt-1 ${isFromMe ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                                      {typeof msg.createdAt === 'string' && formatDate(msg.createdAt)}
+                                      {isFromMe && msg.read && ' ✓'}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="h-full flex items-center justify-center">
+                            <div className="text-center text-muted-foreground">
+                              <p className="mb-2">メッセージを送ってみましょう</p>
+                              <p className="text-xs">
+                                {selectedUser.name}さんとの会話が始まります
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </ScrollArea>
+                      
+                      {/* メッセージ入力エリア */}
+                      <div className="pt-2">
+                        <div className="flex items-end">
+                          <Textarea
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            placeholder={`${selectedUser.name}さんにメッセージを送る...`}
+                            className="resize-none flex-1 mr-2"
+                            rows={3}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                              }
+                            }}
+                          />
+                          <Button 
+                            onClick={handleSendMessage} 
+                            disabled={!message.trim() || isSendingMessage}
+                          >
+                            <SendIcon className="h-4 w-4 mr-2" />
+                            送信
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Enterで送信、Shift+Enterで改行
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="text-center text-muted-foreground">
+                        <p className="mb-2">ユーザーを選択してメッセージを送りましょう</p>
+                        <p className="text-xs">左のリストからユーザーを選んでください</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
+  );
+}

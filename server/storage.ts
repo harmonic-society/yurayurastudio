@@ -12,6 +12,7 @@ import {
   rewardDistributions,
   notificationSettings,
   notificationHistory,
+  directMessages,
   type Project, 
   type InsertProject,
   type Comment,
@@ -36,7 +37,9 @@ import {
   type InsertNotificationSetting,
   type NotificationHistory,
   type InsertNotificationHistory,
-  type NotificationEvent
+  type NotificationEvent,
+  type DirectMessage,
+  type InsertDirectMessage
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, inArray, sql, isNull, count } from "drizzle-orm";
@@ -130,6 +133,13 @@ export interface IStorage {
   
   // Email Notifications
   sendNotificationEmail(userId: number, event: NotificationEvent, data: { title: string; message: string; link?: string }): Promise<void>;
+  
+  // Direct Messages
+  getDirectMessages(userId: number): Promise<DirectMessage[]>;
+  getConversation(user1Id: number, user2Id: number): Promise<DirectMessage[]>;
+  createDirectMessage(message: InsertDirectMessage): Promise<DirectMessage>;
+  markDirectMessageAsRead(id: number): Promise<void>;
+  getUnreadDirectMessageCount(userId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -778,6 +788,69 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("通知メール送信エラー:", error);
     }
+  }
+  
+  // Direct Messages の実装
+  async getDirectMessages(userId: number): Promise<DirectMessage[]> {
+    // 送信または受信したメッセージを取得
+    return await db
+      .select()
+      .from(directMessages)
+      .where(
+        or(
+          eq(directMessages.fromUserId, userId),
+          eq(directMessages.toUserId, userId)
+        )
+      )
+      .orderBy(desc(directMessages.createdAt));
+  }
+  
+  async getConversation(user1Id: number, user2Id: number): Promise<DirectMessage[]> {
+    // 2人のユーザー間の会話を取得
+    return await db
+      .select()
+      .from(directMessages)
+      .where(
+        or(
+          and(
+            eq(directMessages.fromUserId, user1Id),
+            eq(directMessages.toUserId, user2Id)
+          ),
+          and(
+            eq(directMessages.fromUserId, user2Id),
+            eq(directMessages.toUserId, user1Id)
+          )
+        )
+      )
+      .orderBy(directMessages.createdAt);
+  }
+  
+  async createDirectMessage(message: InsertDirectMessage): Promise<DirectMessage> {
+    const [newMessage] = await db
+      .insert(directMessages)
+      .values(message)
+      .returning();
+    return newMessage;
+  }
+  
+  async markDirectMessageAsRead(id: number): Promise<void> {
+    await db
+      .update(directMessages)
+      .set({ read: true })
+      .where(eq(directMessages.id, id));
+  }
+  
+  async getUnreadDirectMessageCount(userId: number): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(directMessages)
+      .where(
+        and(
+          eq(directMessages.toUserId, userId),
+          eq(directMessages.read, false)
+        )
+      );
+    return result[0].count;
   }
 }
 

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { NotificationMenu } from "@/components/notification-menu";
+import { MessageMenu } from "@/components/message-menu";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -136,6 +137,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {user && (
           <div className="flex items-center gap-2">
             <NotificationMenu />
+            <MessageMenu />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -229,6 +231,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {user && (
               <div className="flex items-center gap-3">
                 <NotificationMenu />
+                <MessageMenu />
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

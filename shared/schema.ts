@@ -376,7 +376,8 @@ export const notificationEvents = [
   "REGISTRATION_APPROVED",
   "PROJECT_ASSIGNED",
   "REGISTRATION_REQUEST",
-  "COMMENT_MENTION"
+  "COMMENT_MENTION",
+  "DIRECT_MESSAGE"
 ] as const;
 export type NotificationEvent = (typeof notificationEvents)[number];
 
@@ -394,6 +395,7 @@ export const notificationSettings = pgTable("notification_settings", {
   notifyProjectAssigned: pgBoolean("notify_project_assigned").notNull().default(true),
   notifyRegistrationRequest: pgBoolean("notify_registration_request").notNull().default(true),
   notifyCommentMention: pgBoolean("notify_comment_mention").notNull().default(true),
+  notifyDirectMessage: pgBoolean("notify_direct_message").notNull().default(true),
   // メール通知設定
   emailNotifyProjectCreated: pgBoolean("email_notify_project_created").notNull().default(true),
   emailNotifyProjectUpdated: pgBoolean("email_notify_project_updated").notNull().default(true),
@@ -404,6 +406,7 @@ export const notificationSettings = pgTable("notification_settings", {
   emailNotifyProjectAssigned: pgBoolean("email_notify_project_assigned").notNull().default(true),
   emailNotifyRegistrationRequest: pgBoolean("email_notify_registration_request").notNull().default(true),
   emailNotifyCommentMention: pgBoolean("email_notify_comment_mention").notNull().default(true),
+  emailNotifyDirectMessage: pgBoolean("email_notify_direct_message").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -463,7 +466,46 @@ export const usersRelations = relations(users, ({ many }) => ({
   notificationHistory: many(notificationHistory),
 }));
 
+// ダイレクトメッセージテーブル
+export const directMessages = pgTable("direct_messages", {
+  id: serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").notNull().references(() => users.id),
+  toUserId: integer("to_user_id").notNull().references(() => users.id),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  read: pgBoolean("read").notNull().default(false),
+});
+
+// ダイレクトメッセージとユーザーのリレーション
+export const directMessagesRelations = relations(directMessages, ({ one }) => ({
+  fromUser: one(users, {
+    fields: [directMessages.fromUserId],
+    references: [users.id],
+  }),
+  toUser: one(users, {
+    fields: [directMessages.toUserId],
+    references: [users.id],
+  }),
+}));
+
+// ユーザーリレーションを更新（ダイレクトメッセージを追加）
+export const directMessagesUsersRelations = relations(users, ({ many }) => ({
+  sentMessages: many(directMessages, { relationName: "sentMessages" }),
+  receivedMessages: many(directMessages, { relationName: "receivedMessages" }),
+}));
+
+// ダイレクトメッセージスキーマ
+export const insertDirectMessageSchema = createInsertSchema(directMessages).omit({
+  id: true,
+  createdAt: true,
+  read: true,
+}).extend({
+  message: z.string().min(1, "メッセージは必須です"),
+});
+
 export type NotificationSetting = typeof notificationSettings.$inferSelect;
 export type InsertNotificationSetting = z.infer<typeof insertNotificationSettingSchema>;
 export type NotificationHistory = typeof notificationHistory.$inferSelect;
 export type InsertNotificationHistory = z.infer<typeof insertNotificationHistorySchema>;
+export type DirectMessage = typeof directMessages.$inferSelect;
+export type InsertDirectMessage = z.infer<typeof insertDirectMessageSchema>;
