@@ -13,15 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { 
-  SendIcon, 
-  RefreshCw, 
-  ChevronLeft, 
-  Search, 
-  Users, 
-  UserPlus, 
-  MessageCircle
-} from "lucide-react";
+import { SendIcon, RefreshCw, ChevronLeft, Search, Users, X, Plus, UserPlus, MessageCircle } from "lucide-react";
 import type { User, DirectMessage } from "@shared/schema";
 import Layout from "@/components/layout";
 import { format } from "date-fns";
@@ -191,17 +183,6 @@ export default function MessagesPage() {
     setSelectedUser(null);
   };
 
-  // ユーザー検索
-  const filteredUsers = users && Array.isArray(users) 
-    ? users.filter((u: User) => 
-        u.id !== user?.id && 
-        (searchQuery === "" || 
-          u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.username.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      )
-    : [];
-
   return (
     <Layout>
       <div className="container py-6 max-w-6xl">
@@ -238,117 +219,107 @@ export default function MessagesPage() {
                   </div>
                   
                   {/* 既存の会話一覧 */}
-                  {!isUserListOpen ? (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between py-2 cursor-pointer hover:bg-muted/50 px-2 rounded"
-                           onClick={() => setIsUserListOpen(true)}>
+                  <Collapsible 
+                    open={!isUserListOpen} 
+                    onOpenChange={(open) => setIsUserListOpen(!open)}
+                    className="mb-4"
+                  >
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between py-2 cursor-pointer hover:bg-muted/50 px-2 rounded">
                         <h3 className="font-medium flex items-center">
                           <MessageCircle className="h-4 w-4 mr-2" />
                           既存の会話
                         </h3>
-                        <ChevronLeft className="h-4 w-4 transition-transform rotate-90" />
+                        <ChevronLeft className={`h-4 w-4 transition-transform ${!isUserListOpen ? 'rotate-90' : '-rotate-90'}`} />
                       </div>
-
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
                       <ScrollArea className="h-[calc(70vh-18rem)]">
                         <div className="space-y-2 pr-4 pt-2">
-                          {Object.values(conversationGroups).length > 0 ? (
-                            Object.values(conversationGroups)
-                              .sort((a, b) => 
-                                new Date(b.latestMessage.createdAt).getTime() - 
-                                new Date(a.latestMessage.createdAt).getTime()
-                              )
-                              .map(({ user: otherUser, latestMessage }) => (
-                                <div 
-                                  key={otherUser.id}
-                                  onClick={() => {
-                                    navigate(`/messages?userId=${otherUser.id}`);
-                                    setSelectedUser(otherUser);
-                                  }}
-                                  className={`flex items-center p-3 rounded-md cursor-pointer
-                                    ${selectedUserId === otherUser.id ? 'bg-primary/10' : 'hover:bg-muted'}
-                                    ${!latestMessage.read && latestMessage.toUserId === user?.id ? 'border-l-4 border-primary pl-2' : ''}
-                                  `}
-                                >
-                                  <Avatar className="h-10 w-10">
-                                    <AvatarImage src={otherUser.avatarUrl ? `/uploads/${otherUser.avatarUrl}` : undefined} />
-                                    <AvatarFallback>{otherUser.name.slice(0, 2)}</AvatarFallback>
-                                  </Avatar>
-                                  <div className="ml-3 flex-1 overflow-hidden">
-                                    <div className="flex justify-between items-center">
-                                      <p className="font-medium">{otherUser.name}</p>
-                                      <span className="text-xs text-muted-foreground">
-                                        {typeof latestMessage.createdAt === 'string' && formatDate(latestMessage.createdAt)}
-                                      </span>
-                                    </div>
-                                    <p className={`text-sm truncate ${!latestMessage.read && latestMessage.toUserId === user?.id ? 'font-medium' : 'text-muted-foreground'}`}>
-                                      {latestMessage.fromUserId === user?.id ? '自分: ' : ''}
-                                      {latestMessage.message}
-                                    </p>
-                                    {!latestMessage.read && latestMessage.toUserId === user?.id && (
-                                      <Badge variant="default" className="mt-1">新着</Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              ))
-                          ) : (
-                            <div className="text-center text-muted-foreground py-8">
-                              メッセージはまだありません。
-                              <div className="mt-4">
-                                <p className="text-sm">他のユーザーにメッセージを送ってみましょう</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  ) : (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between py-2 cursor-pointer hover:bg-muted/50 px-2 rounded"
-                           onClick={() => setIsUserListOpen(false)}>
-                        <h3 className="font-medium flex items-center">
-                          <Users className="h-4 w-4 mr-2" />
-                          すべてのユーザー
-                        </h3>
-                        <ChevronLeft className="h-4 w-4 transition-transform -rotate-90" />
-                      </div>
-
-                      <ScrollArea className="h-[calc(70vh-18rem)]">
-                        <div className="space-y-2 pr-4 pt-2">
-                          {filteredUsers.length > 0 ? (
-                            filteredUsers.map((otherUser: User) => (
-                              <div 
-                                key={otherUser.id}
-                                onClick={() => {
-                                  navigate(`/messages?userId=${otherUser.id}`);
-                                  setSelectedUser(otherUser);
-                                  setIsUserListOpen(false);
-                                }}
-                                className="flex items-center p-3 rounded-md cursor-pointer hover:bg-muted"
-                              >
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage src={otherUser.avatarUrl ? `/uploads/${otherUser.avatarUrl}` : undefined} />
-                                  <AvatarFallback>{otherUser.name.slice(0, 2)}</AvatarFallback>
-                                </Avatar>
-                                <div className="ml-3">
+                      {Object.values(conversationGroups).length > 0 ? (
+                        Object.values(conversationGroups)
+                          .sort((a, b) => 
+                            new Date(b.latestMessage.createdAt).getTime() - 
+                            new Date(a.latestMessage.createdAt).getTime()
+                          )
+                          .map(({ user: otherUser, latestMessage }) => (
+                            <div 
+                              key={otherUser.id}
+                              onClick={() => {
+                                navigate(`/messages?userId=${otherUser.id}`);
+                                setSelectedUser(otherUser);
+                              }}
+                              className={`flex items-center p-3 rounded-md cursor-pointer
+                                ${selectedUserId === otherUser.id ? 'bg-primary/10' : 'hover:bg-muted'}
+                                ${!latestMessage.read && latestMessage.toUserId === user?.id ? 'border-l-4 border-primary pl-2' : ''}
+                              `}
+                            >
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={otherUser.avatarUrl ? `/uploads/${otherUser.avatarUrl}` : undefined} />
+                                <AvatarFallback>{otherUser.name.slice(0, 2)}</AvatarFallback>
+                              </Avatar>
+                              <div className="ml-3 flex-1 overflow-hidden">
+                                <div className="flex justify-between items-center">
                                   <p className="font-medium">{otherUser.name}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    @{otherUser.username}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {otherUser.role}
-                                  </p>
+                                  <span className="text-xs text-muted-foreground">
+                                    {typeof latestMessage.createdAt === 'string' && formatDate(latestMessage.createdAt)}
+                                  </span>
                                 </div>
+                                <p className={`text-sm truncate ${!latestMessage.read && latestMessage.toUserId === user?.id ? 'font-medium' : 'text-muted-foreground'}`}>
+                                  {latestMessage.fromUserId === user?.id ? '自分: ' : ''}
+                                  {latestMessage.message}
+                                </p>
+                                {!latestMessage.read && latestMessage.toUserId === user?.id && (
+                                  <Badge variant="default" className="mt-1">新着</Badge>
+                                )}
                               </div>
-                            ))
-                          ) : (
-                            <div className="text-center text-muted-foreground py-8">
-                              検索結果がありません
                             </div>
-                          )}
+                          ))
+                      ) : (
+                        <div className="text-center text-muted-foreground py-8">
+                          メッセージはまだありません。
+                          <div className="mt-4">
+                            <p className="text-sm">他のユーザーにメッセージを送ってみましょう</p>
+                          </div>
                         </div>
-                      </ScrollArea>
+                      )}
+                      
+                      {/* すべてのユーザー表示（会話がないユーザーも） */}
+                      {Object.values(conversationGroups as Record<number, any>).length > 0 && (
+                        <div>
+                          <Separator className="my-4" />
+                          <p className="text-sm text-muted-foreground mb-2">その他のユーザー</p>
+                        </div>
+                      )}
+                      {users && Array.isArray(users) && users
+                        .filter((u: User) => 
+                          u.id !== user?.id && 
+                          !Object.values(conversationGroups).some(conv => conv.user.id === u.id)
+                        )
+                        .map((otherUser: User) => (
+                          <div 
+                            key={otherUser.id}
+                            onClick={() => {
+                              navigate(`/messages?userId=${otherUser.id}`);
+                              setSelectedUser(otherUser);
+                            }}
+                            className="flex items-center p-3 rounded-md cursor-pointer hover:bg-muted"
+                          >
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={otherUser.avatarUrl ? `/uploads/${otherUser.avatarUrl}` : undefined} />
+                              <AvatarFallback>{otherUser.name.slice(0, 2)}</AvatarFallback>
+                            </Avatar>
+                            <div className="ml-3">
+                              <p className="font-medium">{otherUser.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {otherUser.role}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      }
                     </div>
-                  )}
+                  </ScrollArea>
                 </div>
               )}
               
@@ -376,7 +347,6 @@ export default function MessagesPage() {
                           </Avatar>
                           <div className="ml-3">
                             <p className="font-medium">{selectedUser.name}</p>
-                            <p className="text-xs text-muted-foreground">@{selectedUser.username}</p>
                             <p className="text-xs text-muted-foreground">{selectedUser.role}</p>
                           </div>
                         </div>
