@@ -7,11 +7,24 @@ import { useLocation } from "wouter";
 
 export function MessageMenu() {
   const [_, navigate] = useLocation();
+  const [isVisible, setIsVisible] = useState(true);
+  
+  // 画面の可視性を検出
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsVisible(!document.hidden);
+    };
+    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
   
   // 未読メッセージ数の取得
   const { data, isLoading } = useQuery({
     queryKey: ["/api/messages/unread-count"],
-    refetchInterval: 10000, // 10秒ごとに更新
+    refetchInterval: isVisible ? 30000 : false, // 画面が見えているときだけ30秒ごとに更新
   });
   
   const unreadCount = data && typeof data === 'object' && 'count' in data ? (data.count as number) : 0;

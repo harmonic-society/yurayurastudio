@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useState, useEffect } from "react";
 
 export interface Notification {
   id: number;
@@ -25,6 +26,19 @@ interface UnreadCountResponse {
 export function useNotifications() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [isVisible, setIsVisible] = useState(true);
+  
+  // 画面の可視性を検出
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsVisible(!document.hidden);
+    };
+    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   // 通知一覧を取得
   const {
@@ -35,7 +49,7 @@ export function useNotifications() {
   } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     retry: false,
-    refetchInterval: 30000, // 30秒ごとに自動更新
+    refetchInterval: isVisible ? 60000 : false, // 画面が表示されているときだけ60秒ごとに自動更新
   });
 
   const notifications = notificationsData || [];
@@ -47,7 +61,7 @@ export function useNotifications() {
   } = useQuery<UnreadCountResponse>({
     queryKey: ["/api/notifications/unread-count"],
     retry: false,
-    refetchInterval: 15000, // 15秒ごとに自動更新
+    refetchInterval: isVisible ? 45000 : false, // 画面が表示されているときだけ45秒ごとに自動更新
   });
   
   const unreadCount = unreadCountData?.count || 0;

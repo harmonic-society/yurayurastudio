@@ -197,16 +197,50 @@ export default function MessagesPage() {
     }
   }, [selectedConversation, user?.id, markAsRead]);
 
-  // 定期的に会話を更新
+  // 定期的に会話を更新（画面が表示されているときだけ）
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (selectedUserId) {
-        refetchSelectedConversation();
-      }
-      refetchConversations();
-    }, 10000); // 10秒ごとに更新
+    let interval: NodeJS.Timeout | null = null;
     
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // 画面が非表示のときはインターバルをクリア
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      } else {
+        // 画面が表示されたときはインターバルを設定（既に設定されていなければ）
+        if (!interval) {
+          interval = setInterval(() => {
+            if (selectedUserId) {
+              refetchSelectedConversation();
+            }
+            refetchConversations();
+          }, 30000); // 30秒ごとに更新（間隔を長くした）
+        }
+      }
+    };
+    
+    // 初期設定（最初に表示されていればインターバルを設定）
+    if (!document.hidden) {
+      interval = setInterval(() => {
+        if (selectedUserId) {
+          refetchSelectedConversation();
+        }
+        refetchConversations();
+      }, 30000); // 30秒ごとに更新（間隔を長くした）
+    }
+    
+    // visibilitychangeイベントリスナーを追加
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    // クリーンアップ
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [selectedUserId, refetchSelectedConversation, refetchConversations]);
   
   // メッセージ一覧の最下部に自動スクロール
