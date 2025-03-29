@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,17 +65,93 @@ export default function HelpPage() {
     }
   };
 
-  // スクロール用にヘッダーIDを追加する関数
-  const addIdsToHeaders = (content: string): string => {
-    // 目次のIDを使用してヘッダーにIDを追加
-    let modifiedContent = content;
-    
-    tableOfContents.forEach(item => {
-      const pattern = new RegExp(`(^|\n)(#{${item.level}})\\s+${item.title}`, 'g');
-      modifiedContent = modifiedContent.replace(pattern, `$1$2 <a id="${item.id}"></a>${item.title}`);
-    });
-    
-    return modifiedContent;
+  // normalize text (子要素オブジェクトから実際のテキストを抽出)
+  const normalizeHeadingText = (children: any): string => {
+    if (typeof children === 'string') return children;
+    if (Array.isArray(children)) {
+      return children.map(normalizeHeadingText).join('');
+    }
+    if (children && children.props && children.props.children) {
+      return normalizeHeadingText(children.props.children);
+    }
+    return '';
+  };
+
+  // カスタムコンポーネント
+  const components = {
+    // ヘッダーコンポーネント
+    h1: ({ children, ...props }: any) => {
+      const text = normalizeHeadingText(children);
+      // 対応する目次項目を探す
+      const tocItem = tableOfContents.find(item => item.title === text && item.level === 1);
+      const id = tocItem ? tocItem.id : `h1-${Math.random().toString(36).substring(2, 7)}`;
+      return <h1 id={id} {...props}>{children}</h1>;
+    },
+    h2: ({ children, ...props }: any) => {
+      const text = normalizeHeadingText(children);
+      const tocItem = tableOfContents.find(item => item.title === text && item.level === 2);
+      const id = tocItem ? tocItem.id : `h2-${Math.random().toString(36).substring(2, 7)}`;
+      return <h2 id={id} {...props}>{children}</h2>;
+    },
+    h3: ({ children, ...props }: any) => {
+      const text = normalizeHeadingText(children);
+      const tocItem = tableOfContents.find(item => item.title === text && item.level === 3);
+      const id = tocItem ? tocItem.id : `h3-${Math.random().toString(36).substring(2, 7)}`;
+      return <h3 id={id} {...props}>{children}</h3>;
+    },
+    // リンクコンポーネント
+    a: ({ node, href, children, ...props }: any) => {
+      // 内部リンクか外部リンクかを判断
+      const isInternalLink = href && href.startsWith('#');
+      
+      if (isInternalLink) {
+        // #以降のIDを取得してスクロール
+        const targetId = href.substring(1);
+        return (
+          <a 
+            href={href} 
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToSection(targetId);
+            }}
+            {...props}
+          >
+            {children}
+          </a>
+        );
+      }
+      
+      // 外部リンク
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+          {children}
+        </a>
+      );
+    },
+    // テーブルコンポーネントの適切なスタイリング
+    table: ({ children, ...props }: any) => {
+      return (
+        <div className="overflow-x-auto my-4">
+          <table className="w-full border-collapse" {...props}>
+            {children}
+          </table>
+        </div>
+      );
+    },
+    // コードブロックのスタイリング
+    code: ({ node, inline, className, children, ...props }: any) => {
+      return !inline ? (
+        <div className="bg-muted p-4 rounded-md overflow-x-auto my-4">
+          <code className={className} {...props}>
+            {children}
+          </code>
+        </div>
+      ) : (
+        <code className="bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+          {children}
+        </code>
+      );
+    }
   };
 
   // モバイルでメニューの表示/非表示を切り替え
@@ -154,22 +231,26 @@ export default function HelpPage() {
                       </div>
                     ) : (
                       <nav className="space-y-1">
-                        {tableOfContents.map((item, index) => (
-                          <div
-                            key={`toc-${index}-${item.id}`}
-                            className={`
-                              cursor-pointer py-1 px-2 rounded text-sm
-                              ${item.level === 1 ? "font-bold" : ""}
-                              ${item.level === 2 ? "ml-2" : ""}
-                              ${item.level === 3 ? "ml-4 text-xs" : ""}
-                              ${activeSection === item.id ? "bg-primary/10 text-primary" : "hover:bg-muted"}
-                            `}
-                            style={{ marginLeft: `${(item.level - 1) * 0.75}rem` }}
-                            onClick={() => scrollToSection(item.id)}
-                          >
-                            {item.title}
-                          </div>
-                        ))}
+                        {tableOfContents.map((item, index) => {
+                          // タイトルにコードブロックなどが含まれている場合、それを文字列として処理
+                          const cleanTitle = item.title.replace(/[<>]/g, '');
+                          return (
+                            <div
+                              key={`toc-item-${index}`}
+                              className={`
+                                cursor-pointer py-1 px-2 rounded text-sm
+                                ${item.level === 1 ? "font-bold" : ""}
+                                ${item.level === 2 ? "ml-2" : ""}
+                                ${item.level === 3 ? "ml-4 text-xs" : ""}
+                                ${activeSection === item.id ? "bg-primary/10 text-primary" : "hover:bg-muted"}
+                              `}
+                              style={{ marginLeft: `${(item.level - 1) * 0.75}rem` }}
+                              onClick={() => scrollToSection(item.id)}
+                            >
+                              {cleanTitle}
+                            </div>
+                          );
+                        })}
                       </nav>
                     )}
                   </CardContent>
@@ -190,10 +271,14 @@ export default function HelpPage() {
                   <Skeleton className="h-4 w-full" />
                 </div>
               ) : (
-                <div className="markdown-content">
+                <div className="markdown-content markdown-custom">
                   {readmeData?.content ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {addIdsToHeaders(readmeData.content)}
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeRaw]}
+                      components={components}
+                    >
+                      {readmeData.content}
                     </ReactMarkdown>
                   ) : null}
                 </div>

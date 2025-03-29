@@ -11,3 +11,39 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Markdown custom styles */
+.markdown-custom img {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-custom table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.markdown-custom th, 
+.markdown-custom td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.markdown-custom pre {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 0.25rem;
+}
+
+.markdown-custom blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 1rem;
+  color: #666;
+}
+
+.markdown-custom code {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+}
