@@ -1430,24 +1430,99 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      // URLのドメインに基づいて画像を返す（簡易実装）
-      if (url.includes("github.com")) {
-        return res.json({
-          imageUrl: "https://github.githubassets.com/assets/github-mark-4c31de01ad6d.svg"
+      try {
+        // 実際にURLにアクセスしてOGP情報を取得
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; YuraYuraStudio/1.0; +https://harmonic-society.co.jp/bot)'
+          }
         });
-      } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
-        return res.json({
-          imageUrl: "https://www.youtube.com/img/desktop/yt_1200.png"
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch URL: ${response.status}`);
+        }
+        
+        const html = await response.text();
+        
+        // OGP画像URLを抽出
+        const ogImageMatch = html.match(/<meta\s+(?:property|name)=["']og:image["']\s+content=["']([^"']+)["']/i);
+        const ogImage = ogImageMatch ? ogImageMatch[1] : null;
+        
+        // タイトルを抽出
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        const title = titleMatch ? titleMatch[1] : null;
+        
+        // 説明を抽出
+        const descriptionMatch = html.match(/<meta\s+(?:property|name)=["'](?:og:description|description)["']\s+content=["']([^"']+)["']/i);
+        const description = descriptionMatch ? descriptionMatch[1] : null;
+        
+        // 画像がなければページ内の大きな画像を探す
+        let imageUrl = ogImage;
+        if (!imageUrl) {
+          const imgMatches = [...html.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)];
+          // サイズが明示されている大きな画像を優先
+          for (const match of imgMatches) {
+            const imgTag = match[0];
+            const src = match[1];
+            const widthMatch = imgTag.match(/width=["'](\d+)["']/i);
+            const heightMatch = imgTag.match(/height=["'](\d+)["']/i);
+            
+            if (widthMatch && heightMatch) {
+              const width = parseInt(widthMatch[1]);
+              const height = parseInt(heightMatch[1]);
+              if (width >= 200 && height >= 200) {
+                imageUrl = src;
+                break;
+              }
+            }
+          }
+          
+          // サイズが見つからなければ最初の画像を使用
+          if (!imageUrl && imgMatches.length > 0) {
+            imageUrl = imgMatches[0][1];
+          }
+        }
+        
+        // 相対URLを絶対URLに変換
+        if (imageUrl && !imageUrl.startsWith('http')) {
+          const urlObj = new URL(url);
+          if (imageUrl.startsWith('/')) {
+            imageUrl = `${urlObj.protocol}//${urlObj.host}${imageUrl}`;
+          } else {
+            // パスの最後の部分を削除して相対パスの基準を作成
+            const basePath = urlObj.pathname.split('/').slice(0, -1).join('/') + '/';
+            imageUrl = `${urlObj.protocol}//${urlObj.host}${basePath}${imageUrl}`;
+          }
+        }
+        
+        // OGP情報を返す
+        return res.json({ 
+          title: title || '',
+          description: description || '',
+          imageUrl: imageUrl || null
         });
-      } else if (url.includes("twitter.com") || url.includes("x.com")) {
-        return res.json({
-          imageUrl: "https://abs.twimg.com/responsive-web/web/icon-default.604e2486a34a2f6e.png"
-        });
-      } else {
-        // その他のURLの場合はデフォルト画像を返す
-        return res.json({
-          imageUrl: "/ogp.png"
-        });
+      } catch (error) {
+        console.error('Error fetching URL:', error);
+        
+        // エラーの場合はドメインに基づいて画像を返す（フォールバック）
+        if (url.includes("github.com")) {
+          return res.json({
+            imageUrl: "https://github.githubassets.com/assets/github-mark-4c31de01ad6d.svg"
+          });
+        } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
+          return res.json({
+            imageUrl: "https://www.youtube.com/img/desktop/yt_1200.png"
+          });
+        } else if (url.includes("twitter.com") || url.includes("x.com")) {
+          return res.json({
+            imageUrl: "https://abs.twimg.com/responsive-web/web/icon-default.604e2486a34a2f6e.png"
+          });
+        } else {
+          // その他のURLの場合はデフォルト画像を返す
+          return res.json({
+            imageUrl: "/ogp.png"
+          });
+        }
       }
     } catch (error) {
       console.error("OGP fetch error:", error);
