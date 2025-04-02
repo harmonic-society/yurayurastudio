@@ -1,0 +1,69 @@
+// HMRの挙動を制御するオーバーライド
+// 頻繁な自動更新を防止するためのファイル
+
+// リロードを防止する設定
+let reloadBlocked = true;
+let originalReload = null;
+let hmrPatched = false;
+
+// ページがロードされた後に実行
+window.addEventListener('load', function() {
+  console.log('[HMRオーバーライド] 初期化中...');
+  
+  // Vite HMRクライアントの検出とパッチ適用
+  function patchHmr() {
+    if (hmrPatched) return;
+    
+    // オリジナルのreloadメソッドを保存
+    if (!originalReload) {
+      originalReload = window.location.reload;
+    }
+    
+    // reload関数をオーバーライド
+    window.location.reload = function() {
+      if (reloadBlocked) {
+        console.log('[HMRオーバーライド] 自動リロードをブロックしました');
+        return false;
+      }
+      console.log('[HMRオーバーライド] リロードを許可します');
+      return originalReload.apply(this, arguments);
+    };
+    
+    hmrPatched = true;
+    console.log('[HMRオーバーライド] 自動リロード制御を有効化しました');
+  }
+  
+  // 最初にパッチを適用
+  patchHmr();
+  
+  // 定期的にチェック（Viteが後からロードされる場合に対応）
+  const patchInterval = setInterval(() => {
+    patchHmr();
+  }, 1000);
+  
+  // 5秒後にインターバルを停止
+  setTimeout(() => {
+    clearInterval(patchInterval);
+  }, 5000);
+  
+  // F5キーなどを押したときは通常通りリロード
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+      reloadBlocked = false;
+      console.log('[HMRオーバーライド] ユーザーによるリロードを検出しました - 制限を一時解除');
+    }
+  });
+  
+  // クリックなどユーザーアクションを検出したときに一時的にリロードを許可
+  document.addEventListener('click', function() {
+    // ユーザーアクション後の短い時間だけリロードを許可
+    reloadBlocked = false;
+    console.log('[HMRオーバーライド] ユーザーアクションを検出 - 短時間リロードを許可');
+    
+    // 3秒後に再度ブロック
+    setTimeout(() => {
+      reloadBlocked = true;
+      console.log('[HMRオーバーライド] リロード制限を再度有効化');
+    }, 3000);
+  });
+});
