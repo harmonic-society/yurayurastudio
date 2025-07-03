@@ -97,8 +97,9 @@ Yura Yura STUDIO is a comprehensive project management platform designed for sma
 - **SMTP Configuration**: Flexible provider support
 
 ### File Storage
-- **Local Storage**: File uploads stored in public/uploads directory
-- **Static Serving**: Express static middleware for file access
+- **Replit Object Storage**: User uploaded files stored in 'yurayurastudio' bucket
+- **API Serving**: Files served through /api/files/ endpoint
+- **Backup**: Local uploads directory maintained for legacy support
 
 ### Mobile Platform
 - **Capacitor**: Cross-platform mobile app framework
@@ -128,7 +129,7 @@ Yura Yura STUDIO is a comprehensive project management platform designed for sma
 ```
 Changelog:
 - July 03, 2025. Initial setup
-- July 03, 2025. Object Storage検討 - Replit Object Storageの実装を準備したが、バケット作成が必要なため一旦保留
+- July 03, 2025. Object Storage実装完了 - 'yurayurastudio'バケットを使用してファイルアップロード機能をReplit Object Storageに移行
 ```
 
 ## User Preferences

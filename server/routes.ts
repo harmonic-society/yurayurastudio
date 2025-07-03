@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { objectStorage } from "./storage/object-storage";
 import { 
   insertProjectSchema, 
   insertCommentSchema, 
@@ -949,13 +950,18 @@ export async function registerRoutes(app: Express) {
     try {
       const avatarFile = req.files.avatar;
       const fileName = `avatar-${req.user.id}-${Date.now()}.${avatarFile.name.split('.').pop()}`;
-      const uploadPath = path.join(uploadsDir, fileName);
+      
+      console.log("アバター画像をObject Storageにアップロード:", fileName);
+      
+      // Object Storageにアップロード
+      const uploadResult = await objectStorage.uploadFile(
+        avatarFile.data,
+        fileName,
+        avatarFile.mimetype
+      );
 
-      await avatarFile.mv(uploadPath);
-      const avatarUrl = `/uploads/${fileName}`;
-
-      await storage.updateUser(req.user.id, { avatarUrl });
-      res.json({ url: avatarUrl });
+      await storage.updateUser(req.user.id, { avatarUrl: uploadResult.url });
+      res.json({ url: uploadResult.url });
     } catch (error) {
       console.error("Avatar upload error:", error);
       res.status(500).json({ message: "画像のアップロードに失敗しました" });
@@ -1035,23 +1041,19 @@ export async function registerRoutes(app: Express) {
       
       const fileName = `portfolio-${req.user.id}-${Date.now()}-${sanitizedName}`;
       
-      console.log("ファイルをアップロード:", fileName);
-
-      const uploadPath = path.join(uploadsDir, fileName);
-      
-      console.log("ファイル保存パス:", uploadPath);
-      
-      // アップロードディレクトリの確認と作成
-      if (!fs.existsSync(uploadsDir)) {
-        console.log("アップロードディレクトリを作成:", uploadsDir);
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
+      console.log("ポートフォリオファイルをObject Storageにアップロード:", fileName);
 
       try {
-        await portfolioFile.mv(uploadPath);
-        console.log("ファイル保存成功:", uploadPath);
+        // Object Storageにアップロード
+        const uploadResult = await objectStorage.uploadFile(
+          portfolioFile.data,
+          fileName,
+          portfolioFile.mimetype
+        );
         
-        const filePath = `/uploads/${fileName}`;
+        console.log("Object Storageアップロード成功:", uploadResult.filename);
+        
+        const filePath = uploadResult.url;
         
         // プレビュー画像URL（PDFやドキュメントの場合はデフォルト画像を使用）
         let previewImageUrl = null;
@@ -2309,14 +2311,8 @@ export async function registerRoutes(app: Express) {
       const filename = req.params.filename;
       console.log("ファイル取得リクエスト:", filename);
 
-      // ローカルファイルシステムからファイルを取得
-      const filePath = path.join(uploadsDir, filename);
-      
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "ファイルが見つかりません" });
-      }
-      
-      const fileBuffer = fs.readFileSync(filePath);
+      // Object Storageからファイルをダウンロード
+      const fileBuffer = await objectStorage.downloadFile(filename);
       
       // ファイルの存在確認
       if (!fileBuffer) {
