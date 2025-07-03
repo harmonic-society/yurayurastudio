@@ -22,6 +22,9 @@ export default defineConfig({
         ]
       : []),
   ],
+  server: {
+      hmr: false
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
