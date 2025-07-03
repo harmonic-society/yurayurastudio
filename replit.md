@@ -114,8 +114,10 @@ Yura Yura STUDIO is a comprehensive project management platform designed for sma
 - **Port Configuration**: 5000 for development server
 
 ### Production Deployment
-- **Replit Deployment**: Optimized for Replit's hosting environment
+- **Replit Deployment**: Optimized for Replit's hosting environment with Cloud Run
 - **Build Process**: Vite build for frontend, esbuild for backend
+- **Production Scripts**: start.sh, deploy.js, and Procfile for deployment
+- **Container Support**: Dockerfile for containerized deployment
 - **Environment Variables**: Secure configuration management
 - **Database**: Neon production instance with SSL
 
@@ -130,6 +132,7 @@ Yura Yura STUDIO is a comprehensive project management platform designed for sma
 Changelog:
 - July 03, 2025. Initial setup
 - July 03, 2025. Object Storage実装完了 - 'yurayurastudio'バケットを使用してファイルアップロード機能をReplit Object Storageに移行
+- July 03, 2025. 本番デプロイメント設定完了 - start.sh、deploy.js、Procfile、Dockerfileを追加して本番環境でのデプロイメントエラーを解決
 ```
 
 ## User Preferences
