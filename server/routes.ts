@@ -1034,6 +1034,9 @@ export async function registerRoutes(app: Express) {
         .replace(/\s+/g, '_');
       
       const fileName = `portfolio-${req.user.id}-${Date.now()}-${sanitizedName}`;
+      
+      console.log("ファイルをアップロード:", fileName);
+
       const uploadPath = path.join(uploadsDir, fileName);
       
       console.log("ファイル保存パス:", uploadPath);
@@ -1047,15 +1050,11 @@ export async function registerRoutes(app: Express) {
       try {
         await portfolioFile.mv(uploadPath);
         console.log("ファイル保存成功:", uploadPath);
-      } catch (mvError: any) {
-        console.error("ファイル移動エラー:", mvError);
-        return res.status(500).json({ message: "ファイルの保存に失敗しました", error: mvError?.message || String(mvError) });
-      }
-      
-      const filePath = `/uploads/${fileName}`;
-      
-      // プレビュー画像URL（PDFやドキュメントの場合はデフォルト画像を使用）
-      let previewImageUrl = null;
+        
+        const filePath = `/uploads/${fileName}`;
+        
+        // プレビュー画像URL（PDFやドキュメントの場合はデフォルト画像を使用）
+        let previewImageUrl = null;
       
       if (fileType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
         // 画像ファイルの場合はそのままプレビューに使用
@@ -1077,19 +1076,23 @@ export async function registerRoutes(app: Express) {
         previewImageUrl = '/assets/icons/file-icon.svg';
       }
       
-      console.log("レスポンス:", {
-        message: "ファイルをアップロードしました",
-        filePath,
-        fileType,
-        previewImageUrl
-      });
+        console.log("レスポンス:", {
+          message: "ファイルをアップロードしました",
+          filePath,
+          fileType,
+          previewImageUrl
+        });
 
-      res.json({
-        message: "ファイルをアップロードしました",
-        filePath,
-        fileType,
-        previewImageUrl
-      });
+        res.json({
+          message: "ファイルをアップロードしました",
+          filePath,
+          fileType,
+          previewImageUrl
+        });
+      } catch (mvError: any) {
+        console.error("Object Storageアップロードエラー:", mvError);
+        return res.status(500).json({ message: "ファイルの保存に失敗しました", error: mvError?.message || String(mvError) });
+      }
     } catch (error) {
       console.error("ポートフォリオファイルアップロードエラー:", error);
       res.status(500).json({ 
@@ -2297,6 +2300,86 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("未読メッセージ数の取得に失敗しました:", error);
       res.status(500).json({ message: "未読メッセージ数の取得に失敗しました" });
+    }
+  });
+
+  // Object Storageからファイルを提供するエンドポイント
+  app.get("/api/files/:filename", async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      console.log("ファイル取得リクエスト:", filename);
+
+      // ローカルファイルシステムからファイルを取得
+      const filePath = path.join(uploadsDir, filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "ファイルが見つかりません" });
+      }
+      
+      const fileBuffer = fs.readFileSync(filePath);
+      
+      // ファイルの存在確認
+      if (!fileBuffer) {
+        return res.status(404).json({ message: "ファイルが見つかりません" });
+      }
+
+      // ファイル拡張子からContent-Typeを設定
+      const ext = filename.split('.').pop()?.toLowerCase();
+      let contentType = 'application/octet-stream';
+      
+      switch (ext) {
+        case 'jpg':
+        case 'jpeg':
+          contentType = 'image/jpeg';
+          break;
+        case 'png':
+          contentType = 'image/png';
+          break;
+        case 'gif':
+          contentType = 'image/gif';
+          break;
+        case 'webp':
+          contentType = 'image/webp';
+          break;
+        case 'pdf':
+          contentType = 'application/pdf';
+          break;
+        case 'doc':
+          contentType = 'application/msword';
+          break;
+        case 'docx':
+          contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          break;
+        case 'xls':
+          contentType = 'application/vnd.ms-excel';
+          break;
+        case 'xlsx':
+          contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          break;
+        case 'ppt':
+          contentType = 'application/vnd.ms-powerpoint';
+          break;
+        case 'pptx':
+          contentType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+          break;
+        case 'txt':
+          contentType = 'text/plain';
+          break;
+        case 'zip':
+          contentType = 'application/zip';
+          break;
+      }
+
+      res.set({
+        'Content-Type': contentType,
+        'Content-Length': fileBuffer.length,
+        'Cache-Control': 'public, max-age=31536000', // 1年間キャッシュ
+      });
+
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("ファイル取得エラー:", error);
+      res.status(500).json({ message: "ファイルの取得に失敗しました" });
     }
   });
 

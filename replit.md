@@ -128,6 +128,7 @@ Yura Yura STUDIO is a comprehensive project management platform designed for sma
 ```
 Changelog:
 - July 03, 2025. Initial setup
+- July 03, 2025. Object Storage検討 - Replit Object Storageの実装を準備したが、バケット作成が必要なため一旦保留
 ```
 
 ## User Preferences
