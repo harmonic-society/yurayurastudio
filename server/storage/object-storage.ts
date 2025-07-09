@@ -5,7 +5,13 @@ export class ObjectStorageService {
   private bucketName = "yurayurastudio";
 
   constructor() {
-    this.client = new Client();
+    try {
+      this.client = new Client();
+      console.log(`Object Storage initialized for bucket: ${this.bucketName}`);
+    } catch (error) {
+      console.error('Object Storage initialization failed:', error);
+      throw error;
+    }
   }
 
   /**
@@ -65,13 +71,17 @@ export class ObjectStorageService {
    */
   async downloadFile(filename: string): Promise<Buffer> {
     try {
+      console.log(`Attempting to download file: ${filename}`);
       const result = await this.client.downloadAsBytes(filename);
       
       if (!result.ok) {
-        throw new Error(`ファイルダウンロードに失敗しました: ${result.error?.message}`);
+        console.error(`Download failed for ${filename}:`, result.error);
+        throw new Error(`ファイルダウンロードに失敗しました: ${result.error?.message || 'Unknown error'}`);
       }
 
-      return result.value;
+      const buffer = Buffer.from(result.value);
+      console.log(`Downloaded file ${filename}, size: ${buffer.length} bytes`);
+      return buffer;
     } catch (error) {
       console.error('Object Storage download error:', error);
       throw error;

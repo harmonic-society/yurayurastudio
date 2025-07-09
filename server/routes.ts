@@ -2311,11 +2311,19 @@ export async function registerRoutes(app: Express) {
       const filename = req.params.filename;
       console.log("ファイル取得リクエスト:", filename);
 
+      // まずファイルの存在を確認
+      const fileExists = await objectStorage.fileExists(filename);
+      if (!fileExists) {
+        console.log("ファイルが存在しません:", filename);
+        return res.status(404).json({ message: "ファイルが見つかりません" });
+      }
+
       // Object Storageからファイルをダウンロード
       const fileBuffer = await objectStorage.downloadFile(filename);
       
       // ファイルの存在確認
-      if (!fileBuffer) {
+      if (!fileBuffer || fileBuffer.length === 0) {
+        console.log("ファイルバッファが空です:", filename);
         return res.status(404).json({ message: "ファイルが見つかりません" });
       }
 
@@ -2366,6 +2374,8 @@ export async function registerRoutes(app: Express) {
           break;
       }
 
+      console.log(`ファイル配信成功: ${filename}, サイズ: ${fileBuffer.length} bytes`);
+
       res.set({
         'Content-Type': contentType,
         'Content-Length': fileBuffer.length,
@@ -2375,7 +2385,17 @@ export async function registerRoutes(app: Express) {
       res.send(fileBuffer);
     } catch (error) {
       console.error("ファイル取得エラー:", error);
-      res.status(500).json({ message: "ファイルの取得に失敗しました" });
+      
+      // エラーの詳細をログに記録
+      if (error instanceof Error) {
+        console.error("エラーメッセージ:", error.message);
+        console.error("スタックトレース:", error.stack);
+      }
+      
+      res.status(500).json({ 
+        message: "ファイルの取得に失敗しました",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   });
 

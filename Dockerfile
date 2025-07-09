@@ -7,14 +7,17 @@ WORKDIR /app
 # package.jsonとpackage-lock.jsonをコピー
 COPY package*.json ./
 
-# 依存関係をインストール
-RUN npm ci --only=production
+# 依存関係をインストール（devDependenciesも含める）
+RUN npm ci
 
 # アプリケーションのソースコードをコピー
 COPY . .
 
 # アプリケーションをビルド
 RUN npm run build
+
+# 本番用の依存関係のみ再インストール
+RUN npm ci --only=production && npm cache clean --force
 
 # 本番環境の環境変数を設定
 ENV NODE_ENV=production
@@ -23,4 +26,4 @@ ENV NODE_ENV=production
 EXPOSE 5000
 
 # アプリケーションを起動
-CMD ["npm", "start"]
+CMD ["node", "dist/index.js"]
