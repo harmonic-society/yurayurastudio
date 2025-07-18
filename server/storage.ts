@@ -187,7 +187,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProjects(): Promise<Project[]> {
-    const allProjects = await db.select().from(projects).orderBy(desc(projects.createdAt));
+    const allProjects = await db.select().from(projects).orderBy(desc(projects.id));
     const allAssignments = await db.select().from(projectAssignments);
 
     return allProjects.map(project => ({
