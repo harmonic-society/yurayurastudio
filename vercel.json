@@ -4,13 +4,11 @@
   "framework": null,
   "functions": {
     "api/index.js": {
-      "maxDuration": 30,
-      "runtime": "nodejs18.x"
+      "maxDuration": 30
     }
   },
   "env": {
-    "NODE_ENV": "production",
-    "FORCE_REBUILD": "1"
+    "NODE_ENV": "production"
   },
   "rewrites": [
     {
