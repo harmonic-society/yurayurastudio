@@ -1957,7 +1957,16 @@ export async function registerRoutes(app: Express) {
   });
   
   // S3設定チェックエンドポイント（管理者のみ）
-  app.get("/api/test-s3", requireAdmin, async (_req, res) => {
+  app.get("/api/test-s3", async (req, res) => {
+    // 認証チェック
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    // 管理者権限チェック
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({ message: "管理者権限が必要です" });
+    }
     try {
       console.log('S3設定テストを実行します...');
       

@@ -6,7 +6,7 @@ export class S3StorageService {
   private bucketName: string;
 
   constructor() {
-    const region = process.env.AWS_REGION || 'ap-northeast-1';
+    const region = process.env.AWS_REGION || 'us-east-2';
     this.bucketName = process.env.AWS_S3_BUCKET || 'yurayurastudio';
 
     this.s3Client = new S3Client({
