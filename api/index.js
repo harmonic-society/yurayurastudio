@@ -1,50 +1,58 @@
-import express from 'express';
-import session from 'express-session';
-import passport from 'passport';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { setupAuth } from '../server/auth.js';
-import { setupRoutes } from '../server/routes.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require('express');
+const { createServer } = require('http');
+const path = require('path');
 
 const app = express();
+const server = createServer(app);
 
-// Middleware
+// Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+// CORS headers
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
-}));
+  next();
+});
 
-// Passport initialization
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Setup authentication
-setupAuth();
-
-// API routes
-app.use('/api', setupRoutes());
-
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../dist/public')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/public', 'index.html'));
-  });
+// Import and register routes dynamically
+async function setupServer() {
+  try {
+    // Dynamic import for ESM modules
+    const { registerRoutes } = await import('../server/routes.js');
+    await registerRoutes(app);
+    
+    // Health check endpoint
+    app.get('/api/health', (req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
+    
+    // Error handling
+    app.use((err, req, res, next) => {
+      console.error('Error:', err);
+      res.status(err.status || 500).json({
+        error: {
+          message: err.message || 'Internal Server Error',
+          ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Failed to setup server:', error);
+    // Fallback error response
+    app.use((req, res) => {
+      res.status(500).json({ error: 'Server initialization failed' });
+    });
+  }
 }
 
+// Initialize server
+setupServer();
+
 // Export for Vercel
-export default app;
+module.exports = app;
