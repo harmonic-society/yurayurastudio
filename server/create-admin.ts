@@ -1,5 +1,5 @@
 import { hashPassword } from "./auth";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 
 async function createAdminUser() {
   try {

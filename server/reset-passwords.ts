@@ -1,4 +1,4 @@
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import { hashPassword } from "./auth";
 
 async function resetPasswords() {

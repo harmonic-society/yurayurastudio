@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
