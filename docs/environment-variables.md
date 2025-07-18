@@ -35,7 +35,7 @@ Yura Yura STUDIOアプリでは、以下の環境変数が必要です：
 
 ```env
 # データベース設定
-DATABASE_URL=postgresql://user:password@localhost:5432/yurayurastudio
+DATABASE_URL=postgresql://user:password@localhost:PORT/yurayurastudio
 
 # セッション設定
 SESSION_SECRET=your-secure-session-secret
@@ -68,12 +68,12 @@ Replitで開発している場合は、Replitのダッシュボードから環�
 
 ```bash
 # Linuxの場合
-export DATABASE_URL=postgresql://user:password@localhost:5432/yurayurastudio
+export DATABASE_URL=postgresql://user:password@localhost:PORT/yurayurastudio
 export SESSION_SECRET=your-secure-session-secret
 # ... 他の環境変数も同様に設定
 
 # 設定を永続化するには、.bashrcや.bash_profileに追加
-echo 'export DATABASE_URL=postgresql://user:password@localhost:5432/yurayurastudio' >> ~/.bashrc
+echo 'export DATABASE_URL=postgresql://user:password@localhost:PORT/yurayurastudio' >> ~/.bashrc
 ```
 
 #### 2. Androidビルド時の環境変数設定
