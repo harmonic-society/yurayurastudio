@@ -1,16 +1,24 @@
 import { Client } from "@replit/object-storage";
 
 export class ObjectStorageService {
-  private client: Client;
+  private client: Client | null = null;
   private bucketName = "yurayurastudio";
+  private isReplitEnvironment: boolean;
 
   constructor() {
-    try {
-      this.client = new Client();
-      console.log(`Object Storage initialized for bucket: ${this.bucketName}`);
-    } catch (error) {
-      console.error('Object Storage initialization failed:', error);
-      throw error;
+    // Check if we're in Replit environment
+    this.isReplitEnvironment = process.env.REPL_ID !== undefined || process.env.REPLIT_DB_URL !== undefined;
+    
+    if (this.isReplitEnvironment) {
+      try {
+        this.client = new Client();
+        console.log(`Object Storage initialized for bucket: ${this.bucketName}`);
+      } catch (error) {
+        console.error('Object Storage initialization failed:', error);
+        this.client = null;
+      }
+    } else {
+      console.log('Not in Replit environment - Object Storage disabled');
     }
   }
 
@@ -22,6 +30,10 @@ export class ObjectStorageService {
    * @returns アップロードされたファイルの情報
    */
   async uploadFile(file: Buffer, filename: string, contentType: string) {
+    if (!this.client) {
+      throw new Error('Object Storage is not available in this environment');
+    }
+    
     try {
       // ファイル名をユニークにする
       const uniqueFilename = `${Date.now()}-${filename}`;
@@ -159,5 +171,13 @@ export class ObjectStorageService {
   }
 }
 
-// シングルトンインスタンス
-export const objectStorage = new ObjectStorageService();
+// シングルトンインスタンスを条件付きで作成
+let objectStorageInstance: ObjectStorageService | null = null;
+
+try {
+  objectStorageInstance = new ObjectStorageService();
+} catch (error) {
+  console.warn('ObjectStorageService initialization skipped:', error);
+}
+
+export const objectStorage = objectStorageInstance as ObjectStorageService;
