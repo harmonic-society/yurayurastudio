@@ -4,7 +4,7 @@ import { storage } from "./storage.js";
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { objectStorage } from "./storage/object-storage";
+import { storageService } from "./storage/index.js";
 import { 
   insertProjectSchema, 
   insertCommentSchema, 
@@ -954,7 +954,7 @@ export async function registerRoutes(app: Express) {
       console.log("アバター画像をObject Storageにアップロード:", fileName);
       
       // Object Storageにアップロード
-      const uploadResult = await objectStorage.uploadFile(
+      const uploadResult = await storageService.uploadFile(
         avatarFile.data,
         fileName,
         avatarFile.mimetype
@@ -1045,7 +1045,7 @@ export async function registerRoutes(app: Express) {
 
       try {
         // Object Storageにアップロード
-        const uploadResult = await objectStorage.uploadFile(
+        const uploadResult = await storageService.uploadFile(
           portfolioFile.data,
           fileName,
           portfolioFile.mimetype
@@ -2312,14 +2312,14 @@ export async function registerRoutes(app: Express) {
       console.log("ファイル取得リクエスト:", filename);
 
       // まずファイルの存在を確認
-      const fileExists = await objectStorage.fileExists(filename);
+      const fileExists = await storageService.fileExists(filename);
       if (!fileExists) {
         console.log("ファイルが存在しません:", filename);
         return res.status(404).json({ message: "ファイルが見つかりません" });
       }
 
       // Object Storageからファイルをダウンロード
-      const fileBuffer = await objectStorage.downloadFile(filename);
+      const fileBuffer = await storageService.downloadFile(filename);
       
       // ファイルの存在確認
       if (!fileBuffer || fileBuffer.length === 0) {
