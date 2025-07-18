@@ -1956,6 +1956,69 @@ export async function registerRoutes(app: Express) {
     }
   });
   
+  // S3設定チェックエンドポイント（管理者のみ）
+  app.get("/api/test-s3", requireAdmin, async (_req, res) => {
+    try {
+      console.log('S3設定テストを実行します...');
+      
+      // 環境変数のチェック
+      const envCheck = {
+        AWS_REGION: !!process.env.AWS_REGION,
+        AWS_ACCESS_KEY_ID: !!process.env.AWS_ACCESS_KEY_ID,
+        AWS_SECRET_ACCESS_KEY: !!process.env.AWS_SECRET_ACCESS_KEY,
+        AWS_S3_BUCKET: !!process.env.AWS_S3_BUCKET,
+      };
+
+      // ストレージサービスの確認
+      const storageType = process.env.AWS_ACCESS_KEY_ID ? 'S3' : 'Replit Object Storage';
+
+      // 簡単な動作テスト
+      let testResult = {
+        success: false,
+        message: '',
+      };
+
+      try {
+        // テストファイルのアップロード
+        const testContent = Buffer.from('S3 test file');
+        const result = await storageService.uploadFile(
+          testContent,
+          'test-s3-config.txt',
+          'text/plain'
+        );
+        
+        // ファイルの削除
+        await storageService.deleteFile(result.filename);
+        
+        testResult = {
+          success: true,
+          message: 'S3への接続とファイル操作が正常に動作しています',
+        };
+      } catch (error: any) {
+        testResult = {
+          success: false,
+          message: `エラー: ${error.message}`,
+        };
+      }
+
+      res.json({
+        storageType,
+        environmentVariables: envCheck,
+        testResult,
+        configuration: {
+          region: process.env.AWS_REGION || 'not set',
+          bucket: process.env.AWS_S3_BUCKET || 'not set',
+        },
+      });
+    } catch (error: any) {
+      console.error('S3テストエラー:', error);
+      res.status(500).json({ 
+        error: 'S3設定テストに失敗しました',
+        message: error.message,
+      });
+    }
+  });
+
   // テスト用の通知送信エンドポイント
   app.post("/api/test-notification", async (req, res) => {
     if (!req.isAuthenticated()) {

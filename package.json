@@ -10,7 +10,8 @@
     "start": "NODE_ENV=production node dist/index-prod.js",
     "check": "tsc",
     "db:push": "drizzle-kit push",
-    "db:migrate": "drizzle-kit push"
+    "db:migrate": "drizzle-kit push",
+    "test:s3": "tsx server/test-s3.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.842.0",
