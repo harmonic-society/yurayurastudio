@@ -63,20 +63,8 @@ export class S3StorageService {
    * @returns ファイルのアクセスURL
    */
   async getFileUrl(filename: string): Promise<string> {
-    try {
-      const command = new GetObjectCommand({
-        Bucket: this.bucketName,
-        Key: filename,
-      });
-
-      // 1時間有効な署名付きURLを生成
-      const url = await getSignedUrl(this.s3Client, command, { expiresIn: 3600 });
-      return url;
-    } catch (error) {
-      console.error('URL generation error:', error);
-      // フォールバックとしてAPIエンドポイントを返す
-      return `/api/files/${encodeURIComponent(filename)}`;
-    }
+    // 常にAPIエンドポイントを使用（有効期限の問題を回避）
+    return `/api/files/${encodeURIComponent(filename)}`;
   }
 
   /**
