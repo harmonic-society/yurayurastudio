@@ -82,6 +82,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
               
               <div className="pt-6">
                 <Link href={`/projects/${project.id}`} className="text-lg font-medium text-primary hover:underline">
+                  <span className="text-muted-foreground mr-2">#{String(project.id).padStart(3, '0')}</span>
                   {project.name}
                 </Link>
               </div>
@@ -164,6 +165,7 @@ export default function ProjectList({ projects }: ProjectListProps) {
             >
               <TableCell className="font-medium">
                 <Link href={`/projects/${project.id}`} className="text-primary hover:underline hover:text-primary/80 transition-colors">
+                  <span className="text-muted-foreground mr-2">#{String(project.id).padStart(3, '0')}</span>
                   {project.name}
                 </Link>
               </TableCell>
