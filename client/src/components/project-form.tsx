@@ -212,7 +212,7 @@ export default function ProjectForm({
                 >
                   <Command>
                     <CommandInput placeholder="クリエイターを検索..." />
-                    <CommandList className="max-h-[200px]">
+                    <CommandList className="max-h-[300px] overflow-y-auto">
                       <CommandEmpty>クリエイターが見つかりません</CommandEmpty>
                       {users.map((user) => {
                         const isSelected = field.value?.includes(user.id);
