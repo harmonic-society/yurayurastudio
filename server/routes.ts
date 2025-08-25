@@ -525,6 +525,14 @@ export async function registerRoutes(app: Express) {
         portfolioData.imageUrl = req.body.imageUrl;
       }
       
+      // ファイルアップロード関連のフィールドを追加
+      if (req.body.filePath) {
+        portfolioData.filePath = req.body.filePath;
+      }
+      if (req.body.fileType) {
+        portfolioData.fileType = req.body.fileType;
+      }
+      
       // urlフィールドが未設定（nullまたはundefined）の場合、空文字列をセット
       // データベースのNOT NULL制約対応
       if (portfolioData.url === null || portfolioData.url === undefined) {
@@ -576,6 +584,17 @@ export async function registerRoutes(app: Express) {
       }
       
       console.log('作成するポートフォリオデータ:', portfolioData);
+      
+      // ファイルアップロード関連のフィールドを追加
+      if (req.body.filePath) {
+        portfolioData.filePath = req.body.filePath;
+      }
+      if (req.body.fileType) {
+        portfolioData.fileType = req.body.fileType;
+      }
+      if (req.body.imageUrl) {
+        portfolioData.imageUrl = req.body.imageUrl;
+      }
       
       // urlフィールドが未設定（nullまたはundefined）の場合、空文字列をセット
       // データベースのNOT NULL制約対応

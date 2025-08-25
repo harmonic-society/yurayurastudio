@@ -313,13 +313,16 @@ export default function PortfolioForm({
         console.log('ファイルアップロード成功:', result);
         
         // 結果をフォームデータにマージ
-        const submitData = {
-          ...data,
+        const submitData: InsertPortfolio = {
           userId: Number(data.userId),
+          title: data.title.trim(),
+          description: data.description.trim(),
+          url: "", // データベースのNOT NULL制約のため空文字列を設定
+          workType: data.workType,
+          isPublic: data.isPublic ?? true,
           filePath: result.filePath,
           fileType: result.fileType,
-          imageUrl: result.previewImageUrl,
-          url: "" // データベースのNOT NULL制約のため空文字列を設定
+          imageUrl: result.previewImageUrl
         };
         
         console.log('送信データ:', JSON.stringify(submitData, null, 2));
