@@ -330,6 +330,20 @@ export class DatabaseStorage implements IStorage {
       // ユーザーのコメントを削除
       await db.delete(comments).where(eq(comments.userId, id));
       
+      // 通知設定を削除
+      await db.delete(notificationSettings).where(eq(notificationSettings.userId, id));
+      
+      // 通知履歴を削除
+      await db.delete(notificationHistory).where(eq(notificationHistory.userId, id));
+      
+      // ダイレクトメッセージを削除（送信者・受信者両方）
+      await db.delete(directMessages).where(
+        or(
+          eq(directMessages.fromUserId, id),
+          eq(directMessages.toUserId, id)
+        )
+      );
+      
       // このユーザーが担当者になっているプロジェクトを更新
       // director または sales が削除対象ユーザーの場合、nullに設定
       await db

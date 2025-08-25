@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite-production.js";
@@ -318,11 +319,7 @@ app.use((req, res, next) => {
   // すべてのネットワークインターフェースでリッスン
   const host = "0.0.0.0";
   
-  server.listen({
-    port,
-    host,
-    reusePort: true,
-  }, () => {
+  server.listen(port, host, () => {
     log(`サーバー起動: ${host}:${port} (${isProduction ? '本番環境' : '開発環境'})`);
   });
 })();
