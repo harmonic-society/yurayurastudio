@@ -663,6 +663,7 @@ export async function registerRoutes(app: Express) {
         workType: z.enum(workTypes, {
           errorMap: () => ({ message: "作業種別を選択してください" })
         }).optional(),
+        projectId: z.number().int().positive().optional().nullable(), // プロジェクトID（オプション）
         imageUrl: z.string().url("有効な画像URLを入力してください").optional().nullable(),
         filePath: z.string().optional().nullable(),
         fileType: z.string().optional().nullable(),
@@ -670,7 +671,9 @@ export async function registerRoutes(app: Express) {
       });
       
       // リクエストデータをバリデーション
+      console.log('PATCH /api/portfolios/:id - Request body:', JSON.stringify(req.body, null, 2));
       const portfolioData = updatePortfolioSchema.parse(req.body);
+      console.log('PATCH /api/portfolios/:id - Validated data:', JSON.stringify(portfolioData, null, 2));
       
       // アップデートデータからuserIdを削除（変更不可）
       if ('userId' in portfolioData && portfolioData.userId !== portfolio.userId) {

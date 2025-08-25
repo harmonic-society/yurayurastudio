@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { insertPortfolioSchema, type User, type InsertPortfolio } from "@shared/schema";
+import { insertPortfolioSchema, type User, type InsertPortfolio, type Project } from "@shared/schema";
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { FileUp, LinkIcon } from "lucide-react";
@@ -88,6 +88,7 @@ export default function PortfolioForm({
     description: defaultValues?.description || "",
     url: defaultValues?.url || "",
     userId: defaultValues?.userId || currentUserId,
+    projectId: defaultValues?.projectId || projectId || null,
     workType: defaultValues?.workType || undefined,
     isPublic: defaultValues?.isPublic ?? true,
     filePath: defaultValues?.filePath || null,
@@ -106,6 +107,17 @@ export default function PortfolioForm({
   const { data: users } = useQuery<User[]>({
     queryKey: ["/api/users"]
   });
+
+  const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
+    queryKey: ["/api/projects"]
+  });
+  
+  // デバッグ用
+  useEffect(() => {
+    if (projects) {
+      console.log('取得したプロジェクト:', projects);
+    }
+  }, [projects]);
 
   const roleLabels = {
     ADMIN: "管理者",
@@ -268,6 +280,7 @@ export default function PortfolioForm({
         
         const submitData = {
           userId: Number(data.userId),
+          projectId: data.projectId ? Number(data.projectId) : null,
           title: data.title.trim(),
           description: data.description.trim(),
           url: data.url ? data.url.trim() : "",
@@ -288,6 +301,9 @@ export default function PortfolioForm({
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('userId', data.userId.toString());
+        if (data.projectId) {
+          formData.append('projectId', data.projectId.toString());
+        }
         formData.append('title', data.title.trim());
         formData.append('description', data.description.trim());
         formData.append('workType', data.workType);
@@ -315,6 +331,7 @@ export default function PortfolioForm({
         // 結果をフォームデータにマージ
         const submitData: InsertPortfolio = {
           userId: Number(data.userId),
+          projectId: data.projectId ? Number(data.projectId) : null,
           title: data.title.trim(),
           description: data.description.trim(),
           url: "", // データベースのNOT NULL制約のため空文字列を設定
@@ -380,6 +397,47 @@ export default function PortfolioForm({
           />
         ) : (
           <input type="hidden" name="userId" value={currentUserId} />
+        )}
+
+        {/* プロジェクトがpropsから渡されていない場合のみ、プロジェクト選択を表示 */}
+        {!projectId && (
+          <FormField
+            control={form.control}
+            name="projectId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>紐付けるプロジェクト（任意）</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(value === "0" ? null : Number(value))}
+                  value={field.value?.toString() || "0"}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="プロジェクトを選択（任意）" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="max-h-[300px] overflow-y-auto" style={{ zIndex: 9999 }}>
+                    <SelectItem value="0">なし</SelectItem>
+                    {projectsLoading ? (
+                      <SelectItem value="loading" disabled>読み込み中...</SelectItem>
+                    ) : projects && projects.length > 0 ? (
+                      projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id.toString()}>
+                          {project.projectNumber ? `#${project.projectNumber} - ` : ''}{project.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-projects" disabled>プロジェクトがありません</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  このポートフォリオを特定のプロジェクトに紐付けることができます
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         )}
 
         <FormField

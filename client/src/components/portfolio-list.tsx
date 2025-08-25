@@ -1,8 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, FileIcon, ExternalLink, Download } from "lucide-react";
+import { Edit2, Trash2, FileIcon, ExternalLink, Download, FolderOpen } from "lucide-react";
 import { format } from "date-fns";
-import { type Portfolio } from "@shared/schema";
+import { type PortfolioWithProject } from "@shared/schema";
 import { useState, useEffect } from "react";
 import {
   Tooltip,
@@ -10,11 +10,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface PortfolioListProps {
-  portfolios: Portfolio[];
-  onEdit?: (portfolio: Portfolio) => void;
-  onDelete?: (portfolio: Portfolio) => void;
+  portfolios: PortfolioWithProject[];
+  onEdit?: (portfolio: PortfolioWithProject) => void;
+  onDelete?: (portfolio: PortfolioWithProject) => void;
   showTooltips?: boolean;
 }
 
@@ -221,6 +222,19 @@ export default function PortfolioList({
                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2 h-10">
                   {portfolio.description}
                 </p>
+                {/* プロジェクト情報の表示 */}
+                <div className="mt-2">
+                  {portfolio.project ? (
+                    <Badge variant="secondary" className="text-xs">
+                      <FolderOpen className="h-3 w-3 mr-1" />
+                      {portfolio.project.name}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs text-muted-foreground">
+                      プロジェクト未紐付け
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
                 <p className="text-xs text-muted-foreground">

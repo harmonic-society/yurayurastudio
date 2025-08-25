@@ -1,14 +1,38 @@
-import { useQuery } from "@tanstack/react-query";
-import { type Portfolio, type User } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { type PortfolioWithProject, type User, type InsertPortfolio } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
-import { Loader2, ExternalLink, User as UserIcon, Calendar, Tag, Download } from "lucide-react";
+import { Loader2, ExternalLink, User as UserIcon, Calendar, Tag, Download, Plus, Pencil, Trash2, FolderOpen } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import PortfolioForm from "@/components/portfolio-form";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Portfolios() {
-  const { data: portfolios, isLoading: isLoadingPortfolios } = useQuery<Portfolio[]>({
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  const { data: portfolios, isLoading: isLoadingPortfolios } = useQuery<PortfolioWithProject[]>({
     queryKey: ["/api/portfolios"]
   });
 
@@ -17,34 +41,87 @@ export default function Portfolios() {
   });
 
   const [previewImages, setPreviewImages] = useState<Record<number, string>>({});
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioWithProject | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // デフォルトアイコンの定義
+  const getDefaultIcon = (portfolio: PortfolioWithProject) => {
+    if (portfolio.fileType) {
+      if (portfolio.fileType === 'application/pdf') {
+        return '/assets/icons/pdf-icon.svg';
+      } else if (portfolio.fileType.includes('word') || portfolio.fileType.includes('document')) {
+        return '/assets/icons/word-icon.svg';
+      } else if (portfolio.fileType.includes('excel') || portfolio.fileType.includes('spreadsheet')) {
+        return '/assets/icons/excel-icon.svg';
+      } else if (portfolio.fileType.includes('powerpoint') || portfolio.fileType.includes('presentation')) {
+        return '/assets/icons/powerpoint-icon.svg';
+      }
+    }
+    // デフォルトのファイルアイコン
+    return '/assets/icons/file-icon.svg';
+  };
 
   useEffect(() => {
     const fetchOgpImages = async () => {
       if (!portfolios) return;
 
       const images: Record<number, string> = {};
-      for (const portfolio of portfolios) {
+      
+      // 並列処理で全てのOGP画像を取得
+      const promises = portfolios.map(async (portfolio) => {
         // イメージURL（ファイルアップロード時のプレビュー）が既にある場合
         if (portfolio.imageUrl) {
           images[portfolio.id] = portfolio.imageUrl;
+          return;
         }
+        
         // ファイルタイプが画像で、ファイルパスがある場合
-        else if (portfolio.fileType?.startsWith('image/') && portfolio.filePath) {
+        if (portfolio.fileType?.startsWith('image/') && portfolio.filePath) {
           images[portfolio.id] = portfolio.filePath;
+          return;
         }
+        
+        // ファイルタイプがドキュメントの場合、アイコンを設定
+        if (portfolio.filePath && portfolio.fileType && !portfolio.fileType.startsWith('image/')) {
+          images[portfolio.id] = getDefaultIcon(portfolio);
+          return;
+        }
+        
         // URL形式のポートフォリオのOGP画像を取得
-        else if (portfolio.url && portfolio.url.trim() !== '') {
+        if (portfolio.url && portfolio.url.trim() !== '') {
           try {
-            const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`);
+            // タイムアウトを設定（3秒）
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            
+            const response = await fetch(`/api/ogp?url=${encodeURIComponent(portfolio.url)}`, {
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
             if (response.ok) {
               const data = await response.json();
-              images[portfolio.id] = data.imageUrl;
+              if (data.imageUrl) {
+                images[portfolio.id] = data.imageUrl;
+              } else {
+                // OGP画像が取得できない場合はデフォルトアイコン
+                images[portfolio.id] = '/assets/icons/file-icon.svg';
+              }
+            } else {
+              images[portfolio.id] = '/assets/icons/file-icon.svg';
             }
           } catch (error) {
-            console.error(`Failed to fetch OGP image for portfolio ${portfolio.id}:`, error);
+            console.warn(`OGP画像の取得をスキップ (portfolio ${portfolio.id}):`, error);
+            // エラーの場合もデフォルトアイコンを設定
+            images[portfolio.id] = '/assets/icons/file-icon.svg';
           }
         }
-      }
+      });
+      
+      // 全ての処理が完了するまで待つ
+      await Promise.all(promises);
       setPreviewImages(images);
     };
 
@@ -54,6 +131,87 @@ export default function Portfolios() {
   const getUserName = (userId: number) => {
     return users?.find(u => u.id === userId)?.name || "不明なユーザー";
   };
+
+  // Create portfolio mutation
+  const createPortfolioMutation = useMutation({
+    mutationFn: async (data: InsertPortfolio) => {
+      console.log('Creating portfolio with data:', data);
+      const response = await apiRequest('/api/portfolios', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portfolios'] });
+      setIsDialogOpen(false);
+      setSelectedPortfolio(null);
+      toast({
+        title: "成功",
+        description: "ポートフォリオが作成されました",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "エラー",
+        description: `ポートフォリオの作成に失敗しました: ${error.message || '不明なエラー'}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update portfolio mutation
+  const updatePortfolioMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest(`/api/portfolios/${selectedPortfolio?.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portfolios'] });
+      setIsDialogOpen(false);
+      setSelectedPortfolio(null);
+      toast({
+        title: "成功",
+        description: "ポートフォリオが更新されました",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "エラー",
+        description: `ポートフォリオの更新に失敗しました: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete portfolio mutation
+  const deletePortfolioMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest(`/api/portfolios/${selectedPortfolio?.id}`, {
+        method: 'DELETE'
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/portfolios'] });
+      setIsDeleteDialogOpen(false);
+      setSelectedPortfolio(null);
+      toast({
+        title: "成功",
+        description: "ポートフォリオが削除されました",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "エラー",
+        description: `ポートフォリオの削除に失敗しました: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
 
   const workTypeLabels = {
     DESIGN: "デザイン",
@@ -73,11 +231,25 @@ export default function Portfolios() {
 
   return (
     <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">成果物ギャラリー</h1>
-        <p className="text-muted-foreground">
-          当チームが手がけたプロジェクトの実績一覧
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">成果物ギャラリー</h1>
+          <p className="text-muted-foreground">
+            当チームが手がけたプロジェクトの実績一覧
+          </p>
+        </div>
+        {user && (
+          <Button 
+            onClick={() => {
+              setSelectedPortfolio(null);
+              setIsDialogOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            新規追加
+          </Button>
+        )}
       </div>
 
       {isLoadingPortfolios ? (
@@ -99,12 +271,30 @@ export default function Portfolios() {
                     rel="noopener noreferrer"
                     className="block w-full h-full cursor-pointer"
                   >
-                    <img
-                      src={previewImages[portfolio.id]}
-                      alt={`成果物 ${portfolio.title}`}
-                      className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                      onError={(e) => e.currentTarget.style.display = 'none'}
-                    />
+                    {/* アイコンかプレビュー画像を表示 */}
+                    {previewImages[portfolio.id].endsWith('.svg') ? (
+                      // ファイルアイコンの場合
+                      <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+                        <img
+                          src={previewImages[portfolio.id]}
+                          alt={`${portfolio.title} アイコン`}
+                          className="w-16 h-16 object-contain"
+                        />
+                      </div>
+                    ) : (
+                      // プレビュー画像の場合
+                      <img
+                        src={previewImages[portfolio.id]}
+                        alt={`成果物 ${portfolio.title}`}
+                        className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                        onError={(e) => {
+                          // 画像読み込みエラー時はデフォルトアイコンを表示
+                          e.currentTarget.src = '/assets/icons/file-icon.svg';
+                          e.currentTarget.className = 'w-16 h-16 object-contain';
+                          e.currentTarget.parentElement!.className = 'flex items-center justify-center w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900';
+                        }}
+                      />
+                    )}
                     {/* プレビュー表示ボタン（画像の上に重ねて表示） */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-200">
                       <button className="bg-white/90 text-primary px-4 py-2 rounded-md text-xs font-medium">
@@ -113,8 +303,11 @@ export default function Portfolios() {
                     </div>
                   </a>
                 ) : (
-                  <div className="flex items-center justify-center w-full h-full bg-muted">
-                    <p className="text-sm text-muted-foreground">画像を読み込み中...</p>
+                  <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+                    <div className="text-center">
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-muted-foreground/50" />
+                      <p className="text-xs text-muted-foreground">読み込み中...</p>
+                    </div>
                   </div>
                 )}
                 <div className="absolute top-2 left-2">
@@ -137,6 +330,48 @@ export default function Portfolios() {
                     <Calendar className="w-3.5 h-3.5 mr-1.5" />
                     {format(new Date(portfolio.createdAt), "yyyy年M月d日")}
                   </div>
+                  {/* プロジェクト情報 */}
+                  <div className="mt-1">
+                    {portfolio.project ? (
+                      <Badge variant="secondary" className="text-xs">
+                        <FolderOpen className="h-3 w-3 mr-1" />
+                        {portfolio.project.name}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        プロジェクト未紐付け
+                      </Badge>
+                    )}
+                  </div>
+                  {/* 編集・削除ボタン（自分のポートフォリオまたは管理者の場合のみ表示） */}
+                  {user && (portfolio.userId === user.id || user.role === 'ADMIN') && (
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedPortfolio(portfolio);
+                          setIsDialogOpen(true);
+                        }}
+                        className="flex-1 text-xs"
+                      >
+                        <Pencil className="w-3 h-3 mr-1" />
+                        編集
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedPortfolio(portfolio);
+                          setIsDeleteDialogOpen(true);
+                        }}
+                        className="flex-1 text-xs text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        削除
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex justify-end mt-1">
                     {portfolio.url ? (
                       <a
@@ -180,6 +415,71 @@ export default function Portfolios() {
           )}
         </div>
       )}
+
+      {/* ポートフォリオ作成・編集ダイアログ */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-[100]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedPortfolio ? "成果物を編集" : "新規成果物の追加"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedPortfolio
+                ? "既存の成果物の情報を更新します。"
+                : "新しい成果物を追加します。"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto pr-2">
+            <PortfolioForm
+              onSubmit={(data) => {
+                if (selectedPortfolio) {
+                  updatePortfolioMutation.mutate(data);
+                } else {
+                  createPortfolioMutation.mutate(data as InsertPortfolio);
+                }
+              }}
+              defaultValues={selectedPortfolio || {
+                userId: user?.id || 0,
+                title: selectedPortfolio?.title || "",
+                description: selectedPortfolio?.description || "",
+                url: selectedPortfolio?.url || "",
+                workType: selectedPortfolio?.workType || undefined,
+                isPublic: selectedPortfolio?.isPublic ?? true,
+                filePath: selectedPortfolio?.filePath || null,
+                fileType: selectedPortfolio?.fileType || null,
+                imageUrl: selectedPortfolio?.imageUrl || null,
+                projectId: selectedPortfolio?.projectId || null
+              }}
+              isSubmitting={
+                createPortfolioMutation.isPending || updatePortfolioMutation.isPending
+              }
+              currentUserId={user?.id || 0}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ポートフォリオ削除確認ダイアログ */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>成果物の削除</AlertDialogTitle>
+            <AlertDialogDescription>
+              本当に「{selectedPortfolio?.title}」を削除しますか？
+              この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletePortfolioMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePortfolioMutation.isPending ? "削除中..." : "削除"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

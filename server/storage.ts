@@ -49,6 +49,11 @@ import { sendNotificationEmail } from "./mail";
 
 const PostgresSessionStore = connectPg(session);
 
+// Extended Portfolio type with project information
+export type PortfolioWithProject = Portfolio & {
+  project?: Project | null;
+};
+
 export interface IStorage {
   // Session store
   sessionStore: session.Store;
@@ -79,13 +84,13 @@ export interface IStorage {
   deleteUser(id: number): Promise<void>;
 
   // Portfolios
-  getAllPortfolios(): Promise<Portfolio[]>;
-  getUserPortfolios(userId: number): Promise<Portfolio[]>;
-  getPublicPortfolios(): Promise<Portfolio[]>;
+  getAllPortfolios(): Promise<PortfolioWithProject[]>;
+  getUserPortfolios(userId: number): Promise<PortfolioWithProject[]>;
+  getPublicPortfolios(): Promise<PortfolioWithProject[]>;
   getPortfolios(projectId: number): Promise<Portfolio[]>; // 下位互換性のために残す
-  getPortfolio(id: number): Promise<Portfolio | undefined>;
-  createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio>;
-  updatePortfolio(id: number, portfolio: Partial<InsertPortfolio>): Promise<Portfolio>;
+  getPortfolio(id: number): Promise<PortfolioWithProject | undefined>;
+  createPortfolio(portfolio: InsertPortfolio): Promise<PortfolioWithProject>;
+  updatePortfolio(id: number, portfolio: Partial<InsertPortfolio>): Promise<PortfolioWithProject>;
   deletePortfolio(id: number): Promise<void>;
   
   // Timeline posts
@@ -364,19 +369,37 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getAllPortfolios(): Promise<Portfolio[]> {
-    return await db
-      .select()
+  async getAllPortfolios(): Promise<PortfolioWithProject[]> {
+    const results = await db
+      .select({
+        portfolio: portfolios,
+        project: projects
+      })
       .from(portfolios)
+      .leftJoin(projects, eq(portfolios.projectId, projects.id))
       .orderBy(desc(portfolios.createdAt));
+    
+    return results.map(r => ({
+      ...r.portfolio,
+      project: r.project
+    }));
   }
 
-  async getUserPortfolios(userId: number): Promise<Portfolio[]> {
-    return await db
-      .select()
+  async getUserPortfolios(userId: number): Promise<PortfolioWithProject[]> {
+    const results = await db
+      .select({
+        portfolio: portfolios,
+        project: projects
+      })
       .from(portfolios)
+      .leftJoin(projects, eq(portfolios.projectId, projects.id))
       .where(eq(portfolios.userId, userId))
       .orderBy(desc(portfolios.createdAt));
+    
+    return results.map(r => ({
+      ...r.portfolio,
+      project: r.project
+    }));
   }
   
   // これは後方互換性のために残すメソッド
@@ -386,23 +409,42 @@ export class DatabaseStorage implements IStorage {
     return [];
   }
 
-  async getPublicPortfolios(): Promise<Portfolio[]> {
-    return await db
-      .select()
+  async getPublicPortfolios(): Promise<PortfolioWithProject[]> {
+    const results = await db
+      .select({
+        portfolio: portfolios,
+        project: projects
+      })
       .from(portfolios)
+      .leftJoin(projects, eq(portfolios.projectId, projects.id))
       .where(eq(portfolios.isPublic, true))
       .orderBy(desc(portfolios.createdAt));
+    
+    return results.map(r => ({
+      ...r.portfolio,
+      project: r.project
+    }));
   }
 
-  async getPortfolio(id: number): Promise<Portfolio | undefined> {
-    const [portfolio] = await db
-      .select()
+  async getPortfolio(id: number): Promise<PortfolioWithProject | undefined> {
+    const results = await db
+      .select({
+        portfolio: portfolios,
+        project: projects
+      })
       .from(portfolios)
+      .leftJoin(projects, eq(portfolios.projectId, projects.id))
       .where(eq(portfolios.id, id));
-    return portfolio;
+    
+    if (results.length === 0) return undefined;
+    
+    return {
+      ...results[0].portfolio,
+      project: results[0].project
+    };
   }
 
-  async createPortfolio(portfolio: InsertPortfolio): Promise<Portfolio> {
+  async createPortfolio(portfolio: InsertPortfolio): Promise<PortfolioWithProject> {
     // url フィールドが null の場合は空文字列に変換する
     const portfolioData = {
       ...portfolio,
@@ -413,10 +455,13 @@ export class DatabaseStorage implements IStorage {
       .insert(portfolios)
       .values(portfolioData)
       .returning();
-    return newPortfolio;
+    
+    // 作成後、プロジェクト情報を含めて返す
+    const result = await this.getPortfolio(newPortfolio.id);
+    return result!;
   }
 
-  async updatePortfolio(id: number, portfolio: Partial<InsertPortfolio>): Promise<Portfolio> {
+  async updatePortfolio(id: number, portfolio: Partial<InsertPortfolio>): Promise<PortfolioWithProject> {
     // url フィールドが null の場合は空文字列に変換する
     const portfolioData = {
       ...portfolio,
@@ -428,7 +473,10 @@ export class DatabaseStorage implements IStorage {
       .set(portfolioData)
       .where(eq(portfolios.id, id))
       .returning();
-    return updated;
+    
+    // 更新後、プロジェクト情報を含めて返す
+    const result = await this.getPortfolio(updated.id);
+    return result!;
   }
 
   async deletePortfolio(id: number): Promise<void> {

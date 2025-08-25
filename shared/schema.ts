@@ -119,6 +119,7 @@ export const comments = pgTable("comments", {
 export const portfolios = pgTable("portfolios", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  projectId: integer("project_id").references(() => projects.id), // プロジェクトとの紐付け（オプション）
   title: text("title").notNull(),
   description: text("description").notNull(),
   url: text("url").notNull().default(""), // デフォルト値を空文字に設定（ファイルアップロード時用）
@@ -135,6 +136,10 @@ export const portfoliosRelations = relations(portfolios, ({ one }) => ({
     fields: [portfolios.userId],
     references: [users.id],
   }),
+  project: one(projects, {
+    fields: [portfolios.projectId],
+    references: [projects.id],
+  }),
 }));
 
 export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
@@ -142,6 +147,7 @@ export const insertPortfolioSchema = createInsertSchema(portfolios).omit({
   createdAt: true
 }).extend({
   userId: z.number().int().positive(),
+  projectId: z.number().int().positive().optional().nullable(), // プロジェクトIDはオプション
   title: z.string().min(1, "タイトルは必須です"),
   description: z.string().min(1, "説明は必須です").max(500, "説明は500文字以内で入力してください"),
   url: z.string().default("")
@@ -239,6 +245,11 @@ export type InsertUser = z.infer<typeof registerUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type Portfolio = typeof portfolios.$inferSelect;
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
+
+// Extended Portfolio type with project information
+export type PortfolioWithProject = Portfolio & {
+  project?: Project | null;
+};
 export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
 
 
