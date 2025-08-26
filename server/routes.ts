@@ -2104,10 +2104,15 @@ export async function registerRoutes(app: Express) {
 
     try {
       // S3にアップロード
-      const sanitizedName = uploadedFile.name
-        .replace(/[^a-zA-Z0-9_\-\.]/g, '_')
-        .replace(/\s+/g, '_');
-      const fileName = `project-${projectId}/files/${Date.now()}-${sanitizedName}`;
+      // ファイル拡張子を取得
+      const originalName = uploadedFile.name;
+      const lastDotIndex = originalName.lastIndexOf('.');
+      const ext = lastDotIndex > -1 ? originalName.substring(lastDotIndex) : '';
+      
+      // S3のキーには安全な文字のみ使用（日本語は含めない）
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(7);
+      const fileName = `project-${projectId}/files/${timestamp}-${randomStr}${ext}`;
       
       const uploadResult = await storageService.uploadFile(
         uploadedFile.data,
@@ -2219,6 +2224,9 @@ export async function registerRoutes(app: Express) {
       // S3からファイルを取得
       const fileBuffer = await storageService.downloadFile(file.filePath);
       
+      // デバッグログ
+      console.log('File download - fileName:', file.fileName, 'fileType:', file.fileType);
+      
       // セキュリティ: Content-Typeヘッダーの設定
       // HTMLやJavaScriptとして解釈されるのを防ぐ
       const safeContentTypes = [
@@ -2238,30 +2246,52 @@ export async function registerRoutes(app: Express) {
         'audio/ogg'
       ];
       
-      let contentType = file.fileType;
+      let contentType = file.fileType || 'application/octet-stream';
       let disposition = 'inline';
       
-      // 安全なコンテンツタイプの場合はinline表示を許可
-      if (safeContentTypes.includes(file.fileType.toLowerCase())) {
-        contentType = file.fileType;
-        // PDFと画像はインライン表示、それ以外はダウンロード
-        if (file.fileType.startsWith('image/') || file.fileType === 'application/pdf') {
-          disposition = 'inline';
-        } else {
-          disposition = 'attachment';
-        }
-      } else {
-        // 安全でないコンテンツタイプの場合は強制的にダウンロード
+      // PDFファイルの特別処理
+      if (contentType === 'application/pdf' || file.fileName.toLowerCase().endsWith('.pdf')) {
+        contentType = 'application/pdf';
+        disposition = 'inline';
+      }
+      // 画像ファイルもインライン表示
+      else if (contentType.startsWith('image/')) {
+        disposition = 'inline';
+      }
+      // その他の安全なコンテンツタイプの確認
+      else if (safeContentTypes.includes(contentType.toLowerCase())) {
+        disposition = 'attachment';
+      }
+      // 安全でないコンテンツタイプの場合は強制的にダウンロード
+      else {
         contentType = 'application/octet-stream';
         disposition = 'attachment';
       }
       
       // セキュリティヘッダーの設定
       res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `${disposition}; filename="${file.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}"`);
+      
+      // 日本語ファイル名を適切にエンコード（RFC 5987）
+      const encodedFileName = encodeURIComponent(file.fileName).replace(/'/g, '%27');
+      const asciiFileName = file.fileName.replace(/[^\x20-\x7E]/g, '_'); // ASCII以外を_に置換（フォールバック）
+      
+      res.setHeader('Content-Disposition', 
+        `${disposition}; filename="${asciiFileName}"; filename*=UTF-8''${encodedFileName}`
+      );
+      
       res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('X-Frame-Options', 'DENY');
-      res.setHeader('Content-Security-Policy', "default-src 'none'");
+      
+      // PDFプレビューのために、PDFの場合はX-Frame-OptionsとCSPを緩和
+      if (file.fileType === 'application/pdf') {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+        res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'");
+      } else if (file.fileType.startsWith('image/')) {
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+        res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:");
+      } else {
+        res.setHeader('X-Frame-Options', 'DENY');
+        res.setHeader('Content-Security-Policy', "default-src 'none'");
+      }
       
       res.send(fileBuffer);
     } catch (error) {

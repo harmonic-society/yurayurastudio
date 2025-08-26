@@ -29,8 +29,8 @@ export class S3StorageService {
    */
   async uploadFile(file: Buffer, filename: string, contentType: string) {
     try {
-      // ファイル名をユニークにする
-      const uniqueFilename = `uploads/${Date.now()}-${filename}`;
+      // filenameはすでに処理済みのパスなのでそのまま使用
+      const uniqueFilename = filename;
       
       console.log('S3 upload attempt:', uniqueFilename);
       

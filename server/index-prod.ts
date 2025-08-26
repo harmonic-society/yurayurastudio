@@ -21,7 +21,13 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // ファイルアップロードミドルウェアの設定
-app.use(fileUpload());
+// defParamCharsetをutf8に設定して日本語ファイル名を正しく扱う
+app.use(fileUpload({
+  defCharset: 'utf8',
+  defParamCharset: 'utf8',
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  useTempFiles: false
+}));
 
 // 静的ファイルのサービング
 app.use(express.static(path.join(__dirname, "..", "public"), {
