@@ -106,6 +106,7 @@ export const projectsRelations = relations(projects, ({ many, one }) => ({
   assignments: many(projectAssignments),
   comments: many(comments),
   rewardDistribution: one(rewardDistributions),
+  files: many(projectFiles),
 }));
 
 export const comments = pgTable("comments", {
@@ -543,3 +544,45 @@ export type NotificationHistory = typeof notificationHistory.$inferSelect;
 export type InsertNotificationHistory = z.infer<typeof insertNotificationHistorySchema>;
 export type DirectMessage = typeof directMessages.$inferSelect;
 export type InsertDirectMessage = z.infer<typeof insertDirectMessageSchema>;
+
+// プロジェクトファイル管理テーブル
+export const projectFiles = pgTable("project_files", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(), // S3のキー
+  fileType: text("file_type").notNull(), // MIMEタイプ
+  fileSize: integer("file_size").notNull(), // バイト単位
+  description: text("description"), // ファイルの説明（オプション）
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// プロジェクトファイルのリレーション
+export const projectFilesRelations = relations(projectFiles, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectFiles.projectId],
+    references: [projects.id],
+  }),
+  uploadedByUser: one(users, {
+    fields: [projectFiles.uploadedBy],
+    references: [users.id],
+  }),
+}));
+
+// プロジェクトファイル挿入用のスキーマ
+export const insertProjectFileSchema = createInsertSchema(projectFiles).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  projectId: z.number().int().positive(),
+  uploadedBy: z.number().int().positive(),
+  fileName: z.string().min(1, "ファイル名は必須です"),
+  filePath: z.string().min(1, "ファイルパスは必須です"),
+  fileType: z.string().min(1, "ファイルタイプは必須です"),
+  fileSize: z.number().int().positive(),
+  description: z.string().optional().nullable(),
+});
+
+export type ProjectFile = typeof projectFiles.$inferSelect;
+export type InsertProjectFile = z.infer<typeof insertProjectFileSchema>;

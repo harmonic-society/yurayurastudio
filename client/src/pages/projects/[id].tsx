@@ -6,6 +6,7 @@ import CommentSection from "@/components/comment-section";
 import PortfolioForm from "@/components/portfolio-form";
 import PortfolioList from "@/components/portfolio-list";
 import RewardDistributionForm from "@/components/reward-distribution-form";
+import ProjectFiles from "@/components/project-files";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -516,6 +517,10 @@ export default function ProjectDetails() {
             />
           </CardContent>
         </Card>
+
+        <div className="md:col-span-2">
+          <ProjectFiles projectId={projectId} isAdmin={isAdmin} />
+        </div>
 
         <Card className="md:col-span-2" id="comment-section">
           <CardHeader id="comments">

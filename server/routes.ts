@@ -26,7 +26,8 @@ import {
   type NotificationEvent,
   insertDirectMessageSchema,
   type DirectMessage,
-  workTypes
+  workTypes,
+  projectFiles
 } from "@shared/schema";
 import { ZodError, z } from "zod";
 import { setupAuth } from "./auth";
@@ -34,7 +35,7 @@ import { isAdmin, canUpdateProjectStatus, canChangePassword, canAccessProject } 
 import { comparePasswords, hashPassword } from "./auth";
 import { db } from './db';
 import { sendNotificationEmail } from "./mail";
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -2047,6 +2048,204 @@ export async function registerRoutes(app: Express) {
         error: 'S3設定テストに失敗しました',
         message: error.message,
       });
+    }
+  });
+
+  // プロジェクトファイルのアップロード
+  app.post("/api/projects/:id/files", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    const projectId = Number(req.params.id);
+    
+    // プロジェクトへのアクセス権限確認
+    const project = await storage.getProject(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "プロジェクトが見つかりません" });
+    }
+    
+    const userId = req.user.id;
+    const hasAccess = req.user.role === "ADMIN" || 
+                      project.directorId === userId || 
+                      project.salesId === userId || 
+                      project.assignedUsers?.includes(userId);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ message: "このプロジェクトへのアクセス権限がありません" });
+    }
+
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({ message: "ファイルがアップロードされていません" });
+    }
+
+    const uploadedFile = req.files.file as any;
+    
+    // ファイルサイズチェック (100MB)
+    const maxFileSize = 100 * 1024 * 1024;
+    if (uploadedFile.size > maxFileSize) {
+      return res.status(400).json({ message: "ファイルサイズが100MBを超えています" });
+    }
+
+    try {
+      // S3にアップロード
+      const sanitizedName = uploadedFile.name
+        .replace(/[^a-zA-Z0-9_\-\.]/g, '_')
+        .replace(/\s+/g, '_');
+      const fileName = `project-${projectId}/files/${Date.now()}-${sanitizedName}`;
+      
+      const uploadResult = await storageService.uploadFile(
+        uploadedFile.data,
+        fileName,
+        uploadedFile.mimetype
+      );
+
+      // データベースに保存
+      const fileRecord = await db.insert(projectFiles).values({
+        projectId: projectId,
+        uploadedBy: req.user.id,
+        fileName: uploadedFile.name,
+        filePath: uploadResult.filename,
+        fileType: uploadedFile.mimetype,
+        fileSize: uploadedFile.size,
+        description: req.body.description || null
+      }).returning();
+
+      res.status(201).json(fileRecord[0]);
+    } catch (error) {
+      console.error("ファイルアップロードエラー:", error);
+      res.status(500).json({ message: "ファイルのアップロードに失敗しました" });
+    }
+  });
+
+  // プロジェクトファイル一覧の取得
+  app.get("/api/projects/:id/files", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    const projectId = Number(req.params.id);
+    
+    // プロジェクトへのアクセス権限確認
+    const project = await storage.getProject(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "プロジェクトが見つかりません" });
+    }
+    
+    const userId = req.user.id;
+    const hasAccess = req.user.role === "ADMIN" || 
+                      project.directorId === userId || 
+                      project.salesId === userId || 
+                      project.assignedUsers?.includes(userId);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ message: "このプロジェクトへのアクセス権限がありません" });
+    }
+
+    try {
+      const files = await db.select({
+        id: projectFiles.id,
+        projectId: projectFiles.projectId,
+        uploadedBy: projectFiles.uploadedBy,
+        uploadedByUser: users.name,
+        fileName: projectFiles.fileName,
+        filePath: projectFiles.filePath,
+        fileType: projectFiles.fileType,
+        fileSize: projectFiles.fileSize,
+        description: projectFiles.description,
+        createdAt: projectFiles.createdAt
+      })
+      .from(projectFiles)
+      .leftJoin(users, eq(projectFiles.uploadedBy, users.id))
+      .where(eq(projectFiles.projectId, projectId))
+      .orderBy(desc(projectFiles.createdAt));
+
+      res.json(files);
+    } catch (error) {
+      console.error("ファイル一覧取得エラー:", error);
+      res.status(500).json({ message: "ファイル一覧の取得に失敗しました" });
+    }
+  });
+
+  // プロジェクトファイルのダウンロード
+  app.get("/api/projects/:projectId/files/:fileId/download", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    const projectId = Number(req.params.projectId);
+    const fileId = Number(req.params.fileId);
+    
+    // プロジェクトへのアクセス権限確認
+    const project = await storage.getProject(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "プロジェクトが見つかりません" });
+    }
+    
+    const userId = req.user.id;
+    const hasAccess = req.user.role === "ADMIN" || 
+                      project.directorId === userId || 
+                      project.salesId === userId || 
+                      project.assignedUsers?.includes(userId);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ message: "このプロジェクトへのアクセス権限がありません" });
+    }
+
+    try {
+      const [file] = await db.select()
+        .from(projectFiles)
+        .where(eq(projectFiles.id, fileId));
+
+      if (!file || file.projectId !== projectId) {
+        return res.status(404).json({ message: "ファイルが見つかりません" });
+      }
+
+      // S3からファイルを取得
+      const fileBuffer = await storageService.downloadFile(file.filePath);
+      
+      res.setHeader('Content-Type', file.fileType);
+      res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("ファイルダウンロードエラー:", error);
+      res.status(500).json({ message: "ファイルのダウンロードに失敗しました" });
+    }
+  });
+
+  // プロジェクトファイルの削除
+  app.delete("/api/projects/:projectId/files/:fileId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    const projectId = Number(req.params.projectId);
+    const fileId = Number(req.params.fileId);
+
+    try {
+      const [file] = await db.select()
+        .from(projectFiles)
+        .where(eq(projectFiles.id, fileId));
+
+      if (!file || file.projectId !== projectId) {
+        return res.status(404).json({ message: "ファイルが見つかりません" });
+      }
+
+      // アップロードしたユーザーまたは管理者のみ削除可能
+      if (file.uploadedBy !== req.user.id && req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "このファイルを削除する権限がありません" });
+      }
+
+      // S3からファイルを削除
+      await storageService.deleteFile(file.filePath);
+      
+      // データベースから削除
+      await db.delete(projectFiles).where(eq(projectFiles.id, fileId));
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("ファイル削除エラー:", error);
+      res.status(500).json({ message: "ファイルの削除に失敗しました" });
     }
   });
 
