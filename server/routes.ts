@@ -2086,6 +2086,21 @@ export async function registerRoutes(app: Express) {
     if (uploadedFile.size > maxFileSize) {
       return res.status(400).json({ message: "ファイルサイズが100MBを超えています" });
     }
+    
+    // 危険なファイルタイプのチェック（実行可能ファイル）
+    const dangerousExtensions = [
+      '.exe', '.bat', '.cmd', '.com', '.msi', '.scr', '.vbs', 
+      '.jar', '.app', '.deb', '.rpm', '.dmg', '.pkg', '.run', '.sh'
+    ];
+    
+    const fileName = uploadedFile.name.toLowerCase();
+    const isDangerous = dangerousExtensions.some(ext => fileName.endsWith(ext));
+    
+    if (isDangerous) {
+      return res.status(400).json({ 
+        message: "セキュリティ上の理由により、このファイル形式はアップロードできません" 
+      });
+    }
 
     try {
       // S3にアップロード
@@ -2204,8 +2219,50 @@ export async function registerRoutes(app: Express) {
       // S3からファイルを取得
       const fileBuffer = await storageService.downloadFile(file.filePath);
       
-      res.setHeader('Content-Type', file.fileType);
-      res.setHeader('Content-Disposition', `attachment; filename="${file.fileName}"`);
+      // セキュリティ: Content-Typeヘッダーの設定
+      // HTMLやJavaScriptとして解釈されるのを防ぐ
+      const safeContentTypes = [
+        'image/jpeg',
+        'image/png', 
+        'image/gif',
+        'image/webp',
+        'image/svg+xml',
+        'application/pdf',
+        'text/plain',
+        'application/json',
+        'application/xml',
+        'video/mp4',
+        'video/webm',
+        'audio/mpeg',
+        'audio/wav',
+        'audio/ogg'
+      ];
+      
+      let contentType = file.fileType;
+      let disposition = 'inline';
+      
+      // 安全なコンテンツタイプの場合はinline表示を許可
+      if (safeContentTypes.includes(file.fileType.toLowerCase())) {
+        contentType = file.fileType;
+        // PDFと画像はインライン表示、それ以外はダウンロード
+        if (file.fileType.startsWith('image/') || file.fileType === 'application/pdf') {
+          disposition = 'inline';
+        } else {
+          disposition = 'attachment';
+        }
+      } else {
+        // 安全でないコンテンツタイプの場合は強制的にダウンロード
+        contentType = 'application/octet-stream';
+        disposition = 'attachment';
+      }
+      
+      // セキュリティヘッダーの設定
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `${disposition}; filename="${file.fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('Content-Security-Policy', "default-src 'none'");
+      
       res.send(fileBuffer);
     } catch (error) {
       console.error("ファイルダウンロードエラー:", error);

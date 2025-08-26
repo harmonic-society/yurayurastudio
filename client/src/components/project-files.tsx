@@ -38,9 +38,11 @@ import {
   FileVideo,
   FileAudio,
   FileArchive,
-  FileCode
+  FileCode,
+  Eye
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import FilePreview from "./file-preview";
 
 interface ProjectFilesProps {
   projectId: number;
@@ -72,6 +74,8 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<ProjectFile | null>(null);
+  const [previewFile, setPreviewFile] = useState<ProjectFile | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
   const { toast } = useToast();
@@ -216,6 +220,16 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => {
+                      setPreviewFile(file);
+                      setIsPreviewOpen(true);
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleFileDownload(file)}
                   >
                     <Download className="h-4 w-4" />
@@ -325,6 +339,17 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ファイルプレビューダイアログ */}
+      <FilePreview
+        file={previewFile}
+        projectId={projectId}
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setPreviewFile(null);
+        }}
+      />
     </Card>
   );
 }
