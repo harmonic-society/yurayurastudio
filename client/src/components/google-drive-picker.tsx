@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FolderOpen } from 'lucide-react';
+import { googleDriveConfig, isGoogleDriveConfigured } from '@/config/google-drive';
 
 interface GoogleDrivePickerProps {
   onFileSelect: (file: {
@@ -25,14 +26,14 @@ export default function GoogleDrivePicker({ onFileSelect, disabled }: GoogleDriv
   const [isPickerApiLoaded, setIsPickerApiLoaded] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
 
-  const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const { apiKey, clientId } = googleDriveConfig;
 
   // デバッグ情報を出力
   console.log('GoogleDrivePicker initialized:', {
     apiKey: apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT SET',
     clientId: clientId ? `${clientId.substring(0, 20)}...` : 'NOT SET',
-    env: import.meta.env.MODE
+    env: import.meta.env.MODE,
+    isConfigured: isGoogleDriveConfigured()
   });
 
   useEffect(() => {
