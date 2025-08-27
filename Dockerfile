@@ -13,6 +13,14 @@ RUN npm ci
 # アプリケーションのソースコードをコピー
 COPY . .
 
+# Renderの環境変数を受け取る
+ARG VITE_GOOGLE_API_KEY
+ARG VITE_GOOGLE_CLIENT_ID
+
+# 環境変数を設定（ビルド時に使用）
+ENV VITE_GOOGLE_API_KEY=$VITE_GOOGLE_API_KEY
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 # アプリケーションをビルド
 RUN npm run build
 
