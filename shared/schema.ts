@@ -551,10 +551,13 @@ export const projectFiles = pgTable("project_files", {
   projectId: integer("project_id").notNull().references(() => projects.id),
   uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
   fileName: text("file_name").notNull(),
-  filePath: text("file_path").notNull(), // S3のキー
+  filePath: text("file_path").notNull(), // S3のキーまたはGoogle DriveのID
   fileType: text("file_type").notNull(), // MIMEタイプ
   fileSize: integer("file_size").notNull(), // バイト単位
   description: text("description"), // ファイルの説明（オプション）
+  sourceType: text("source_type").notNull().default("upload"), // 'upload' | 'google_drive'
+  googleDriveId: text("google_drive_id"), // Google DriveファイルID
+  googleDriveUrl: text("google_drive_url"), // Google DriveファイルのURL
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

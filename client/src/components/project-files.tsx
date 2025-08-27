@@ -39,10 +39,12 @@ import {
   FileAudio,
   FileArchive,
   FileCode,
-  Eye
+  Eye,
+  Cloud
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import FilePreview from "./file-preview";
+import GoogleDrivePicker from "./google-drive-picker";
 
 interface ProjectFilesProps {
   projectId: number;
@@ -78,6 +80,7 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
+  const [isGoogleDriveMode, setIsGoogleDriveMode] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -150,6 +153,40 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
     },
   });
 
+  // Google Driveファイルの紐付け
+  const googleDriveMutation = useMutation({
+    mutationFn: async (fileData: {
+      id: string;
+      name: string;
+      mimeType: string;
+      url: string;
+      size?: number;
+      description: string;
+    }) => {
+      return apiRequest(`/api/projects/${projectId}/google-drive-files`, {
+        method: "POST",
+        body: JSON.stringify(fileData),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/files`] });
+      setIsUploadDialogOpen(false);
+      setDescription("");
+      setIsGoogleDriveMode(false);
+      toast({
+        title: "成功",
+        description: "Google Driveファイルを紐付けました",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "エラー",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleFileUpload = () => {
     if (!uploadFile) {
       toast({
@@ -161,6 +198,19 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
     }
 
     uploadMutation.mutate({ file: uploadFile, description });
+  };
+
+  const handleGoogleDriveSelect = (file: {
+    id: string;
+    name: string;
+    mimeType: string;
+    url: string;
+    size?: number;
+  }) => {
+    googleDriveMutation.mutate({
+      ...file,
+      description,
+    });
   };
 
   const handleFileDownload = (file: ProjectFile) => {
@@ -202,11 +252,23 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  {getFileIcon(file.fileType)}
+                  <div className="relative">
+                    {getFileIcon(file.fileType)}
+                    {(file as any).sourceType === 'google_drive' && (
+                      <Cloud className="h-3 w-3 absolute -bottom-1 -right-1 text-blue-500" />
+                    )}
+                  </div>
                   <div>
                     <p className="font-medium">{file.fileName}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{formatFileSize(file.fileSize)}</span>
+                      {(file as any).sourceType === 'google_drive' ? (
+                        <span className="flex items-center gap-1">
+                          <Cloud className="h-3 w-3" />
+                          Google Drive
+                        </span>
+                      ) : (
+                        <span>{formatFileSize(file.fileSize)}</span>
+                      )}
                       <span>
                         アップロード: {file.uploadedByUser || "不明"} • {format(new Date(file.createdAt), "yyyy/MM/dd HH:mm")}
                       </span>
@@ -254,37 +316,77 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
       </CardContent>
 
       {/* ファイルアップロードダイアログ */}
-      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+      <Dialog open={isUploadDialogOpen} onOpenChange={(open) => {
+        setIsUploadDialogOpen(open);
+        if (!open) {
+          setIsGoogleDriveMode(false);
+          setUploadFile(null);
+          setDescription("");
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>ファイルをアップロード</DialogTitle>
+            <DialogTitle>
+              {isGoogleDriveMode ? "Google Driveから選択" : "ファイルをアップロード"}
+            </DialogTitle>
             <DialogDescription>
-              プロジェクトに関連するファイルをアップロードします（最大100MB）
+              {isGoogleDriveMode 
+                ? "Google Driveからファイルを選択して紐付けます" 
+                : "プロジェクトに関連するファイルをアップロードします（最大100MB）"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="file">ファイル</Label>
-              <Input
-                id="file"
-                type="file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    if (file.size > 100 * 1024 * 1024) {
-                      toast({
-                        title: "エラー",
-                        description: "ファイルサイズは100MB以下にしてください",
-                        variant: "destructive",
-                      });
-                      e.target.value = "";
-                      return;
-                    }
-                    setUploadFile(file);
-                  }
-                }}
-              />
+            <div className="flex gap-2">
+              <Button
+                variant={isGoogleDriveMode ? "outline" : "default"}
+                size="sm"
+                onClick={() => setIsGoogleDriveMode(false)}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                ファイルアップロード
+              </Button>
+              <Button
+                variant={isGoogleDriveMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsGoogleDriveMode(true)}
+              >
+                <Cloud className="h-4 w-4 mr-2" />
+                Google Drive
+              </Button>
             </div>
+            
+            {isGoogleDriveMode ? (
+              <div>
+                <GoogleDrivePicker
+                  onFileSelect={handleGoogleDriveSelect}
+                  disabled={googleDriveMutation.isPending}
+                />
+              </div>
+            ) : (
+              <div>
+                <Label htmlFor="file">ファイル</Label>
+                <Input
+                  id="file"
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (file.size > 100 * 1024 * 1024) {
+                        toast({
+                          title: "エラー",
+                          description: "ファイルサイズは100MB以下にしてください",
+                          variant: "destructive",
+                        });
+                        e.target.value = "";
+                        return;
+                      }
+                      setUploadFile(file);
+                    }
+                  }}
+                />
+              </div>
+            )}
+            
             <div>
               <Label htmlFor="description">説明（任意）</Label>
               <Textarea
@@ -301,18 +403,21 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
               variant="outline"
               onClick={() => {
                 setIsUploadDialogOpen(false);
+                setIsGoogleDriveMode(false);
                 setUploadFile(null);
                 setDescription("");
               }}
             >
               キャンセル
             </Button>
-            <Button
-              onClick={handleFileUpload}
-              disabled={!uploadFile || uploadMutation.isPending}
-            >
-              {uploadMutation.isPending ? "アップロード中..." : "アップロード"}
-            </Button>
+            {!isGoogleDriveMode && (
+              <Button
+                onClick={handleFileUpload}
+                disabled={!uploadFile || uploadMutation.isPending}
+              >
+                {uploadMutation.isPending ? "アップロード中..." : "アップロード"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

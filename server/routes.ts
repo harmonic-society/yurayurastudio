@@ -2173,6 +2173,9 @@ export async function registerRoutes(app: Express) {
         fileType: projectFiles.fileType,
         fileSize: projectFiles.fileSize,
         description: projectFiles.description,
+        sourceType: projectFiles.sourceType,
+        googleDriveId: projectFiles.googleDriveId,
+        googleDriveUrl: projectFiles.googleDriveUrl,
         createdAt: projectFiles.createdAt
       })
       .from(projectFiles)
@@ -2219,6 +2222,13 @@ export async function registerRoutes(app: Express) {
 
       if (!file || file.projectId !== projectId) {
         return res.status(404).json({ message: "ファイルが見つかりません" });
+      }
+
+      // Google Driveファイルの場合はリダイレクト
+      if (file.sourceType === 'google_drive' && file.googleDriveUrl) {
+        // Google Driveの直接ダウンロードURLを生成
+        const googleDriveDownloadUrl = `https://drive.google.com/uc?export=download&id=${file.googleDriveId}`;
+        return res.redirect(googleDriveDownloadUrl);
       }
 
       // S3からファイルを取得
@@ -2323,8 +2333,10 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ message: "このファイルを削除する権限がありません" });
       }
 
-      // S3からファイルを削除
-      await storageService.deleteFile(file.filePath);
+      // S3からファイルを削除（アップロードファイルの場合のみ）
+      if (file.sourceType === 'upload') {
+        await storageService.deleteFile(file.filePath);
+      }
       
       // データベースから削除
       await db.delete(projectFiles).where(eq(projectFiles.id, fileId));
@@ -2333,6 +2345,62 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("ファイル削除エラー:", error);
       res.status(500).json({ message: "ファイルの削除に失敗しました" });
+    }
+  });
+
+  // Google Driveファイルの紐付け
+  app.post("/api/projects/:id/google-drive-files", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    const projectId = Number(req.params.id);
+    
+    // プロジェクトへのアクセス権限確認
+    const project = await storage.getProject(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "プロジェクトが見つかりません" });
+    }
+    
+    const userId = req.user.id;
+    const hasAccess = req.user.role === "ADMIN" || 
+                      project.directorId === userId || 
+                      project.salesId === userId || 
+                      project.assignedUsers?.includes(userId);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ message: "このプロジェクトへのアクセス権限がありません" });
+    }
+
+    const { id: googleDriveId, name, mimeType, url, size, description } = req.body;
+
+    if (!googleDriveId || !name || !mimeType || !url) {
+      return res.status(400).json({ message: "必要なパラメータが不足しています" });
+    }
+
+    try {
+      // Google Driveファイル情報をデータベースに保存
+      const [newFile] = await db.insert(projectFiles).values({
+        projectId,
+        uploadedBy: req.user.id,
+        fileName: name,
+        filePath: googleDriveId, // Google DriveのファイルIDを保存
+        fileType: mimeType,
+        fileSize: size || 0,
+        description,
+        sourceType: 'google_drive',
+        googleDriveId,
+        googleDriveUrl: url
+      }).returning();
+
+      res.json({
+        id: newFile.id,
+        fileName: newFile.fileName,
+        message: "Google Driveファイルを紐付けました"
+      });
+    } catch (error) {
+      console.error("Google Driveファイル紐付けエラー:", error);
+      res.status(500).json({ message: "Google Driveファイルの紐付けに失敗しました" });
     }
   });
 

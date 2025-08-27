@@ -74,8 +74,14 @@ export default function FilePreview({ file, projectId, isOpen, onClose }: FilePr
     
     setIsLoading(true);
     try {
-      // プレビュー用のURLを生成
-      const url = `/api/projects/${projectId}/files/${file.id}/download`;
+      // Google Driveファイルの場合は埋め込みURL、通常ファイルはダウンロードエンドポイント
+      let url: string;
+      if ((file as any).sourceType === 'google_drive' && (file as any).googleDriveId) {
+        // Google Driveの埋め込みURLを生成
+        url = `https://drive.google.com/file/d/${(file as any).googleDriveId}/preview`;
+      } else {
+        url = `/api/projects/${projectId}/files/${file.id}/download`;
+      }
       setPreviewUrl(url);
     } catch (error) {
       console.error("プレビュー読み込みエラー:", error);
@@ -94,6 +100,13 @@ export default function FilePreview({ file, projectId, isOpen, onClose }: FilePr
     
     setIsLoading(true);
     try {
+      // Google Driveファイルの場合はテキストプレビュー非対応
+      if ((file as any).sourceType === 'google_drive') {
+        setPreviewType("unsupported");
+        setIsLoading(false);
+        return;
+      }
+
       const response = await fetch(`/api/projects/${projectId}/files/${file.id}/download`, {
         credentials: "include",
       });
@@ -125,8 +138,14 @@ export default function FilePreview({ file, projectId, isOpen, onClose }: FilePr
 
   const handleDownload = () => {
     if (!file) return;
-    const downloadUrl = `/api/projects/${projectId}/files/${file.id}/download`;
-    window.open(downloadUrl, '_blank');
+    
+    // Google Driveファイルの場合はGoogle Driveで開く
+    if ((file as any).sourceType === 'google_drive' && (file as any).googleDriveUrl) {
+      window.open((file as any).googleDriveUrl, '_blank');
+    } else {
+      const downloadUrl = `/api/projects/${projectId}/files/${file.id}/download`;
+      window.open(downloadUrl, '_blank');
+    }
   };
 
   const getLanguageFromFileName = (fileName: string): string => {
@@ -252,8 +271,17 @@ export default function FilePreview({ file, projectId, isOpen, onClose }: FilePr
               ファイルタイプ: {file.fileType}
             </p>
             <Button onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-2" />
-              ファイルをダウンロード
+              {(file as any).sourceType === 'google_drive' ? (
+                <>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Google Driveで開く
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  ファイルをダウンロード
+                </>
+              )}
             </Button>
           </div>
         );
