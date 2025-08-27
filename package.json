@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "build": "npm run build:env && vite build && npm run build:server",
-    "build:env": "node -e \"const fs=require('fs'); const env=`VITE_GOOGLE_API_KEY=${process.env.VITE_GOOGLE_API_KEY||''}\nVITE_GOOGLE_CLIENT_ID=${process.env.VITE_GOOGLE_CLIENT_ID||''}`; fs.writeFileSync('client/.env.production', env); console.log('Created .env.production with environment variables')\"",
+    "build:env": "node scripts/create-env.cjs",
     "build:server": "esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --out-extension:.js=.js",
     "start": "NODE_ENV=production node dist/index-prod.js",
     "check": "tsc",
