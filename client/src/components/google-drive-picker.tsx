@@ -174,13 +174,16 @@ export default function GoogleDrivePicker({ onFileSelect, disabled }: GoogleDriv
         error_callback: (error: any) => {
           console.error('OAuth2 error:', error);
           if (error.type === 'popup_closed') {
-            alert('認証がキャンセルされました。');
+            alert('認証がキャンセルされました。\n\nもし認証画面が表示されない場合は：\n1. ポップアップブロッカーを無効にしてください\n2. ページを再読み込みして再度お試しください');
           } else if (error.type === 'popup_failed_to_open') {
             alert('ポップアップブロッカーが有効になっています。\nポップアップを許可してください。');
           } else {
             alert(`Google認証エラー: ${error.type || 'unknown'}\n\nGoogle Cloud Consoleで本番環境のドメインが承認済みか確認してください。`);
           }
         },
+        // COOPヘッダー問題の回避策
+        ux_mode: 'popup', // 明示的にポップアップモードを指定
+        hosted_domain: undefined, // ドメイン制限を解除
       });
 
       console.log('Requesting access token...');
