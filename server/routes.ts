@@ -473,7 +473,7 @@ export async function registerRoutes(app: Express) {
     res.json(portfolios);
   });
 
-  // 後方互換性のため残す (空の配列を返す)
+  // プロジェクトに紐づくポートフォリオ取得
   app.get("/api/projects/:id/portfolios", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
@@ -481,7 +481,7 @@ export async function registerRoutes(app: Express) {
     
     try {
       const projectId = Number(req.params.id);
-      const portfolios = await storage.getPortfolios(projectId);
+      const portfolios = await storage.getProjectPortfolios(projectId);
       res.json(portfolios);
     } catch (error) {
       console.error("プロジェクトのポートフォリオ取得エラー:", error);

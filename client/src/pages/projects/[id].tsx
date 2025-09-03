@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { type Project, type User, type Portfolio, type InsertPortfolio } from "@shared/schema";
+import { type Project, type User, type Portfolio, type InsertPortfolio, type PortfolioWithProject } from "@shared/schema";
 import ProjectForm from "@/components/project-form";
 import CommentSection from "@/components/comment-section";
 import PortfolioForm from "@/components/portfolio-form";
@@ -180,7 +180,7 @@ export default function ProjectDetails() {
     return users?.find((user) => user.id === userId)?.name || "不明なユーザー";
   };
 
-  const { data: portfolios = [] } = useQuery<Portfolio[]>({
+  const { data: portfolios = [] } = useQuery<PortfolioWithProject[]>({
     queryKey: [`/api/projects/${projectId}/portfolios`],
   });
 
@@ -499,7 +499,6 @@ export default function ProjectDetails() {
           </CardHeader>
           <CardContent>
             <PortfolioList
-              projectId={projectId}
               portfolios={portfolios}
               onEdit={isAdmin ? (
                 (portfolio) => {

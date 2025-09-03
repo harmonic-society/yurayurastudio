@@ -89,6 +89,7 @@ export interface IStorage {
   getUserPortfolios(userId: number): Promise<PortfolioWithProject[]>;
   getPublicPortfolios(): Promise<PortfolioWithProject[]>;
   getPortfolios(projectId: number): Promise<Portfolio[]>; // 下位互換性のために残す
+  getProjectPortfolios(projectId: number): Promise<PortfolioWithProject[]>;
   getPortfolio(id: number): Promise<PortfolioWithProject | undefined>;
   createPortfolio(portfolio: InsertPortfolio): Promise<PortfolioWithProject>;
   updatePortfolio(id: number, portfolio: Partial<InsertPortfolio>): Promise<PortfolioWithProject>;
@@ -419,9 +420,40 @@ export class DatabaseStorage implements IStorage {
   
   // これは後方互換性のために残すメソッド
   async getPortfolios(projectId: number): Promise<Portfolio[]> {
-    console.warn('getPortfolios(projectId) is deprecated. Use getUserPortfolios(userId) instead.');
+    console.warn('getPortfolios(projectId) is deprecated. Use getProjectPortfolios(projectId) instead.');
     // 空の配列を返す
     return [];
+  }
+
+  async getProjectPortfolios(projectId: number): Promise<PortfolioWithProject[]> {
+    const results = await db
+      .select({
+        portfolio: portfolios,
+        project: projects
+      })
+      .from(portfolios)
+      .leftJoin(projects, eq(portfolios.projectId, projects.id))
+      .where(eq(portfolios.projectId, projectId))
+      .orderBy(desc(portfolios.createdAt));
+    
+    // 各ポートフォリオの関連ファイル情報を取得
+    const portfoliosWithFiles = await Promise.all(
+      results.map(async (r) => {
+        const files = await db
+          .select()
+          .from(portfolioFiles)
+          .where(eq(portfolioFiles.portfolioId, r.portfolio.id))
+          .orderBy(portfolioFiles.displayOrder);
+        
+        return {
+          ...r.portfolio,
+          project: r.project,
+          files
+        };
+      })
+    );
+    
+    return portfoliosWithFiles;
   }
 
   async getPublicPortfolios(): Promise<PortfolioWithProject[]> {
