@@ -1006,22 +1006,24 @@ export async function registerRoutes(app: Express) {
     console.log("リクエスト本文:", req.body);
     console.log("files オブジェクト:", req.files ? Object.keys(req.files) : 'なし');
     
-    if (!req.files || !req.files.file) {
+    // 複数ファイルに対応（filesフィールドまたは従来のfileフィールドをチェック）
+    if (!req.files || (!req.files.files && !req.files.file)) {
       console.log("エラー: ファイルが見つかりません", req.files);
       return res.status(400).json({ message: "ファイルが必要です" });
     }
 
     try {
-      const portfolioFile = req.files.file;
-      console.log("ファイル情報:", {
-        name: portfolioFile.name,
-        size: portfolioFile.size,
-        mimetype: portfolioFile.mimetype,
-        md5: portfolioFile.md5,
-        encoding: portfolioFile.encoding
-      });
+      // 複数ファイルまたは単一ファイルを配列として処理
+      let filesArray = [];
+      if (req.files.files) {
+        // 複数ファイルの場合
+        filesArray = Array.isArray(req.files.files) ? req.files.files : [req.files.files];
+      } else if (req.files.file) {
+        // 従来の単一ファイル（後方互換性のため）
+        filesArray = [req.files.file];
+      }
       
-      const fileType = portfolioFile.mimetype;
+      console.log(`${filesArray.length}個のファイルを処理中`);
       
       // サポートされているファイル形式のリスト
       const allowedTypes = [
@@ -1042,82 +1044,132 @@ export async function registerRoutes(app: Express) {
         'application/octet-stream', // 一般的なバイナリファイル（拡張子で判断する場合）
       ];
       
-      // MIMEタイプが不明な場合は拡張子でチェック
-      const fileExt = portfolioFile.name.split('.').pop()?.toLowerCase() || '';
       const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar'];
       
-      console.log("ファイルタイプチェック:", fileType, fileExt);
+      const uploadedFiles = [];
       
-      // MIMEタイプまたは拡張子のいずれかが許可リストに含まれていることを確認
-      if (!allowedTypes.includes(fileType) && !allowedExtensions.includes(fileExt)) {
-        console.log("エラー: サポートされていないファイル形式", fileType, fileExt);
-        return res.status(400).json({ 
-          message: "このファイル形式はサポートされていません", 
-          allowedTypes: "PDF, JPEG, PNG, GIF, WEBP, Word, Excel, PowerPoint, テキスト, ZIP, RAR" 
+      // 各ファイルを処理
+      for (const portfolioFile of filesArray) {
+        console.log("ファイル情報:", {
+          name: portfolioFile.name,
+          size: portfolioFile.size,
+          mimetype: portfolioFile.mimetype,
+          md5: portfolioFile.md5,
+          encoding: portfolioFile.encoding
         });
-      }
-      
-      // 安全なファイル名を生成
-      const sanitizedName = portfolioFile.name
-        .replace(/[^a-zA-Z0-9_\-\.]/g, '_')
-        .replace(/\s+/g, '_');
-      
-      const fileName = `portfolio-${req.user.id}-${Date.now()}-${sanitizedName}`;
-      
-      console.log("ポートフォリオファイルをObject Storageにアップロード:", fileName);
+        
+        const fileType = portfolioFile.mimetype;
+        
+        // MIMEタイプが不明な場合は拡張子でチェック
+        const fileExt = portfolioFile.name.split('.').pop()?.toLowerCase() || '';
+        
+        console.log("ファイルタイプチェック:", fileType, fileExt);
+        
+        // MIMEタイプまたは拡張子のいずれかが許可リストに含まれていることを確認
+        if (!allowedTypes.includes(fileType) && !allowedExtensions.includes(fileExt)) {
+          console.log("エラー: サポートされていないファイル形式", fileType, fileExt);
+          return res.status(400).json({ 
+            message: `ファイル「${portfolioFile.name}」の形式はサポートされていません`, 
+            allowedTypes: "PDF, JPEG, PNG, GIF, WEBP, Word, Excel, PowerPoint, テキスト, ZIP, RAR" 
+          });
+        }
+        
+        // 安全なファイル名を生成
+        const sanitizedName = portfolioFile.name
+          .replace(/[^a-zA-Z0-9_\-\.]/g, '_')
+          .replace(/\s+/g, '_');
+        
+        const fileName = `portfolio-${req.user.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${sanitizedName}`;
+        
+        console.log("ポートフォリオファイルをObject Storageにアップロード:", fileName);
 
-      try {
-        // Object Storageにアップロード
-        const uploadResult = await storageService.uploadFile(
-          portfolioFile.data,
-          fileName,
-          portfolioFile.mimetype
-        );
+        try {
+          // Object Storageにアップロード
+          const uploadResult = await storageService.uploadFile(
+            portfolioFile.data,
+            fileName,
+            portfolioFile.mimetype
+          );
+          
+          console.log("Object Storageアップロード成功:", uploadResult.filename);
+          
+          const filePath = uploadResult.url;
+          
+          // プレビュー画像URL（PDFやドキュメントの場合はデフォルト画像を使用）
+          let previewImageUrl = null;
         
-        console.log("Object Storageアップロード成功:", uploadResult.filename);
-        
-        const filePath = uploadResult.url;
-        
-        // プレビュー画像URL（PDFやドキュメントの場合はデフォルト画像を使用）
-        let previewImageUrl = null;
-      
-      if (fileType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
-        // 画像ファイルの場合はそのままプレビューに使用
-        previewImageUrl = filePath;
-      } else if (fileType === 'application/pdf' || fileExt === 'pdf') {
-        // PDFのデフォルトアイコン
-        previewImageUrl = '/assets/icons/pdf-icon.svg';
-      } else if (fileType.includes('word') || fileType.includes('document') || ['doc', 'docx'].includes(fileExt)) {
-        // Wordのデフォルトアイコン
-        previewImageUrl = '/assets/icons/word-icon.svg';
-      } else if (fileType.includes('excel') || fileType.includes('spreadsheet') || ['xls', 'xlsx'].includes(fileExt)) {
-        // Excelのデフォルトアイコン
-        previewImageUrl = '/assets/icons/excel-icon.svg';
-      } else if (fileType.includes('powerpoint') || fileType.includes('presentation') || ['ppt', 'pptx'].includes(fileExt)) {
-        // PowerPointのデフォルトアイコン
-        previewImageUrl = '/assets/icons/powerpoint-icon.svg';
-      } else {
-        // その他のファイル
-        previewImageUrl = '/assets/icons/file-icon.svg';
+          if (fileType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
+            // 画像ファイルの場合はそのままプレビューに使用
+            previewImageUrl = filePath;
+          } else if (fileType === 'application/pdf' || fileExt === 'pdf') {
+            // PDFのデフォルトアイコン
+            previewImageUrl = '/assets/icons/pdf-icon.svg';
+          } else if (fileType.includes('word') || fileType.includes('document') || ['doc', 'docx'].includes(fileExt)) {
+            // Wordのデフォルトアイコン
+            previewImageUrl = '/assets/icons/word-icon.svg';
+          } else if (fileType.includes('excel') || fileType.includes('spreadsheet') || ['xls', 'xlsx'].includes(fileExt)) {
+            // Excelのデフォルトアイコン
+            previewImageUrl = '/assets/icons/excel-icon.svg';
+          } else if (fileType.includes('powerpoint') || fileType.includes('presentation') || ['ppt', 'pptx'].includes(fileExt)) {
+            // PowerPointのデフォルトアイコン
+            previewImageUrl = '/assets/icons/powerpoint-icon.svg';
+          } else {
+            // その他のファイル
+            previewImageUrl = '/assets/icons/file-icon.svg';
+          }
+          
+          uploadedFiles.push({
+            originalName: portfolioFile.name,
+            filePath,
+            fileType,
+            previewImageUrl
+          });
+          
+        } catch (mvError: any) {
+          console.error("Object Storageアップロードエラー:", mvError);
+          return res.status(500).json({ 
+            message: `ファイル「${portfolioFile.name}」の保存に失敗しました`, 
+            error: mvError?.message || String(mvError) 
+          });
+        }
       }
       
-        console.log("レスポンス:", {
+      // 複数ファイルに対応したレスポンス
+      if (uploadedFiles.length === 1) {
+        // 単一ファイルの場合は従来の形式で返す（後方互換性）
+        console.log("レスポンス (単一ファイル):", {
           message: "ファイルをアップロードしました",
-          filePath,
-          fileType,
-          previewImageUrl
+          filePath: uploadedFiles[0].filePath,
+          fileType: uploadedFiles[0].fileType,
+          previewImageUrl: uploadedFiles[0].previewImageUrl
         });
 
         res.json({
           message: "ファイルをアップロードしました",
-          filePath,
-          fileType,
-          previewImageUrl
+          filePath: uploadedFiles[0].filePath,
+          fileType: uploadedFiles[0].fileType,
+          previewImageUrl: uploadedFiles[0].previewImageUrl
         });
-      } catch (mvError: any) {
-        console.error("Object Storageアップロードエラー:", mvError);
-        return res.status(500).json({ message: "ファイルの保存に失敗しました", error: mvError?.message || String(mvError) });
+      } else {
+        // 複数ファイルの場合
+        console.log("レスポンス (複数ファイル):", {
+          message: `${uploadedFiles.length}個のファイルをアップロードしました`,
+          files: uploadedFiles,
+          filePaths: uploadedFiles.map(f => f.filePath),
+          fileTypes: uploadedFiles.map(f => f.fileType),
+          previewImageUrls: uploadedFiles.map(f => f.previewImageUrl)
+        });
+
+        res.json({
+          message: `${uploadedFiles.length}個のファイルをアップロードしました`,
+          files: uploadedFiles,
+          // 配列形式でも返す（クライアント側の処理を簡単にするため）
+          filePaths: uploadedFiles.map(f => f.filePath),
+          fileTypes: uploadedFiles.map(f => f.fileType),
+          previewImageUrls: uploadedFiles.map(f => f.previewImageUrl)
+        });
       }
+      
     } catch (error) {
       console.error("ポートフォリオファイルアップロードエラー:", error);
       res.status(500).json({ 

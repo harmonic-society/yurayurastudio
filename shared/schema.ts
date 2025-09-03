@@ -132,7 +132,19 @@ export const portfolios = pgTable("portfolios", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const portfoliosRelations = relations(portfolios, ({ one }) => ({
+// ポートフォリオファイル（複数ファイル対応）
+export const portfolioFiles = pgTable("portfolio_files", {
+  id: serial("id").primaryKey(),
+  portfolioId: integer("portfolio_id").notNull().references(() => portfolios.id, { onDelete: 'cascade' }),
+  filePath: text("file_path").notNull(),
+  fileType: text("file_type").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const portfoliosRelations = relations(portfolios, ({ one, many }) => ({
   user: one(users, {
     fields: [portfolios.userId],
     references: [users.id],
@@ -140,6 +152,14 @@ export const portfoliosRelations = relations(portfolios, ({ one }) => ({
   project: one(projects, {
     fields: [portfolios.projectId],
     references: [projects.id],
+  }),
+  files: many(portfolioFiles),
+}));
+
+export const portfolioFilesRelations = relations(portfolioFiles, ({ one }) => ({
+  portfolio: one(portfolios, {
+    fields: [portfolioFiles.portfolioId],
+    references: [portfolios.id],
   }),
 }));
 

@@ -31,7 +31,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { insertPortfolioSchema, type User, type InsertPortfolio, type Project } from "@shared/schema";
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { FileUp, LinkIcon } from "lucide-react";
+import { FileUp, LinkIcon, X } from "lucide-react";
 
 interface PortfolioFormProps {
   onSubmit: (data: InsertPortfolio | FormData) => void;
@@ -54,8 +54,8 @@ export default function PortfolioForm({
   const [submitMode, setSubmitMode] = useState<"url" | "file">(defaultValues?.url ? "url" : "file");
   
   // ファイルアップロード関連の状態
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<{ file: File; preview: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -138,42 +138,66 @@ export default function PortfolioForm({
 
   // ファイル選択ハンドラー
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    console.log('ファイル選択:', file.name, file.type, file.size);
-    setSelectedFile(file);
+    console.log('ファイル選択:', files.map(f => `${f.name} (${f.type}, ${f.size}bytes)`).join(', '));
+    setSelectedFiles(files);
     
-    // 画像ファイルの場合はプレビューを生成
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setFilePreview(e.target.result as string);
-          console.log('画像プレビュー生成完了');
+    // 各ファイルのプレビューを生成
+    const newPreviews: { file: File; preview: string }[] = [];
+    let processedCount = 0;
+
+    files.forEach((file) => {
+      // 画像ファイルの場合はプレビューを生成
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            newPreviews.push({ file, preview: e.target.result as string });
+            processedCount++;
+            if (processedCount === files.length) {
+              setFilePreviews(newPreviews);
+              console.log('全画像プレビュー生成完了');
+            }
+          }
+        };
+        reader.onerror = (error) => {
+          console.error('画像読み込みエラー:', error);
+          processedCount++;
+          if (processedCount === files.length) {
+            setFilePreviews(newPreviews);
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // 画像以外のファイルタイプに応じたアイコンを表示
+        let iconPath = '/assets/icons/file-icon.svg';
+        
+        if (file.type === 'application/pdf') {
+          iconPath = '/assets/icons/pdf-icon.svg';
+        } else if (file.type.includes('word') || file.type.includes('document')) {
+          iconPath = '/assets/icons/word-icon.svg';
+        } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
+          iconPath = '/assets/icons/excel-icon.svg';
+        } else if (file.type.includes('powerpoint') || file.type.includes('presentation')) {
+          iconPath = '/assets/icons/powerpoint-icon.svg';
         }
-      };
-      reader.onerror = (error) => {
-        console.error('画像読み込みエラー:', error);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      // 画像以外のファイルタイプに応じたアイコンを表示
-      let iconPath = '/assets/icons/file-icon.svg';
-      
-      if (file.type === 'application/pdf') {
-        iconPath = '/assets/icons/pdf-icon.svg';
-      } else if (file.type.includes('word') || file.type.includes('document')) {
-        iconPath = '/assets/icons/word-icon.svg';
-      } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
-        iconPath = '/assets/icons/excel-icon.svg';
-      } else if (file.type.includes('powerpoint') || file.type.includes('presentation')) {
-        iconPath = '/assets/icons/powerpoint-icon.svg';
+        
+        console.log('ファイルアイコン設定:', iconPath);
+        newPreviews.push({ file, preview: iconPath });
+        processedCount++;
+        if (processedCount === files.length) {
+          setFilePreviews(newPreviews);
+        }
       }
-      
-      console.log('ファイルアイコン設定:', iconPath);
-      setFilePreview(iconPath);
-    }
+    });
+  };
+
+  // 選択したファイルを削除する関数
+  const removeFile = (indexToRemove: number) => {
+    setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+    setFilePreviews(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
   const handleSubmit = async (data: InsertPortfolio) => {
@@ -234,7 +258,7 @@ export default function PortfolioForm({
           hasError = true;
         }
       } else if (submitMode === "file") {
-        if (!selectedFile) {
+        if (selectedFiles.length === 0) {
           form.setError('root', {
             type: 'manual',
             message: 'ファイルを選択してください'
@@ -250,7 +274,7 @@ export default function PortfolioForm({
         description: data.description || '未入力',
         workType: data.workType || '未選択',
         submitMode: submitMode,
-        hasFile: !!selectedFile,
+        hasFile: selectedFiles.length > 0,
         hasUrl: !!data.url
       });
       
@@ -294,12 +318,17 @@ export default function PortfolioForm({
       } else {
         // ファイル提出モード
         // 上のバリデーションでチェック済みなのでここでは追加チェックしない
-        if (!selectedFile) {
+        if (selectedFiles.length === 0) {
           throw new Error('ファイルが選択されていません');
         }
 
         const formData = new FormData();
-        formData.append('file', selectedFile);
+        
+        // 複数ファイルを追加
+        selectedFiles.forEach((file) => {
+          formData.append('files', file);
+        });
+        
         formData.append('userId', data.userId.toString());
         if (data.projectId) {
           formData.append('projectId', data.projectId.toString());
@@ -309,7 +338,7 @@ export default function PortfolioForm({
         formData.append('workType', data.workType);
         formData.append('isPublic', (data.isPublic ?? true).toString());
         
-        console.log('ファイルアップロード開始:', selectedFile.name, selectedFile.type, selectedFile.size);
+        console.log('ファイルアップロード開始:', selectedFiles.map(f => `${f.name} (${f.type}, ${f.size}bytes)`).join(', '));
         
         // ファイル提出モード（FormDataを使用）
         const response = await fetch('/api/portfolios/upload', {
@@ -337,9 +366,9 @@ export default function PortfolioForm({
           url: "", // データベースのNOT NULL制約のため空文字列を設定
           workType: data.workType,
           isPublic: data.isPublic ?? true,
-          filePath: result.filePath,
-          fileType: result.fileType,
-          imageUrl: result.previewImageUrl
+          filePath: result.filePath || result.filePaths?.[0] || null, // 複数ファイルの場合も対応
+          fileType: result.fileType || result.fileTypes?.[0] || null,
+          imageUrl: result.previewImageUrl || result.previewImageUrls?.[0] || null
         };
         
         console.log('送信データ:', JSON.stringify(submitData, null, 2));
@@ -581,32 +610,58 @@ export default function PortfolioForm({
                       ref={fileInputRef}
                       onChange={handleFileChange}
                       accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                      multiple
                     />
                   </label>
                 </div>
                 
-                {selectedFile && (
+                {selectedFiles.length > 0 && (
                   <div className="mt-4">
-                    <div className="text-sm font-medium mb-2">選択したファイル:</div>
-                    <div className="text-sm text-gray-500 mb-2">{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</div>
-                    
-                    {filePreview && (
-                      <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-gray-50 flex items-center justify-center">
-                        {selectedFile.type.startsWith('image/') ? (
-                          <img
-                            src={filePreview}
-                            alt="ファイルプレビュー"
-                            className="max-h-full max-w-full object-contain"
-                          />
-                        ) : (
-                          <img
-                            src={filePreview}
-                            alt="ファイルアイコン"
-                            className="w-16 h-16 object-contain"
-                          />
-                        )}
-                      </div>
-                    )}
+                    <div className="text-sm font-medium mb-2">選択したファイル ({selectedFiles.length}ファイル):</div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {selectedFiles.map((file, index) => {
+                        const preview = filePreviews.find(p => p.file === file);
+                        return (
+                          <div key={index} className="relative group">
+                            <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-gray-50 flex items-center justify-center p-2">
+                              {file.type.startsWith('image/') && preview ? (
+                                <img
+                                  src={preview.preview}
+                                  alt={file.name}
+                                  className="max-h-full max-w-full object-contain"
+                                />
+                              ) : preview ? (
+                                <div className="flex flex-col items-center justify-center">
+                                  <img
+                                    src={preview.preview}
+                                    alt="ファイルアイコン"
+                                    className="w-12 h-12 object-contain mb-1"
+                                  />
+                                  <span className="text-xs text-gray-600 text-center px-1 truncate w-full">
+                                    {file.name}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="text-xs text-gray-500">
+                                  読み込み中...
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeFile(index)}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              aria-label="ファイルを削除"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            <div className="text-xs text-gray-500 mt-1 text-center truncate">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
