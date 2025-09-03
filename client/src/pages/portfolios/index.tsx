@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useState, useEffect } from "react";
-import { Loader2, ExternalLink, User as UserIcon, Calendar, Tag, Download, Plus, Pencil, Trash2, FolderOpen } from "lucide-react";
+import { Loader2, ExternalLink, User as UserIcon, Calendar, Tag, Download, Plus, Pencil, Trash2, FolderOpen, ChevronLeft, ChevronRight, FileStack } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,7 @@ export default function Portfolios() {
   });
 
   const [previewImages, setPreviewImages] = useState<Record<number, string>>({});
+  const [currentFileIndex, setCurrentFileIndex] = useState<Record<number, number>>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPortfolio, setSelectedPortfolio] = useState<PortfolioWithProject | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -70,6 +71,19 @@ export default function Portfolios() {
       
       // 並列処理で全てのOGP画像を取得
       const promises = portfolios.map(async (portfolio) => {
+        // 複数ファイルがある場合は最初のファイルの画像を使用
+        if (portfolio.files && portfolio.files.length > 0) {
+          const firstFile = portfolio.files[0];
+          if (firstFile.fileType?.startsWith('image/')) {
+            images[portfolio.id] = firstFile.filePath;
+            return;
+          } else {
+            images[portfolio.id] = getDefaultIcon(portfolio);
+            return;
+          }
+        }
+        
+        // 単一ファイルの場合の処理
         // イメージURL（ファイルアップロード時のプレビュー）が既にある場合
         if (portfolio.imageUrl) {
           images[portfolio.id] = portfolio.imageUrl;
@@ -261,10 +275,91 @@ export default function Portfolios() {
         </div>
       ) : (
         <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {portfolios?.map((portfolio) => (
+          {portfolios?.map((portfolio) => {
+            const hasMultipleFiles = portfolio.files && portfolio.files.length > 0;
+            const currentIndex = currentFileIndex[portfolio.id] || 0;
+            const currentFile = hasMultipleFiles ? portfolio.files![currentIndex] : null;
+            
+            // \u30ca\u30d3\u30b2\u30fc\u30b7\u30e7\u30f3\u95a2\u6570
+            const handlePrevFile = (e: React.MouseEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (hasMultipleFiles) {
+                setCurrentFileIndex(prev => ({
+                  ...prev,
+                  [portfolio.id]: currentIndex > 0 ? currentIndex - 1 : portfolio.files!.length - 1
+                }));
+              }
+            };
+            
+            const handleNextFile = (e: React.MouseEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (hasMultipleFiles) {
+                setCurrentFileIndex(prev => ({
+                  ...prev,
+                  [portfolio.id]: currentIndex < portfolio.files!.length - 1 ? currentIndex + 1 : 0
+                }));
+              }
+            };
+            
+            return (
             <Card key={portfolio.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 group">
               <div className="relative h-40">
-                {previewImages[portfolio.id] ? (
+                {\/* \u8907\u6570\u30d5\u30a1\u30a4\u30eb\u30a4\u30f3\u30b8\u30b1\u30fc\u30bf\u30fc \*/}
+                {hasMultipleFiles && portfolio.files!.length > 1 && (
+                  <>
+                    <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded-md text-xs flex items-center gap-1 z-10">
+                      <FileStack className="h-3 w-3" />
+                      <span>{currentIndex + 1} / {portfolio.files!.length}</span>
+                    </div>
+                    
+                    {\/* \u30ca\u30d3\u30b2\u30fc\u30b7\u30e7\u30f3\u30dc\u30bf\u30f3 \*/}
+                    <button
+                      onClick={handlePrevFile}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={handleNextFile}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+                
+                {hasMultipleFiles && currentFile ? (
+                  {\/* \u8907\u6570\u30d5\u30a1\u30a4\u30eb\u306e\u5834\u5408 \*/}
+                  <a 
+                    href={currentFile.filePath} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block w-full h-full cursor-pointer"
+                  >
+                    {currentFile.fileType?.startsWith('image/') ? (
+                      <img
+                        src={currentFile.filePath}
+                        alt={currentFile.fileName}
+                        className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+                        <img
+                          src={getDefaultIcon(portfolio)}
+                          alt={\`\${currentFile.fileType} \u30d5\u30a1\u30a4\u30eb\`}
+                          className="w-16 h-16 object-contain"
+                        />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-200">
+                      <span className="bg-white/90 text-primary px-4 py-2 rounded-md text-xs font-medium">
+                        {currentFile.fileType?.startsWith('image/') ? '\u753b\u50cf\u3092\u8868\u793a' : '\u30d5\u30a1\u30a4\u30eb\u3092\u958b\u304f'}
+                      </span>
+                    </div>
+                  </a>
+                ) : previewImages[portfolio.id] ? (
                   <a 
                     href={portfolio.filePath || portfolio.url || '#'} 
                     target="_blank" 
@@ -373,7 +468,27 @@ export default function Portfolios() {
                     </div>
                   )}
                   <div className="flex justify-end mt-1">
-                    {portfolio.url ? (
+                    {hasMultipleFiles && currentFile ? (
+                      <a
+                        href={currentFile.filePath}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
+                        download={currentFile.fileName}
+                      >
+                        {portfolio.files!.length > 1 ? (
+                          <>
+                            <FileStack className="h-3 w-3" />
+                            {portfolio.files!.length}個のファイル
+                          </>
+                        ) : (
+                          <>
+                            ファイルを{currentFile.fileType?.startsWith('image/') ? '表示' : 'ダウンロード'}
+                            {currentFile.fileType?.startsWith('image/') ? <ExternalLink className="w-3 h-3" /> : <Download className="w-3 h-3" />}
+                          </>
+                        )}
+                      </a>
+                    ) : portfolio.url ? (
                       <a
                         href={portfolio.url}
                         target="_blank"
@@ -399,7 +514,8 @@ export default function Portfolios() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
           {(!portfolios || portfolios.length === 0) && (
             <div className="flex flex-col items-center justify-center py-16 bg-muted/30 rounded-xl col-span-full">
               <div className="text-center max-w-md p-6">
