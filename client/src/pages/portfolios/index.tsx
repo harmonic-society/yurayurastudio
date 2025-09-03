@@ -280,7 +280,7 @@ export default function Portfolios() {
             const currentIndex = currentFileIndex[portfolio.id] || 0;
             const currentFile = hasMultipleFiles ? portfolio.files![currentIndex] : null;
             
-            // \u30ca\u30d3\u30b2\u30fc\u30b7\u30e7\u30f3\u95a2\u6570
+            // ナビゲーション関数
             const handlePrevFile = (e: React.MouseEvent) => {
               e.preventDefault();
               e.stopPropagation();
@@ -306,7 +306,7 @@ export default function Portfolios() {
             return (
             <Card key={portfolio.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 group">
               <div className="relative h-40">
-                {\/* \u8907\u6570\u30d5\u30a1\u30a4\u30eb\u30a4\u30f3\u30b8\u30b1\u30fc\u30bf\u30fc \*/}
+                {/* 複数ファイルインジケーター */}
                 {hasMultipleFiles && portfolio.files!.length > 1 && (
                   <>
                     <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded-md text-xs flex items-center gap-1 z-10">
@@ -314,7 +314,7 @@ export default function Portfolios() {
                       <span>{currentIndex + 1} / {portfolio.files!.length}</span>
                     </div>
                     
-                    {\/* \u30ca\u30d3\u30b2\u30fc\u30b7\u30e7\u30f3\u30dc\u30bf\u30f3 \*/}
+                    {/* ナビゲーションボタン */}
                     <button
                       onClick={handlePrevFile}
                       className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -331,7 +331,7 @@ export default function Portfolios() {
                 )}
                 
                 {hasMultipleFiles && currentFile ? (
-                  {\/* \u8907\u6570\u30d5\u30a1\u30a4\u30eb\u306e\u5834\u5408 \*/}
+                  /* 複数ファイルの場合 */
                   <a 
                     href={currentFile.filePath} 
                     target="_blank" 
@@ -348,14 +348,14 @@ export default function Portfolios() {
                       <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
                         <img
                           src={getDefaultIcon(portfolio)}
-                          alt={\`\${currentFile.fileType} \u30d5\u30a1\u30a4\u30eb\`}
+                          alt={`${currentFile.fileType} ファイル`}
                           className="w-16 h-16 object-contain"
                         />
                       </div>
                     )}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-200">
                       <span className="bg-white/90 text-primary px-4 py-2 rounded-md text-xs font-medium">
-                        {currentFile.fileType?.startsWith('image/') ? '\u753b\u50cf\u3092\u8868\u793a' : '\u30d5\u30a1\u30a4\u30eb\u3092\u958b\u304f'}
+                        {currentFile.fileType?.startsWith('image/') ? '画像を表示' : 'ファイルを開く'}
                       </span>
                     </div>
                   </a>
