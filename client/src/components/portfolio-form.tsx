@@ -412,7 +412,7 @@ export default function PortfolioForm({
                       <SelectValue placeholder="担当者を選択" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]" style={{ zIndex: 9999 }}>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id.toString()}>
                         {user.name}（{roleLabels[user.role]}）
@@ -484,7 +484,7 @@ export default function PortfolioForm({
                     <SelectValue placeholder="作業種別を選択" />
                   </SelectTrigger>
                 </FormControl>
-                <SelectContent>
+                <SelectContent className="z-[9999]" style={{ zIndex: 9999 }}>
                   {Object.entries(workTypeLabels).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
                       {label}
