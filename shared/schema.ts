@@ -267,9 +267,13 @@ export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type Portfolio = typeof portfolios.$inferSelect;
 export type InsertPortfolio = z.infer<typeof insertPortfolioSchema>;
 
+// PortfolioFile type
+export type PortfolioFile = typeof portfolioFiles.$inferSelect;
+
 // Extended Portfolio type with project information
 export type PortfolioWithProject = Portfolio & {
   project?: Project | null;
+  files?: PortfolioFile[];
 };
 export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
 

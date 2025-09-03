@@ -27,7 +27,8 @@ import {
   insertDirectMessageSchema,
   type DirectMessage,
   workTypes,
-  projectFiles
+  projectFiles,
+  portfolioFiles
 } from "@shared/schema";
 import { ZodError, z } from "zod";
 import { setupAuth } from "./auth";
@@ -541,6 +542,32 @@ export async function registerRoutes(app: Express) {
       }
 
       const portfolio = await storage.createPortfolio(portfolioData);
+      
+      // 複数ファイル情報をportfolio_filesテーブルに保存
+      if (req.body.files && Array.isArray(req.body.files)) {
+        for (let i = 0; i < req.body.files.length; i++) {
+          const file = req.body.files[i];
+          await db.insert(portfolioFiles).values({
+            portfolioId: portfolio.id,
+            filePath: file.filePath,
+            fileType: file.fileType,
+            fileName: file.originalName || `ファイル${i + 1}`,
+            displayOrder: i
+          });
+        }
+      } else if (req.body.filePaths && Array.isArray(req.body.filePaths)) {
+        // 配列形式でファイルパスが送られてきた場合の処理（後方互換性）
+        for (let i = 0; i < req.body.filePaths.length; i++) {
+          await db.insert(portfolioFiles).values({
+            portfolioId: portfolio.id,
+            filePath: req.body.filePaths[i],
+            fileType: req.body.fileTypes?.[i] || 'application/octet-stream',
+            fileName: `ファイル${i + 1}`,
+            displayOrder: i
+          });
+        }
+      }
+      
       res.status(201).json(portfolio);
     } catch (error) {
       if (error instanceof ZodError) {

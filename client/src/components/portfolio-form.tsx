@@ -357,8 +357,8 @@ export default function PortfolioForm({
         const result = await response.json();
         console.log('ファイルアップロード成功:', result);
         
-        // 結果をフォームデータにマージ
-        const submitData: InsertPortfolio = {
+        // 結果をフォームデータにマージ（複数ファイル情報を含める）
+        const submitData: any = {
           userId: Number(data.userId),
           projectId: data.projectId ? Number(data.projectId) : null,
           title: data.title.trim(),
@@ -370,6 +370,14 @@ export default function PortfolioForm({
           fileType: result.fileType || result.fileTypes?.[0] || null,
           imageUrl: result.previewImageUrl || result.previewImageUrls?.[0] || null
         };
+        
+        // 複数ファイル情報を追加
+        if (result.files && Array.isArray(result.files)) {
+          submitData.files = result.files;
+        } else if (result.filePaths && Array.isArray(result.filePaths)) {
+          submitData.filePaths = result.filePaths;
+          submitData.fileTypes = result.fileTypes;
+        }
         
         console.log('送信データ:', JSON.stringify(submitData, null, 2));
         

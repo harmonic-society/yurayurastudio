@@ -5,6 +5,7 @@ import {
   registrationRequests,
   projectAssignments,
   portfolios,
+  portfolioFiles,
   timelinePosts,
   skillCategories,
   skillTags,
@@ -396,10 +397,24 @@ export class DatabaseStorage implements IStorage {
       .where(eq(portfolios.userId, userId))
       .orderBy(desc(portfolios.createdAt));
     
-    return results.map(r => ({
-      ...r.portfolio,
-      project: r.project
-    }));
+    // 各ポートフォリオの関連ファイル情報を取得
+    const portfoliosWithFiles = await Promise.all(
+      results.map(async (r) => {
+        const files = await db
+          .select()
+          .from(portfolioFiles)
+          .where(eq(portfolioFiles.portfolioId, r.portfolio.id))
+          .orderBy(portfolioFiles.displayOrder);
+        
+        return {
+          ...r.portfolio,
+          project: r.project,
+          files
+        };
+      })
+    );
+    
+    return portfoliosWithFiles;
   }
   
   // これは後方互換性のために残すメソッド
@@ -420,10 +435,24 @@ export class DatabaseStorage implements IStorage {
       .where(eq(portfolios.isPublic, true))
       .orderBy(desc(portfolios.createdAt));
     
-    return results.map(r => ({
-      ...r.portfolio,
-      project: r.project
-    }));
+    // 各ポートフォリオの関連ファイル情報を取得
+    const portfoliosWithFiles = await Promise.all(
+      results.map(async (r) => {
+        const files = await db
+          .select()
+          .from(portfolioFiles)
+          .where(eq(portfolioFiles.portfolioId, r.portfolio.id))
+          .orderBy(portfolioFiles.displayOrder);
+        
+        return {
+          ...r.portfolio,
+          project: r.project,
+          files
+        };
+      })
+    );
+    
+    return portfoliosWithFiles;
   }
 
   async getPortfolio(id: number): Promise<PortfolioWithProject | undefined> {
@@ -438,9 +467,17 @@ export class DatabaseStorage implements IStorage {
     
     if (results.length === 0) return undefined;
     
+    // 関連ファイル情報を取得
+    const files = await db
+      .select()
+      .from(portfolioFiles)
+      .where(eq(portfolioFiles.portfolioId, results[0].portfolio.id))
+      .orderBy(portfolioFiles.displayOrder);
+    
     return {
       ...results[0].portfolio,
-      project: results[0].project
+      project: results[0].project,
+      files
     };
   }
 

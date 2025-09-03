@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, FileIcon, ExternalLink, Download, FolderOpen } from "lucide-react";
+import { Edit2, Trash2, FileIcon, ExternalLink, Download, FolderOpen, FileStack, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { type PortfolioWithProject } from "@shared/schema";
 import { useState, useEffect } from "react";
@@ -26,6 +26,7 @@ export default function PortfolioList({
   showTooltips = false
 }: PortfolioListProps) {
   const [previewImages, setPreviewImages] = useState<Record<number, string>>({});
+  const [currentFileIndex, setCurrentFileIndex] = useState<Record<number, number>>({});
 
   useEffect(() => {
     const fetchOgpImages = async () => {
@@ -110,15 +111,105 @@ export default function PortfolioList({
   return (
     <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {portfolios.map((portfolio) => {
-        const isFileType = !portfolio.url && portfolio.filePath;
+        const hasMultipleFiles = portfolio.files && portfolio.files.length > 0;
+        const currentIndex = currentFileIndex[portfolio.id] || 0;
+        const currentFile = hasMultipleFiles ? portfolio.files[currentIndex] : null;
+        
+        // 単一ファイルの場合は従来の処理
+        const isFileType = !hasMultipleFiles && !portfolio.url && portfolio.filePath;
         const fileTypeIcon = isFileType ? getFileTypeIcon(portfolio.fileType) : null;
         const isImageFile = portfolio.fileType?.startsWith('image/');
+        
+        // 複数ファイルの場合は現在のファイルから判断
+        const isMultiFileType = hasMultipleFiles && currentFile;
+        const multiFileIcon = isMultiFileType ? getFileTypeIcon(currentFile.fileType) : null;
+        const isMultiImageFile = currentFile?.fileType?.startsWith('image/');
+        
+        // ナビゲーション関数
+        const handlePrevFile = (e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (hasMultipleFiles) {
+            setCurrentFileIndex(prev => ({
+              ...prev,
+              [portfolio.id]: currentIndex > 0 ? currentIndex - 1 : portfolio.files!.length - 1
+            }));
+          }
+        };
+        
+        const handleNextFile = (e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (hasMultipleFiles) {
+            setCurrentFileIndex(prev => ({
+              ...prev,
+              [portfolio.id]: currentIndex < portfolio.files!.length - 1 ? currentIndex + 1 : 0
+            }));
+          }
+        };
         
         return (
           <Card key={portfolio.id} className="flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 group">
             <div className="relative h-40">
+              {/* 複数ファイルインジケーター */}
+              {hasMultipleFiles && portfolio.files!.length > 1 && (
+                <>
+                  <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded-md text-xs flex items-center gap-1 z-10">
+                    <FileStack className="h-3 w-3" />
+                    <span>{currentIndex + 1} / {portfolio.files!.length}</span>
+                  </div>
+                  
+                  {/* ナビゲーションボタン */}
+                  <button
+                    onClick={handlePrevFile}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={handleNextFile}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </>
+              )}
+              
               {/* 画像表示エリア */}
-              {previewImages[portfolio.id] ? (
+              {hasMultipleFiles && currentFile ? (
+                // 複数ファイルの場合
+                <a 
+                  href={currentFile.filePath} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block w-full h-full cursor-pointer"
+                >
+                  {isMultiImageFile ? (
+                    <img
+                      src={currentFile.filePath}
+                      alt={currentFile.fileName}
+                      className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : multiFileIcon ? (
+                    <div className="flex items-center justify-center w-full h-full bg-gray-50">
+                      <img
+                        src={multiFileIcon}
+                        alt={`${currentFile.fileType} ファイル`}
+                        className="w-20 h-20 object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center w-full h-full bg-muted">
+                      <FileIcon className="w-10 h-10 text-muted-foreground opacity-50" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-200">
+                    <span className="bg-white/90 text-primary px-4 py-2 rounded-md text-xs font-medium">
+                      {isMultiImageFile ? '画像を表示' : 'ファイルを開く'}
+                    </span>
+                  </div>
+                </a>
+              ) : previewImages[portfolio.id] ? (
                 // OGP画像またはイメージURLがある場合
                 <a 
                   href={portfolio.filePath || portfolio.url || '#'} 
@@ -242,7 +333,28 @@ export default function PortfolioList({
                 </p>
                 
                 {/* URL形式とファイル形式で表示を分ける */}
-                {portfolio.url ? (
+                {hasMultipleFiles && currentFile ? (
+                  // 複数ファイルの場合
+                  <a
+                    href={currentFile.filePath}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
+                    download={currentFile.fileName}
+                  >
+                    {portfolio.files!.length > 1 ? (
+                      <>
+                        <FileStack className="h-3 w-3" />
+                        {portfolio.files!.length}個のファイル
+                      </>
+                    ) : (
+                      <>
+                        ファイルを{isMultiImageFile ? '表示' : 'ダウンロード'}
+                        {isMultiImageFile ? <ExternalLink className="h-3 w-3" /> : <Download className="h-3 w-3" />}
+                      </>
+                    )}
+                  </a>
+                ) : portfolio.url ? (
                   <a
                     href={portfolio.url}
                     target="_blank"
