@@ -134,7 +134,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <img 
             src="/logo.png" 
             alt="Yura Yura STUDIO" 
-            className="ml-4 h-8 w-auto object-contain"
+            className="ml-4 h-14 w-auto object-contain"
           />
         </div>
         
@@ -209,7 +209,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <img 
               src="/logo.png" 
               alt="Yura Yura STUDIO" 
-              className="h-10 w-auto object-contain"
+              className="h-16 w-auto object-contain"
             />
           </div>
           
