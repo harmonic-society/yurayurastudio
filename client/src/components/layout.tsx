@@ -131,9 +131,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Menu className="h-6 w-6" />
             )}
           </Button>
-          <h1 className="ml-4 text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Yura Yura STUDIO
-          </h1>
+          <img 
+            src="/logo.png" 
+            alt="Yura Yura STUDIO" 
+            className="ml-4 h-8 w-auto object-contain"
+          />
         </div>
         
         {user && (
@@ -204,9 +206,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         >
           {/* デスクトップヘッダー */}
           <div className="hidden lg:flex h-16 items-center px-6 border-b border-border bg-gradient-to-r from-background to-background/95">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Yura Yura STUDIO
-            </h1>
+            <img 
+              src="/logo.png" 
+              alt="Yura Yura STUDIO" 
+              className="h-10 w-auto object-contain"
+            />
           </div>
           
           {/* モバイルメニュー用の余白 */}

@@ -160,7 +160,11 @@ export default function AuthPage() {
         }} />
         
         <div className="relative z-20 flex items-center text-lg font-medium bg-black/30 backdrop-blur-sm px-4 py-3 rounded-lg shadow-md">
-          <h1 className="text-3xl font-bold tracking-tight text-white">Yura Yura STUDIO</h1>
+          <img 
+            src="/logo.png" 
+            alt="Yura Yura STUDIO" 
+            className="h-12 w-auto object-contain"
+          />
         </div>
         
         <div className="relative z-20 flex flex-col h-full mt-6">
@@ -178,9 +182,9 @@ export default function AuthPage() {
               <div className="flex items-center gap-4 my-6 border-t border-b border-white/20 py-4">
                 <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm shadow-lg h-16 w-16 flex items-center justify-center">
                   <img 
-                    src="/app-icon.svg" 
+                    src="/logo.png" 
                     alt="Yura Yura Studio Icon" 
-                    className="rounded-md transition-all duration-300 hover:transform hover:scale-110" 
+                    className="rounded-md transition-all duration-300 hover:transform hover:scale-110 w-full h-full object-contain" 
                   />
                 </div>
                 <div className="flex-1">
@@ -266,7 +270,7 @@ export default function AuthPage() {
               
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <img src="/app-icon.svg" alt="Yura Yura Studio Icon" className="h-5 w-5" />
+                  <img src="/logo.png" alt="Yura Yura Studio Icon" className="h-5 w-auto object-contain" />
                   <p className="text-xs text-white/80 font-medium">
                     Harmonic Society株式会社
                   </p>
@@ -296,7 +300,11 @@ export default function AuthPage() {
       <div className="p-4 lg:p-8 flex items-center justify-center bg-background">
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
           <div className="flex flex-col space-y-2 text-center mb-4">
-            <h1 className="text-2xl font-bold tracking-tight lg:hidden">Yura Yura STUDIO</h1>
+            <img 
+              src="/logo.png" 
+              alt="Yura Yura STUDIO" 
+              className="h-10 w-auto object-contain mx-auto lg:hidden"
+            />
             <p className="text-sm text-muted-foreground lg:hidden px-4">
               小規模事業者向けWeb制作・集客支援サービス。千葉県を中心にプロジェクトを受注・発注。
             </p>
