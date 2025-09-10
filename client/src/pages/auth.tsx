@@ -163,7 +163,7 @@ export default function AuthPage() {
           <img 
             src="/logo.png" 
             alt="Yura Yura STUDIO" 
-            className="h-32 w-auto object-contain"
+            className="h-16 w-auto object-contain"
           />
         </div>
         
@@ -180,7 +180,7 @@ export default function AuthPage() {
               
               {/* アイコンとタグライン */}
               <div className="flex items-center gap-4 my-6 border-t border-b border-white/20 py-4">
-                <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm shadow-lg h-20 w-20 flex items-center justify-center">
+                <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm shadow-lg h-16 w-16 flex items-center justify-center">
                   <img 
                     src="/logo.png" 
                     alt="Yura Yura Studio Icon" 
@@ -270,7 +270,7 @@ export default function AuthPage() {
               
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <img src="/logo.png" alt="Yura Yura Studio Icon" className="h-12 w-auto object-contain" />
+                  <img src="/logo.png" alt="Yura Yura Studio Icon" className="h-6 w-auto object-contain" />
                   <p className="text-xs text-white/80 font-medium">
                     Harmonic Society株式会社
                   </p>
@@ -303,7 +303,7 @@ export default function AuthPage() {
             <img 
               src="/logo.png" 
               alt="Yura Yura STUDIO" 
-              className="h-24 w-auto object-contain mx-auto lg:hidden"
+              className="h-12 w-auto object-contain mx-auto lg:hidden"
             />
             <p className="text-sm text-muted-foreground lg:hidden px-4">
               小規模事業者向けWeb制作・集客支援サービス。千葉県を中心にプロジェクトを受注・発注。

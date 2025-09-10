@@ -117,7 +117,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       {/* モバイルヘッダー */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-24 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-50 flex items-center justify-between px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border z-50 flex items-center justify-between px-4">
         <div className="flex items-center">
           <Button
             variant="ghost"
@@ -134,7 +134,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <img 
             src="/logo.png" 
             alt="Yura Yura STUDIO" 
-            className="ml-4 h-20 w-auto object-contain"
+            className="ml-4 h-12 w-auto object-contain"
           />
         </div>
         
@@ -188,7 +188,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         )}
       </div>
 
-      <div className="flex h-screen pt-24 lg:pt-0">
+      <div className="flex h-screen pt-20 lg:pt-0">
         {/* オーバーレイ */}
         {isMobileMenuOpen && (
           <div
@@ -205,16 +205,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           )}
         >
           {/* デスクトップヘッダー */}
-          <div className="hidden lg:flex h-24 items-center px-6 border-b border-border bg-gradient-to-r from-background to-background/95">
+          <div className="hidden lg:flex h-20 items-center px-6 border-b border-border bg-gradient-to-r from-background to-background/95">
             <img 
               src="/logo.png" 
               alt="Yura Yura STUDIO" 
-              className="h-20 w-auto object-contain"
+              className="h-12 w-auto object-contain"
             />
           </div>
           
           {/* モバイルメニュー用の余白 */}
-          <div className="lg:hidden h-24" />
+          <div className="lg:hidden h-20" />
           
           {/* ユーザー情報 */}
           {user && (
@@ -239,7 +239,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* メインコンテンツ */}
         <div className="flex-1 overflow-hidden">
           {/* デスクトップ用ヘッダー */}
-          <div className="h-24 border-b border-border hidden lg:flex items-center justify-end px-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
+          <div className="h-20 border-b border-border hidden lg:flex items-center justify-end px-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
             {user && (
               <div className="flex items-center gap-3">
                 <NotificationMenu />
@@ -291,7 +291,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             )}
           </div>
           
-          <main className="overflow-y-auto p-4 md:p-8 h-[calc(100vh-6rem)]">
+          <main className="overflow-y-auto p-4 md:p-8 h-[calc(100vh-5rem)]">
             {children}
           </main>
         </div>
