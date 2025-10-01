@@ -238,8 +238,8 @@ export default function LeadForm({ onSubmit, defaultValues, isSubmitting }: Lead
               <FormItem>
                 <FormLabel>担当者</FormLabel>
                 <Select
-                  onValueChange={(value) => field.onChange(value ? Number(value) : undefined)}
-                  value={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(value === "unassigned" ? undefined : Number(value))}
+                  value={field.value ? field.value.toString() : "unassigned"}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -247,7 +247,7 @@ export default function LeadForm({ onSubmit, defaultValues, isSubmitting }: Lead
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">未設定</SelectItem>
+                    <SelectItem value="unassigned">未設定</SelectItem>
                     {users?.map((user) => (
                       <SelectItem key={user.id} value={user.id.toString()}>
                         {user.name}
