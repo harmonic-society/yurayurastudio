@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { 
+import {
   Table,
   TableBody,
   TableCell,
@@ -14,6 +14,7 @@ import type { Project } from "@shared/schema";
 import { Calendar, Clock, Users, User, DollarSign, Briefcase, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 const statusVariants = {
   NOT_STARTED: {
@@ -46,12 +47,14 @@ interface ProjectListProps {
 }
 
 export default function ProjectList({ projects }: ProjectListProps) {
+  const { isAdmin } = useAuth();
+
   // 日付に基づいて状態を判断する (期日が近づいているか)
   const getDueDateStatus = (dueDate: Date | string) => {
     const date = new Date(dueDate);
     const today = new Date();
     const nearDueDate = addDays(today, 7); // 7日以内が納期
-    
+
     if (isBefore(date, today)) {
       return "text-red-500"; // 期限切れ
     } else if (isBefore(date, nearDueDate)) {
@@ -106,23 +109,29 @@ export default function ProjectList({ projects }: ProjectListProps) {
                   </div>
                 </div>
                 
-                <div className="flex items-start gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-muted-foreground text-xs">報酬総額</p>
-                    <p className="font-medium">¥{project.totalReward.toLocaleString()}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-muted-foreground text-xs">報酬分配</p>
-                    <Badge variant={project.rewardDistributed ? "default" : "outline"} className="font-normal">
-                      {project.rewardDistributed ? "完了" : "未分配"}
-                    </Badge>
-                  </div>
-                </div>
+                {isAdmin && (
+                  <>
+                    <div className="flex items-start gap-2">
+                      <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-muted-foreground text-xs">報酬総額</p>
+                        <p className="font-medium">
+                          {project.totalReward != null ? `¥${project.totalReward.toLocaleString()}` : "未設定"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-muted-foreground text-xs">報酬分配</p>
+                        <Badge variant={project.rewardDistributed ? "default" : "outline"} className="font-normal">
+                          {project.rewardDistributed ? "完了" : "未分配"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </CardContent>
@@ -149,8 +158,12 @@ export default function ProjectList({ projects }: ProjectListProps) {
             <TableHead className="font-semibold text-primary">状態</TableHead>
             <TableHead className="font-semibold text-primary">顧客名</TableHead>
             <TableHead className="font-semibold text-primary">納期</TableHead>
-            <TableHead className="font-semibold text-primary">報酬総額</TableHead>
-            <TableHead className="font-semibold text-primary">報酬分配</TableHead>
+            {isAdmin && (
+              <>
+                <TableHead className="font-semibold text-primary">報酬総額</TableHead>
+                <TableHead className="font-semibold text-primary">報酬分配</TableHead>
+              </>
+            )}
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -185,22 +198,26 @@ export default function ProjectList({ projects }: ProjectListProps) {
               <TableCell className={getDueDateStatus(project.dueDate)}>
                 {format(new Date(project.dueDate), "yyyy年M月d日")}
               </TableCell>
-              <TableCell className="font-medium">
-                ¥{project.totalReward.toLocaleString()}
-              </TableCell>
-              <TableCell>
-                <Badge 
-                  variant={project.rewardDistributed ? "default" : "outline"} 
-                  className={cn(
-                    "font-normal",
-                    project.rewardDistributed 
-                      ? "bg-green-200 text-green-700 hover:bg-green-300" 
-                      : "border-amber-300 text-amber-700 hover:bg-amber-100"
-                  )}
-                >
-                  {project.rewardDistributed ? "完了" : "未分配"}
-                </Badge>
-              </TableCell>
+              {isAdmin && (
+                <>
+                  <TableCell className="font-medium">
+                    {project.totalReward != null ? `¥${project.totalReward.toLocaleString()}` : "未設定"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={project.rewardDistributed ? "default" : "outline"}
+                      className={cn(
+                        "font-normal",
+                        project.rewardDistributed
+                          ? "bg-green-200 text-green-700 hover:bg-green-300"
+                          : "border-amber-300 text-amber-700 hover:bg-amber-100"
+                      )}
+                    >
+                      {project.rewardDistributed ? "完了" : "未分配"}
+                    </Badge>
+                  </TableCell>
+                </>
+              )}
               <TableCell>
                 <Link href={`/projects/${project.id}`}>
                   <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
