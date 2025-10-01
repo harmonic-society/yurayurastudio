@@ -9,6 +9,8 @@ import Layout from "@/components/layout";
 import Dashboard from "@/pages/dashboard";
 import ProjectList from "@/pages/projects";
 import ProjectDetails from "@/pages/projects/[id]";
+import Leads from "@/pages/leads";
+import LeadDetails from "@/pages/leads/[id]";
 import Team from "@/pages/team";
 import Settings from "@/pages/settings";
 import Portfolios from "@/pages/portfolios";
@@ -31,6 +33,8 @@ function Router() {
               <ProtectedRoute path="/" component={Dashboard} />
               <ProtectedRoute path="/projects" component={ProjectList} />
               <ProtectedRoute path="/projects/:id" component={ProjectDetails} />
+              <ProtectedRoute path="/leads" component={Leads} />
+              <ProtectedRoute path="/leads/:id" component={LeadDetails} />
               <ProtectedRoute path="/portfolios" component={Portfolios} />
               <ProtectedRoute path="/timeline" component={Timeline} />
               <ProtectedRoute path="/messages" component={MessagesPage} />
