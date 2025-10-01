@@ -2136,28 +2136,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // プロジェクトファイルのアップロード
+  // プロジェクトファイルのアップロード（全ユーザーが可能）
   app.post("/api/projects/:id/files", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
 
     const projectId = Number(req.params.id);
-    
-    // プロジェクトへのアクセス権限確認
+
+    // プロジェクトの存在確認
     const project = await storage.getProject(projectId);
     if (!project) {
       return res.status(404).json({ message: "プロジェクトが見つかりません" });
-    }
-    
-    const userId = req.user.id;
-    const hasAccess = req.user.role === "ADMIN" || 
-                      project.directorId === userId || 
-                      project.salesId === userId || 
-                      project.assignedUsers?.includes(userId);
-    
-    if (!hasAccess) {
-      return res.status(403).json({ message: "このプロジェクトへのアクセス権限がありません" });
     }
 
     if (!req.files || !req.files.file) {
@@ -2433,28 +2423,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Google Driveファイルの紐付け
+  // Google Driveファイルの紐付け（全ユーザーが可能）
   app.post("/api/projects/:id/google-drive-files", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
 
     const projectId = Number(req.params.id);
-    
-    // プロジェクトへのアクセス権限確認
+
+    // プロジェクトの存在確認
     const project = await storage.getProject(projectId);
     if (!project) {
       return res.status(404).json({ message: "プロジェクトが見つかりません" });
-    }
-    
-    const userId = req.user.id;
-    const hasAccess = req.user.role === "ADMIN" || 
-                      project.directorId === userId || 
-                      project.salesId === userId || 
-                      project.assignedUsers?.includes(userId);
-    
-    if (!hasAccess) {
-      return res.status(403).json({ message: "このプロジェクトへのアクセス権限がありません" });
     }
 
     const { id: googleDriveId, name, mimeType, url, size, description } = req.body;

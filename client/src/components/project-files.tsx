@@ -232,12 +232,10 @@ export default function ProjectFiles({ projectId, isAdmin }: ProjectFilesProps) 
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>プロジェクトファイル</CardTitle>
-        {isAdmin && (
-          <Button onClick={() => setIsUploadDialogOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            ファイルをアップロード
-          </Button>
-        )}
+        <Button onClick={() => setIsUploadDialogOpen(true)}>
+          <Upload className="h-4 w-4 mr-2" />
+          ファイルをアップロード
+        </Button>
       </CardHeader>
       <CardContent>
         {files.length === 0 ? (
