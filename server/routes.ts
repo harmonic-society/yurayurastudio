@@ -136,8 +136,12 @@ export async function registerRoutes(app: Express) {
     res.json(project);
   });
 
-  // Create a project (管理者のみ)
-  app.post("/api/projects", isAdmin, async (req, res) => {
+  // Create a project (全ユーザーが作成可能)
+  app.post("/api/projects", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
     try {
       const projectData = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(projectData);

@@ -80,13 +80,10 @@ export default function Projects() {
           </p>
         </div>
         
-        {/* 管理者だけが新規プロジェクトを作成できる */}
-        {isAdmin && (
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            新規プロジェクト
-          </Button>
-        )}
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          新規プロジェクト
+        </Button>
       </div>
 
       <ProjectFilter
