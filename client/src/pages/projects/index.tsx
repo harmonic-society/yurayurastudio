@@ -101,9 +101,6 @@ export default function Projects() {
       ) : (
         <div className="text-center py-10">
           <p className="text-muted-foreground">表示できるプロジェクトはありません</p>
-          {!isAdmin && (
-            <p className="mt-2 text-sm text-muted-foreground">プロジェクトへのアクセス権限がない、またはまだアサインされていない可能性があります</p>
-          )}
         </div>
       )}
 

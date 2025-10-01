@@ -85,28 +85,28 @@ export async function registerRoutes(app: Express) {
 
   const httpServer = createServer(app);
 
-  // Get all projects (読み取り可能だがフィルタリング)
+  // Get all projects (全ユーザーが閲覧可能)
   app.get("/api/projects", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
-    
+
     const allProjects = await storage.getProjects();
-    
-    // 管理者の場合は全プロジェクトを返す
+
+    // 管理者の場合は全プロジェクト情報を返す
     if (req.user.role === "ADMIN") {
       return res.json(allProjects);
     }
-    
-    // 一般ユーザーの場合は担当プロジェクトのみ返す
-    const userId = req.user.id;
-    const filteredProjects = allProjects.filter(project => 
-      project.directorId === userId || 
-      project.salesId === userId || 
-      project.assignedUsers?.includes(userId)
-    );
-    
-    res.json(filteredProjects);
+
+    // 一般ユーザーの場合は全プロジェクトを返すが、報酬情報を非表示にする
+    const projectsWithoutReward = allProjects.map(project => ({
+      ...project,
+      totalReward: null,
+      rewardRules: null,
+      clientContact: null
+    }));
+
+    res.json(projectsWithoutReward);
   });
 
   // Get a single project (読み取り可能だが権限チェック)
