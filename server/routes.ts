@@ -5,18 +5,18 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { storageService } from "./storage/index.js";
-import { 
-  insertProjectSchema, 
-  insertCommentSchema, 
-  insertUserSchema, 
-  updateUserSchema, 
-  insertPortfolioSchema, 
-  changePasswordSchema, 
-  registrationRequestSchema, 
-  registrationRequests, 
-  users, 
-  type RegistrationRequest, 
-  type InsertRegistrationRequest, 
+import {
+  insertProjectSchema,
+  insertCommentSchema,
+  insertUserSchema,
+  updateUserSchema,
+  insertPortfolioSchema,
+  changePasswordSchema,
+  registrationRequestSchema,
+  registrationRequests,
+  users,
+  type RegistrationRequest,
+  type InsertRegistrationRequest,
   insertTimelinePostSchema,
   insertSkillCategorySchema,
   insertSkillTagSchema,
@@ -28,7 +28,9 @@ import {
   type DirectMessage,
   workTypes,
   projectFiles,
-  portfolioFiles
+  portfolioFiles,
+  insertLeadSchema,
+  insertLeadCommentSchema
 } from "@shared/schema";
 import { ZodError, z } from "zod";
 import { setupAuth } from "./auth";
@@ -2923,10 +2925,145 @@ export async function registerRoutes(app: Express) {
         console.error("スタックトレース:", error.stack);
       }
       
-      res.status(500).json({ 
+      res.status(500).json({
         message: "ファイルの取得に失敗しました",
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
+    }
+  });
+
+  // ===== リード案件API =====
+
+  // 全リード案件を取得
+  app.get("/api/leads", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    const allLeads = await storage.getLeads();
+    res.json(allLeads);
+  });
+
+  // リード案件詳細を取得
+  app.get("/api/leads/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    const leadId = Number(req.params.id);
+    const lead = await storage.getLead(leadId);
+
+    if (!lead) {
+      return res.status(404).json({ message: "リード案件が見つかりません" });
+    }
+
+    res.json(lead);
+  });
+
+  // リード案件を作成
+  app.post("/api/leads", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    try {
+      const leadData = insertLeadSchema.parse({
+        ...req.body,
+        createdById: req.user.id
+      });
+      const lead = await storage.createLead(leadData);
+      res.status(201).json(lead);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なリード案件データです", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "リード案件の作成に失敗しました" });
+      }
+    }
+  });
+
+  // リード案件を更新
+  app.patch("/api/leads/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    try {
+      const leadId = Number(req.params.id);
+      const leadData = insertLeadSchema.partial().parse(req.body);
+      const lead = await storage.updateLead(leadId, leadData);
+      res.json(lead);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なリード案件データです", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "リード案件の更新に失敗しました" });
+      }
+    }
+  });
+
+  // リード案件を削除
+  app.delete("/api/leads/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    try {
+      const leadId = Number(req.params.id);
+      await storage.deleteLead(leadId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "リード案件の削除に失敗しました" });
+    }
+  });
+
+  // リード案件のコメント一覧を取得
+  app.get("/api/leads/:id/comments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    const leadId = Number(req.params.id);
+    const comments = await storage.getLeadComments(leadId);
+    res.json(comments);
+  });
+
+  // リード案件にコメントを追加
+  app.post("/api/leads/:id/comments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    try {
+      const leadId = Number(req.params.id);
+      const commentData = insertLeadCommentSchema.parse({
+        ...req.body,
+        leadId,
+        userId: req.user.id
+      });
+      const comment = await storage.createLeadComment(commentData);
+      res.status(201).json(comment);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "無効なコメントデータです", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "コメントの追加に失敗しました" });
+      }
+    }
+  });
+
+  // リード案件のコメントを削除
+  app.delete("/api/leads/:leadId/comments/:commentId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "認証が必要です" });
+    }
+
+    try {
+      const commentId = Number(req.params.commentId);
+      await storage.deleteLeadComment(commentId);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "コメントの削除に失敗しました" });
     }
   });
 

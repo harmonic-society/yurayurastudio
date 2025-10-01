@@ -1,4 +1,4 @@
-import { 
+import {
   projects,
   comments,
   users,
@@ -14,7 +14,9 @@ import {
   notificationSettings,
   notificationHistory,
   directMessages,
-  type Project, 
+  leads,
+  leadComments,
+  type Project,
   type InsertProject,
   type Comment,
   type InsertComment,
@@ -40,7 +42,11 @@ import {
   type InsertNotificationHistory,
   type NotificationEvent,
   type DirectMessage,
-  type InsertDirectMessage
+  type InsertDirectMessage,
+  type Lead,
+  type InsertLead,
+  type LeadComment,
+  type InsertLeadComment
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, inArray, sql, isNull, count } from "drizzle-orm";
@@ -1011,6 +1017,52 @@ export class DatabaseStorage implements IStorage {
         )
       );
     return result[0].count;
+  }
+
+  // ===== リード案件管理 =====
+  async getLeads(): Promise<Lead[]> {
+    return await db.select().from(leads).orderBy(desc(leads.createdAt));
+  }
+
+  async getLead(id: number): Promise<Lead | undefined> {
+    const result = await db.select().from(leads).where(eq(leads.id, id));
+    return result[0];
+  }
+
+  async createLead(lead: InsertLead): Promise<Lead> {
+    const result = await db.insert(leads).values(lead).returning();
+    return result[0];
+  }
+
+  async updateLead(id: number, lead: Partial<InsertLead>): Promise<Lead> {
+    const result = await db
+      .update(leads)
+      .set({ ...lead, updatedAt: new Date() })
+      .where(eq(leads.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteLead(id: number): Promise<void> {
+    await db.delete(leads).where(eq(leads.id, id));
+  }
+
+  // ===== リードコメント管理 =====
+  async getLeadComments(leadId: number): Promise<LeadComment[]> {
+    return await db
+      .select()
+      .from(leadComments)
+      .where(eq(leadComments.leadId, leadId))
+      .orderBy(leadComments.createdAt);
+  }
+
+  async createLeadComment(comment: InsertLeadComment): Promise<LeadComment> {
+    const result = await db.insert(leadComments).values(comment).returning();
+    return result[0];
+  }
+
+  async deleteLeadComment(id: number): Promise<void> {
+    await db.delete(leadComments).where(eq(leadComments.id, id));
   }
 }
 

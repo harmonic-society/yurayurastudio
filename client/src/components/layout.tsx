@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect } from "react";
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   FolderKanban,
   Users,
   UserCircle,
@@ -16,7 +16,8 @@ import {
   Sun,
   Moon,
   Bell,
-  HelpCircle
+  HelpCircle,
+  Lightbulb
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navigation = [
     { name: "ダッシュボード", href: "/", icon: LayoutDashboard },
     { name: "プロジェクト", href: "/projects", icon: FolderKanban },
+    { name: "リード案件", href: "/leads", icon: Lightbulb },
     { name: "ポートフォリオ", href: "/portfolios", icon: Image },
     { name: "タイムライン", href: "/timeline", icon: MessageSquare },
     // 管理者には「チーム」と「プロフィール」を表示し、一般ユーザーには「プロフィール」のみ表示

@@ -117,6 +117,63 @@ export const comments = pgTable("comments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// リード案件のステータス
+export const leadStatus = ["NEW", "CONTACTED", "NEGOTIATING", "QUALIFIED", "CONVERTED", "LOST"] as const;
+export type LeadStatus = (typeof leadStatus)[number];
+
+// リード案件テーブル
+export const leads = pgTable("leads", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  companyName: text("company_name").notNull(),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  status: text("status", { enum: leadStatus }).notNull().default("NEW"),
+  estimatedBudget: integer("estimated_budget"),
+  estimatedStartDate: timestamp("estimated_start_date"),
+  source: text("source"), // リードの獲得元
+  createdById: integer("created_by_id").notNull().references(() => users.id),
+  assignedToId: integer("assigned_to_id").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// リード案件へのコメント
+export const leadComments = pgTable("lead_comments", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").notNull().references(() => leads.id, { onDelete: 'cascade' }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// リード案件のリレーション
+export const leadsRelations = relations(leads, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [leads.createdById],
+    references: [users.id],
+  }),
+  assignedTo: one(users, {
+    fields: [leads.assignedToId],
+    references: [users.id],
+  }),
+  comments: many(leadComments),
+}));
+
+// リードコメントのリレーション
+export const leadCommentsRelations = relations(leadComments, ({ one }) => ({
+  lead: one(leads, {
+    fields: [leadComments.leadId],
+    references: [leads.id],
+  }),
+  user: one(users, {
+    fields: [leadComments.userId],
+    references: [users.id],
+  }),
+}));
+
 export const portfolios = pgTable("portfolios", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -217,6 +274,24 @@ export const insertCommentSchema = createInsertSchema(comments).omit({
   createdAt: true
 });
 
+export const insertLeadSchema = createInsertSchema(leads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+}).extend({
+  title: z.string().min(1, "タイトルは必須です"),
+  description: z.string().min(1, "説明は必須です"),
+  companyName: z.string().min(1, "企業名は必須です"),
+  contactEmail: z.string().email("有効なメールアドレスを入力してください").optional().or(z.literal("")),
+  estimatedStartDate: z.coerce.date().optional(),
+  createdById: z.number(),
+});
+
+export const insertLeadCommentSchema = createInsertSchema(leadComments).omit({
+  id: true,
+  createdAt: true
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true
 }).extend({
@@ -261,6 +336,10 @@ export type Project = typeof projects.$inferSelect & {
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Comment = typeof comments.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type LeadComment = typeof leadComments.$inferSelect;
+export type InsertLeadComment = z.infer<typeof insertLeadCommentSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof registerUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
