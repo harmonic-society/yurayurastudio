@@ -2213,28 +2213,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // プロジェクトファイル一覧の取得
+  // プロジェクトファイル一覧の取得（全ユーザーが閲覧可能）
   app.get("/api/projects/:id/files", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
     }
 
     const projectId = Number(req.params.id);
-    
-    // プロジェクトへのアクセス権限確認
+
+    // プロジェクトの存在確認
     const project = await storage.getProject(projectId);
     if (!project) {
       return res.status(404).json({ message: "プロジェクトが見つかりません" });
-    }
-    
-    const userId = req.user.id;
-    const hasAccess = req.user.role === "ADMIN" || 
-                      project.directorId === userId || 
-                      project.salesId === userId || 
-                      project.assignedUsers?.includes(userId);
-    
-    if (!hasAccess) {
-      return res.status(403).json({ message: "このプロジェクトへのアクセス権限がありません" });
     }
 
     try {
@@ -2265,7 +2255,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // プロジェクトファイルのダウンロード
+  // プロジェクトファイルのダウンロード（全ユーザーが可能）
   app.get("/api/projects/:projectId/files/:fileId/download", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "認証が必要です" });
@@ -2273,21 +2263,11 @@ export async function registerRoutes(app: Express) {
 
     const projectId = Number(req.params.projectId);
     const fileId = Number(req.params.fileId);
-    
-    // プロジェクトへのアクセス権限確認
+
+    // プロジェクトの存在確認
     const project = await storage.getProject(projectId);
     if (!project) {
       return res.status(404).json({ message: "プロジェクトが見つかりません" });
-    }
-    
-    const userId = req.user.id;
-    const hasAccess = req.user.role === "ADMIN" || 
-                      project.directorId === userId || 
-                      project.salesId === userId || 
-                      project.assignedUsers?.includes(userId);
-    
-    if (!hasAccess) {
-      return res.status(403).json({ message: "このプロジェクトへのアクセス権限がありません" });
     }
 
     try {
