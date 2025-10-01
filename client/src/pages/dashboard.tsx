@@ -157,25 +157,47 @@ export default function Dashboard() {
       "COMPLETED": 0,
       "ON_HOLD": 0
     });
-    
+
     // 期限が近いプロジェクト（7日以内）
     const today = new Date();
     const oneWeekLater = addDays(today, 7);
     const upcomingDeadlines = projects
-      .filter(project => 
-        project.status !== "COMPLETED" && 
+      .filter(project =>
+        project.status !== "COMPLETED" &&
         isBefore(new Date(project.dueDate), oneWeekLater)
       )
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
       .slice(0, 3);
-    
+
     // 総報酬額
     const totalReward = projects.reduce((sum, project) => sum + (project.totalReward || 0), 0);
-    
-    return { statusCounts, upcomingDeadlines, totalReward };
+
+    // 月別売上集計（過去12ヶ月）
+    const monthlySales = new Map<string, number>();
+    projects.forEach(project => {
+      if (project.dueDate && project.totalReward) {
+        const dueDate = new Date(project.dueDate);
+        const monthKey = format(dueDate, 'yyyy-MM');
+        monthlySales.set(monthKey, (monthlySales.get(monthKey) || 0) + project.totalReward);
+      }
+    });
+
+    // クライアント別売上集計
+    const clientSales = new Map<string, { revenue: number; projectCount: number }>();
+    projects.forEach(project => {
+      if (project.clientName && project.totalReward) {
+        const existing = clientSales.get(project.clientName) || { revenue: 0, projectCount: 0 };
+        clientSales.set(project.clientName, {
+          revenue: existing.revenue + project.totalReward,
+          projectCount: existing.projectCount + 1
+        });
+      }
+    });
+
+    return { statusCounts, upcomingDeadlines, totalReward, monthlySales, clientSales };
   };
-  
-  const { statusCounts, upcomingDeadlines, totalReward } = calculateStats();
+
+  const { statusCounts, upcomingDeadlines, totalReward, monthlySales, clientSales } = calculateStats();
 
   // プロジェクトのステータスごとのデータを棒グラフ用に変換
   const barChartData = [
@@ -201,24 +223,28 @@ export default function Dashboard() {
     }
   ];
 
-  // 直近3ヶ月のプロジェクト完了数（現実的なダミーデータ）
+  // 月別売上データの準備（過去12ヶ月）
   const today = new Date();
-  const months = [];
-  for (let i = 2; i >= 0; i--) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    months.push(format(d, 'yyyy年M月', { locale: ja }));
+  const monthlyRevenueData = [];
+  for (let i = 11; i >= 0; i--) {
+    const targetDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const monthKey = format(targetDate, 'yyyy-MM');
+    const monthLabel = format(targetDate, 'yyyy年M月', { locale: ja });
+    monthlyRevenueData.push({
+      month: monthLabel,
+      売上: monthlySales.get(monthKey) || 0
+    });
   }
-  
-  // 現在の月、前月、前々月に 完了したプロジェクトを振り分ける
-  // 実際のデータがないため、statusがCOMPLETEDのプロジェクトを月別に均等に分配する
-  const completedProjects = projects.filter(project => project.status === "COMPLETED").length;
-  const baseCount = Math.floor(completedProjects / 3);
-  
-  const monthlyCompletionData = [
-    { month: months[0], 完了数: baseCount }, // 前々月
-    { month: months[1], 完了数: baseCount }, // 前月
-    { month: months[2], 完了数: completedProjects - (baseCount * 2) }, // 当月
-  ];
+
+  // クライアント別売上データの準備（上位10クライアント）
+  const clientRevenueData = Array.from(clientSales.entries())
+    .map(([clientName, data]) => ({
+      client: clientName,
+      売上: data.revenue,
+      プロジェクト数: data.projectCount
+    }))
+    .sort((a, b) => b.売上 - a.売上)
+    .slice(0, 10);
 
   return (
     <div className="space-y-8">
@@ -327,6 +353,12 @@ export default function Dashboard() {
               <span>概要</span>
             </div>
           </TabsTrigger>
+          <TabsTrigger value="revenue" className="flex-1 sm:flex-none">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span>売上分析</span>
+            </div>
+          </TabsTrigger>
           <TabsTrigger value="deadlines" className="flex-1 sm:flex-none">
             <div className="flex items-center gap-2">
               <CalendarRange className="h-4 w-4" />
@@ -381,53 +413,193 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* 月別完了数 */}
+            {/* 月別売上推移 */}
             <Card className="bg-white border border-primary/10 shadow-sm transition-all duration-300 hover:shadow-md">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold">月別完了プロジェクト</CardTitle>
+                  <CardTitle className="text-lg font-semibold">月別売上推移</CardTitle>
                   <div className="p-2 rounded-full bg-primary/10">
                     <TrendingUp className="h-4 w-4 text-primary" />
                   </div>
                 </div>
-                <CardDescription>直近3ヶ月の完了実績</CardDescription>
+                <CardDescription>過去12ヶ月の売上トレンド</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyCompletionData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                    <BarChart data={monthlyRevenueData.slice(-6)} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                      <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                      <XAxis dataKey="month" tick={{ fontSize: 10 }} angle={-15} textAnchor="end" height={60} />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 12 }}
+                        tickFormatter={(value) => `¥${(value / 10000).toFixed(0)}万`}
+                      />
                       <RechartsTooltip
-                        formatter={(value: any) => [`${value}件`, "完了プロジェクト"]}
+                        formatter={(value: any) => [`¥${value.toLocaleString()}`, "売上"]}
                         labelFormatter={(label: any) => `${label}`}
                       />
-                      <Bar 
-                        dataKey="完了数" 
-                        fill="#10b981" 
-                        name="完了プロジェクト" 
+                      <Bar
+                        dataKey="売上"
+                        fill="#3b82f6"
+                        name="売上"
                         radius={[4, 4, 0, 0]}
-                        label={{ position: 'top', fontSize: 12 }}
                       />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
-              <CardFooter className="bg-green-50/50 border-t border-green-100 p-4 flex items-center justify-between">
+              <CardFooter className="bg-blue-50/50 border-t border-blue-100 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <p className="text-sm font-medium text-green-700">
-                    {statusCounts["COMPLETED"] || 0}件 完了
+                  <Wallet className="h-4 w-4 text-blue-500" />
+                  <p className="text-sm font-medium text-blue-700">
+                    総売上: ¥{totalReward.toLocaleString()}
                   </p>
                 </div>
-                <Link href="/projects">
+                <Link href="#revenue">
                   <Button variant="ghost" size="sm" className="gap-1 text-primary">
                     <span>詳細を見る</span>
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
               </CardFooter>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="revenue" className="mt-4">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* 月別売上詳細 */}
+            <Card className="bg-white border border-primary/10 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold">月別売上詳細</CardTitle>
+                  <div className="p-2 rounded-full bg-primary/10">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+                <CardDescription>過去12ヶ月の月別売上推移</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyRevenueData} margin={{ top: 10, right: 10, left: 10, bottom: 50 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fontSize: 9 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(value) => `¥${(value / 10000).toFixed(0)}万`}
+                      />
+                      <RechartsTooltip
+                        formatter={(value: any) => [`¥${value.toLocaleString()}`, "売上"]}
+                        labelFormatter={(label: any) => `${label}`}
+                      />
+                      <Bar
+                        dataKey="売上"
+                        fill="#3b82f6"
+                        name="売上"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-blue-50/50 border-t border-blue-100 p-4">
+                <div className="w-full">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-blue-700">平均月間売上</p>
+                    <p className="text-lg font-bold text-blue-900">
+                      ¥{Math.round(totalReward / 12).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-blue-700">総売上</p>
+                    <p className="text-lg font-bold text-blue-900">
+                      ¥{totalReward.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </CardFooter>
+            </Card>
+
+            {/* クライアント別売上ランキング */}
+            <Card className="bg-white border border-primary/10 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold">クライアント別売上</CardTitle>
+                  <div className="p-2 rounded-full bg-primary/10">
+                    <Users className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+                <CardDescription>売上上位10クライアント</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {clientRevenueData.length > 0 ? (
+                  <div className="space-y-3 max-h-[350px] overflow-y-auto">
+                    {clientRevenueData.map((client, index) => (
+                      <div
+                        key={client.client}
+                        className="rounded-lg bg-gradient-to-r from-primary/5 to-transparent border border-primary/10 p-4 transition-all hover:bg-primary/10"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold text-sm">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-sm">{client.client}</h4>
+                              <p className="text-xs text-muted-foreground">
+                                {client.プロジェクト数}件のプロジェクト
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-primary">
+                              ¥{client.売上.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {((client.売上 / totalReward) * 100).toFixed(1)}%
+                            </p>
+                          </div>
+                        </div>
+                        <Progress
+                          value={(client.売上 / totalReward) * 100}
+                          className="h-1.5"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Users className="h-12 w-12 text-gray-300 mb-3" />
+                    <p className="text-sm text-muted-foreground">
+                      クライアント別の売上データがありません
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+              {clientRevenueData.length > 0 && (
+                <CardFooter className="bg-gray-50 border-t border-gray-100 p-4">
+                  <div className="w-full flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      {clientRevenueData.length}クライアント
+                    </p>
+                    <Link href="/projects">
+                      <Button variant="ghost" size="sm" className="gap-1 text-primary">
+                        <span>すべてのプロジェクトを見る</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardFooter>
+              )}
             </Card>
           </div>
         </TabsContent>
