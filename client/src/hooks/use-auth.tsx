@@ -171,9 +171,11 @@ export function useAuth() {
 
   // isAdmin関数を追加
   const isAdmin = context.user?.role === "ADMIN";
+  const userId = context.user?.id;
 
   return {
     ...context,
     isAdmin,
+    userId,
   };
 }
