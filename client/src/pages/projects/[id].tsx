@@ -113,6 +113,15 @@ export default function ProjectDetails() {
   const [, setLocation] = useLocation();
   const { isAdmin, userId: currentUserId } = useAuth();
 
+  // プロジェクトの編集権限を確認
+  const canEditProject = isAdmin || (
+    project && currentUserId && (
+      project.assignedUsers?.includes(Number(currentUserId)) ||
+      project.directorId === Number(currentUserId) ||
+      project.salesId === Number(currentUserId)
+    )
+  );
+
   // ページロード時にURLのハッシュに基づいてコメントセクションにスクロール
   useEffect(() => {
     // ハッシュがある場合（#comment-section など）
@@ -301,7 +310,7 @@ export default function ProjectDetails() {
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          {isAdmin ? (
+          {canEditProject ? (
             <>
               <Button
                 onClick={() => setIsEditDialogOpen(true)}
@@ -310,14 +319,16 @@ export default function ProjectDetails() {
                 <Edit2 className="h-4 w-4 mr-2" />
                 プロジェクトを編集
               </Button>
-              <Button
-                variant="destructive"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                className="flex-1 sm:flex-none"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                削除
-              </Button>
+              {isAdmin && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  削除
+                </Button>
+              )}
             </>
           ) : (
             <TooltipProvider>
@@ -334,7 +345,7 @@ export default function ProjectDetails() {
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>プロジェクトの編集は管理者のみが行えます</p>
+                  <p>プロジェクトの編集は管理者または担当者のみが行えます</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -531,7 +542,7 @@ export default function ProjectDetails() {
         </Card>
       </div>
 
-      {isAdmin && (
+      {canEditProject && (
         <>
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
@@ -549,7 +560,8 @@ export default function ProjectDetails() {
             </DialogContent>
           </Dialog>
 
-          <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          {isAdmin && (
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>プロジェクトの削除</AlertDialogTitle>
@@ -570,6 +582,7 @@ export default function ProjectDetails() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          )}
 
           <Dialog open={isPortfolioDialogOpen} onOpenChange={setIsPortfolioDialogOpen}>
             <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">

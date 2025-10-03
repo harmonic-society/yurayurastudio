@@ -15,7 +15,7 @@ export function isAdmin(req: Request, res: Response, next: NextFunction) {
 }
 
 // プロジェクトステータス変更の権限チェック
-export function canUpdateProjectStatus(req: Request, res: Response, next: NextFunction) {
+export async function canUpdateProjectStatus(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "認証が必要です" });
   }
@@ -26,12 +26,30 @@ export function canUpdateProjectStatus(req: Request, res: Response, next: NextFu
     return next();
   }
 
-  // それ以外の変更は管理者のみ
-  if (req.user?.role !== "ADMIN") {
-    return res.status(403).json({ message: "このアクションには管理者権限が必要です" });
+  // 管理者の場合は常に許可
+  if (req.user?.role === "ADMIN") {
+    return next();
   }
 
-  next();
+  // 一般ユーザーの場合、担当プロジェクトかチェック
+  const projectId = parseInt(req.params.id);
+  const project = await storage.getProject(projectId);
+
+  if (!project) {
+    return res.status(404).json({ message: "プロジェクトが見つかりません" });
+  }
+
+  const userId = req.user?.id;
+  const isAssignedCreator = project.assignedUsers?.includes(userId);
+  const isAssignedDirector = project.directorId === userId;
+  const isAssignedSales = project.salesId === userId;
+
+  if (isAssignedCreator || isAssignedDirector || isAssignedSales) {
+    return next();
+  }
+
+  // 担当者でない場合は拒否
+  return res.status(403).json({ message: "このプロジェクトを編集する権限がありません" });
 }
 
 // パスワード変更の権限チェック
