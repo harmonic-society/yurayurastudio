@@ -132,14 +132,33 @@ export default function ProjectDetails() {
 
   // プロジェクトの編集権限を確認
   const canEditProject = useMemo(() => {
+    console.log('canEditProject check:', {
+      isAdmin,
+      currentUserId,
+      currentUserIdType: typeof currentUserId,
+      project: project ? {
+        assignedUsers: project.assignedUsers,
+        directorId: project.directorId,
+        salesId: project.salesId
+      } : null
+    });
+
     if (isAdmin) return true;
     if (!project || !currentUserId) return false;
 
-    return (
-      project.assignedUsers?.includes(Number(currentUserId)) ||
-      project.directorId === Number(currentUserId) ||
-      project.salesId === Number(currentUserId)
-    );
+    const userIdNum = Number(currentUserId);
+    const isAssignedCreator = project.assignedUsers?.includes(userIdNum);
+    const isAssignedDirector = project.directorId === userIdNum;
+    const isAssignedSales = project.salesId === userIdNum;
+
+    console.log('Permission check:', {
+      userIdNum,
+      isAssignedCreator,
+      isAssignedDirector,
+      isAssignedSales
+    });
+
+    return isAssignedCreator || isAssignedDirector || isAssignedSales;
   }, [isAdmin, project, currentUserId]);
 
   const updateMutation = useMutation({
