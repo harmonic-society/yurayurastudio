@@ -113,18 +113,6 @@ export default function ProjectDetails() {
   const [, setLocation] = useLocation();
   const { isAdmin, userId: currentUserId } = useAuth();
 
-  // プロジェクトの編集権限を確認
-  const canEditProject = useMemo(() => {
-    if (isAdmin) return true;
-    if (!project || !currentUserId) return false;
-
-    return (
-      project.assignedUsers?.includes(Number(currentUserId)) ||
-      project.directorId === Number(currentUserId) ||
-      project.salesId === Number(currentUserId)
-    );
-  }, [isAdmin, project, currentUserId]);
-
   // ページロード時にURLのハッシュに基づいてコメントセクションにスクロール
   useEffect(() => {
     // ハッシュがある場合（#comment-section など）
@@ -141,6 +129,18 @@ export default function ProjectDetails() {
   const { data: project, isLoading, error } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
   });
+
+  // プロジェクトの編集権限を確認
+  const canEditProject = useMemo(() => {
+    if (isAdmin) return true;
+    if (!project || !currentUserId) return false;
+
+    return (
+      project.assignedUsers?.includes(Number(currentUserId)) ||
+      project.directorId === Number(currentUserId) ||
+      project.salesId === Number(currentUserId)
+    );
+  }, [isAdmin, project, currentUserId]);
 
   const updateMutation = useMutation({
     mutationFn: (data: any) =>
